@@ -28,7 +28,7 @@ contract FPC {
         // FPC::at(context.this_address()).pay_refund_with_shielded_rebate(amount, asset, secret_hash).set_public_teardown_function(&mut context);
         context.set_public_teardown_function(
             context.this_address(),
-            FunctionSelector::from_signature("pay_refund_with_shielded_rebate(Field,(Field),Field)"),
+            FunctionSelector::from_signature("pay_refund_with_shielded_rebate(u64,(Field),Field)"),
             [amount, asset.to_field(), secret_hash]
         );
     }
@@ -41,7 +41,7 @@ contract FPC {
         // FPC::at(context.this_address()).pay_refund(context.msg_sender(), amount, asset).set_public_teardown_function(&mut context);
         context.set_public_teardown_function(
             context.this_address(),
-            FunctionSelector::from_signature("pay_refund((Field),Field,(Field))"),
+            FunctionSelector::from_signature("pay_refund((Field),u64,(Field))"),
             [context.msg_sender().to_field(), amount, asset.to_field()]
         );
     }
@@ -56,16 +56,16 @@ contract FPC {
 
     #[aztec(public)]
     #[aztec(internal)]
-    fn pay_refund(refund_address: AztecAddress, amount: Field, asset: AztecAddress) {
+    fn pay_refund(refund_address: AztecAddress, amount: u64, asset: AztecAddress) {
         // Just do public refunds for the present
         let refund = compute_rebate(context, amount);
-        Token::at(asset).transfer_public(context.this_address(), refund_address, refund, 0).call(&mut context);
+        Token::at(asset).transfer_public(context.this_address(), refund_address, refund as Field, 0).call(&mut context);
     }
 
     #[aztec(public)]
     #[aztec(internal)]
-    fn pay_refund_with_shielded_rebate(amount: Field, asset: AztecAddress, secret_hash: Field) {
+    fn pay_refund_with_shielded_rebate(amount: u64, asset: AztecAddress, secret_hash: Field) {
         let refund = compute_rebate(context, amount);
-        Token::at(asset).shield(context.this_address(), refund, secret_hash, 0).call(&mut context);
+        Token::at(asset).shield(context.this_address(), refund as Field, secret_hash, 0).call(&mut context);
     }
 }

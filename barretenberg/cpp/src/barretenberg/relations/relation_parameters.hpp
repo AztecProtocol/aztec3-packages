@@ -5,6 +5,18 @@
 
 namespace bb {
 
+template <typename T> T initialize_relation_parameter()
+{
+    if constexpr (requires(T a) { a.get_origin_tag(); }) {
+        auto temp = T(0);
+        auto origin_tag = temp.get_origin_tag();
+        origin_tag.poison();
+        temp.set_origin_tag(origin_tag);
+        return temp;
+    } else {
+        return T{ 0 };
+    }
+}
 /**
  * @brief Container for parameters used by the grand product (permutation, lookup) Honk relations
  *
@@ -15,34 +27,89 @@ template <typename T> struct RelationParameters {
     static constexpr int NUM_BINARY_LIMBS_IN_GOBLIN_TRANSLATOR = 4;
     static constexpr int NUM_NATIVE_LIMBS_IN_GOBLIN_TRANSLATOR = 1;
     static constexpr int NUM_CHALLENGE_POWERS_IN_GOBLIN_TRANSLATOR = 4;
-    static constexpr int NUM_TO_FOLD = 7;
+    static constexpr int NUM_TO_FOLD = 6;
 
-    T eta{ 0 };                        // Lookup + Aux Memory
-    T eta_two{ 0 };                    // Lookup + Aux Memory
-    T eta_three{ 0 };                  // Lookup + Aux Memory
-    T beta{ 0 };                       // Permutation + Lookup
-    T gamma{ 0 };                      // Permutation + Lookup
-    T public_input_delta{ 0 };         // Permutation
-    T lookup_grand_product_delta{ 0 }; // Lookup
-    T beta_sqr{ 0 };
-    T beta_cube{ 0 };
+    T eta = initialize_relation_parameter<T>();                // Lookup + Aux Memory
+    T eta_two = initialize_relation_parameter<T>();            // Lookup + Aux Memory
+    T eta_three = initialize_relation_parameter<T>();          // Lookup + Aux Memory
+    T beta = initialize_relation_parameter<T>();               // Permutation + Lookup
+    T gamma = initialize_relation_parameter<T>();              // Permutation + Lookup
+    T public_input_delta = initialize_relation_parameter<T>(); // Permutation
+    T beta_sqr = initialize_relation_parameter<T>();
+    T beta_cube = initialize_relation_parameter<T>();
     // eccvm_set_permutation_delta is used in the set membership gadget in eccvm/ecc_set_relation.hpp
     // We can remove this by modifying the relation, but increases complexity
-    T eccvm_set_permutation_delta = T(0);
-    std::array<T, NUM_BINARY_LIMBS_IN_GOBLIN_TRANSLATOR> accumulated_result = { T(0), T(0), T(0), T(0) }; // Translator
+    T eccvm_set_permutation_delta = initialize_relation_parameter<T>();
+    std::array<T, NUM_BINARY_LIMBS_IN_GOBLIN_TRANSLATOR> accumulated_result = {
+        initialize_relation_parameter<T>(),
+        initialize_relation_parameter<T>(),
+        initialize_relation_parameter<T>(),
+        initialize_relation_parameter<T>()
+    }; // Translator
     std::array<T, NUM_BINARY_LIMBS_IN_GOBLIN_TRANSLATOR + NUM_NATIVE_LIMBS_IN_GOBLIN_TRANSLATOR> evaluation_input_x = {
-        T(0), T(0), T(0), T(0), T(0)
+        initialize_relation_parameter<T>(),
+        initialize_relation_parameter<T>(),
+        initialize_relation_parameter<T>(),
+        initialize_relation_parameter<T>(),
+        initialize_relation_parameter<T>()
     }; // Translator
     std::array<std::array<T, NUM_BINARY_LIMBS_IN_GOBLIN_TRANSLATOR + NUM_NATIVE_LIMBS_IN_GOBLIN_TRANSLATOR>,
                NUM_CHALLENGE_POWERS_IN_GOBLIN_TRANSLATOR>
-        batching_challenge_v = { { { T(0), T(0), T(0), T(0), T(0) },
-                                   { T(0), T(0), T(0), T(0), T(0) },
-                                   { T(0), T(0), T(0), T(0), T(0) },
-                                   { T(0), T(0), T(0), T(0), T(0) } } };
+        batching_challenge_v = { { { initialize_relation_parameter<T>(),
+                                     initialize_relation_parameter<T>(),
+                                     initialize_relation_parameter<T>(),
+                                     initialize_relation_parameter<T>(),
+                                     initialize_relation_parameter<T>() },
+                                   { initialize_relation_parameter<T>(),
+                                     initialize_relation_parameter<T>(),
+                                     initialize_relation_parameter<T>(),
+                                     initialize_relation_parameter<T>(),
+                                     initialize_relation_parameter<T>() },
+                                   { initialize_relation_parameter<T>(),
+                                     initialize_relation_parameter<T>(),
+                                     initialize_relation_parameter<T>(),
+                                     initialize_relation_parameter<T>(),
+                                     initialize_relation_parameter<T>() },
+                                   { initialize_relation_parameter<T>(),
+                                     initialize_relation_parameter<T>(),
+                                     initialize_relation_parameter<T>(),
+                                     initialize_relation_parameter<T>(),
+                                     initialize_relation_parameter<T>() } } };
+
+    void unpoison()
+    {
+        if constexpr (requires { eta.get_origin_tag(); }) {
+            auto unpoison_element = [&](auto& element) {
+                auto origin_tag = element.get_origin_tag();
+                origin_tag.unpoison();
+                element.set_origin_tag(origin_tag);
+            };
+            unpoison_element(eta);
+            unpoison_element(eta_two);
+            unpoison_element(eta_three);
+            unpoison_element(beta);
+            unpoison_element(gamma);
+            unpoison_element(public_input_delta);
+            unpoison_element(beta_sqr);
+            unpoison_element(beta_cube);
+            unpoison_element(eccvm_set_permutation_delta);
+            for (size_t i = 0; i < NUM_BINARY_LIMBS_IN_GOBLIN_TRANSLATOR; i++) {
+                unpoison_element(accumulated_result[i]);
+            }
+            for (size_t i = 0; i < NUM_BINARY_LIMBS_IN_GOBLIN_TRANSLATOR + NUM_NATIVE_LIMBS_IN_GOBLIN_TRANSLATOR; i++) {
+                unpoison_element(evaluation_input_x[i]);
+            }
+            for (size_t i = 0; i < NUM_BINARY_LIMBS_IN_GOBLIN_TRANSLATOR + NUM_NATIVE_LIMBS_IN_GOBLIN_TRANSLATOR; i++) {
+                for (size_t j = 0; j < NUM_CHALLENGE_POWERS_IN_GOBLIN_TRANSLATOR; j++) {
+                    unpoison_element(batching_challenge_v[i][j]);
+                }
+            }
+        }
+    }
 
     RefArray<T, NUM_TO_FOLD> get_to_fold()
     {
-        return RefArray{ eta, eta_two, eta_three, beta, gamma, public_input_delta, lookup_grand_product_delta };
+        return RefArray{ eta, eta_two, eta_three, beta, gamma, public_input_delta };
     }
 
     RefArray<const T, NUM_TO_FOLD> get_to_fold() const
@@ -61,7 +128,6 @@ template <typename T> struct RelationParameters {
         result.beta_cube = result.beta_sqr * result.beta;
         result.gamma = T::random_element();
         result.public_input_delta = T::random_element();
-        result.lookup_grand_product_delta = T::random_element();
         result.eccvm_set_permutation_delta = result.gamma * (result.gamma + result.beta_sqr) *
                                              (result.gamma + result.beta_sqr + result.beta_sqr) *
                                              (result.gamma + result.beta_sqr + result.beta_sqr + result.beta_sqr);
@@ -86,6 +152,6 @@ template <typename T> struct RelationParameters {
         return result;
     }
 
-    MSGPACK_FIELDS(eta, eta_two, eta_three, beta, gamma, public_input_delta, lookup_grand_product_delta);
+    MSGPACK_FIELDS(eta, eta_two, eta_three, beta, gamma, public_input_delta);
 };
 } // namespace bb

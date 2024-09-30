@@ -11,6 +11,7 @@
  * satisfied in general by random inputs) only that the two implementations are equivalent.
  *
  */
+#include "barretenberg/common/zip_view.hpp"
 #include "barretenberg/ecc/curves/bn254/fr.hpp"
 #include "barretenberg/ecc/curves/grumpkin/grumpkin.hpp"
 #include "barretenberg/relations/auxiliary_relation.hpp"
@@ -25,15 +26,17 @@
 
 using namespace bb;
 
+numeric::RNG& engine = numeric::get_debug_randomness();
+
 using FF = fr;
 struct InputElements {
-    static constexpr size_t NUM_ELEMENTS = 45;
+    static constexpr size_t NUM_ELEMENTS = 46;
     std::array<FF, NUM_ELEMENTS> _data;
 
     static InputElements get_random()
     {
         InputElements result;
-        std::generate(result._data.begin(), result._data.end(), [] { return FF::random_element(); });
+        std::generate(result._data.begin(), result._data.end(), [] { return FF::random_element(&engine); });
         return result;
     }
 
@@ -44,6 +47,15 @@ struct InputElements {
         std::generate(result._data.begin(), result._data.end(), [&] {
             idx += FF(1);
             return idx;
+        });
+        return result;
+    }
+
+    InputElements scaled(const FF& scalar) const
+    {
+        InputElements result{ _data };
+        std::transform(result._data.begin(), result._data.end(), result._data.begin(), [&scalar](const auto& x) {
+            return x * scalar;
         });
         return result;
     }
@@ -93,6 +105,7 @@ struct InputElements {
     FF& sorted_accum_shift = std::get<42>(_data);
     FF& z_perm_shift = std::get<43>(_data);
     FF& z_lookup_shift = std::get<44>(_data);
+    FF& homogenizer = std::get<45>(_data);
 };
 
 class UltraRelationConsistency : public testing::Test {
@@ -107,6 +120,53 @@ class UltraRelationConsistency : public testing::Test {
         std::fill(accumulator.begin(), accumulator.end(), FF(0));
         Relation::accumulate(accumulator, input_elements, parameters, 1);
         EXPECT_EQ(accumulator, expected_values);
+    };
+
+    template <template <typename, bool> typename Relation> static void validate_homogenization_consistency()
+    {
+        using Rel = Relation<FF, /* HOMOGENIZED= */ false>;
+        using RelHomog = Relation<FF, /* HOMOGENIZED= */ true>;
+
+        InputElements in = InputElements::get_random();
+        in.homogenizer = 1;
+
+        typename Rel::SumcheckArrayOfValuesOverSubrelations accumulator;
+        std::fill(accumulator.begin(), accumulator.end(), FF(0));
+        typename RelHomog::SumcheckArrayOfValuesOverSubrelations accumulator_homog;
+        std::fill(accumulator_homog.begin(), accumulator_homog.end(), FF(0));
+
+        const auto parameters = RelationParameters<FF>::get_random(&engine);
+        const FF separator{ 1 };
+
+        Rel::accumulate(accumulator, in, parameters, separator);
+        RelHomog::accumulate(accumulator_homog, in, parameters, separator);
+
+        EXPECT_EQ(accumulator, accumulator_homog);
+    };
+
+    template <template <typename, bool> typename Relation> static void validate_homogeneity()
+    {
+        using Rel = Relation<FF, /* HOMOGENIZED= */ true>;
+
+        const InputElements in = InputElements::get_random();
+        typename Rel::SumcheckArrayOfValuesOverSubrelations acc;
+        std::fill(acc.begin(), acc.end(), FF(0));
+        typename Rel::SumcheckArrayOfValuesOverSubrelations acc_scaled_input;
+        std::fill(acc_scaled_input.begin(), acc_scaled_input.end(), FF(0));
+        const FF scalar = FF::random_element(&engine);
+        const InputElements in_scaled = in.scaled(scalar);
+
+        const auto params = RelationParameters<FF>::get_random(&engine);
+        const RelationParameters<FF> params_scaled{ params };
+        const FF separator{ 1 };
+
+        Rel::accumulate(acc, in, params, separator); // f(in) = (f_i(in))_i   (i over subrelations of f)
+        Rel::accumulate(acc_scaled_input, in_scaled, params_scaled, separator); // f_i(s*in) will be (s^d_i*f_i(in))_i
+        for (auto& x : acc) {                                                   // compute (s^d_i*f_i(in))_i
+            x *= scalar.pow(Rel::HOMOGENIZED_LENGTH - 1);
+        }
+
+        EXPECT_EQ(acc, acc_scaled_input);
     };
 };
 
@@ -146,7 +206,7 @@ TEST_F(UltraRelationConsistency, UltraArithmeticRelation)
         contribution_2 *= (q_arith - 2) * (q_arith - 1) * q_arith;
         expected_values[1] = contribution_2;
 
-        const auto parameters = RelationParameters<FF>::get_random();
+        const auto parameters = RelationParameters<FF>::get_random(&engine);
 
         validate_relation_execution<Relation>(expected_values, input_elements, parameters);
     };
@@ -180,7 +240,7 @@ TEST_F(UltraRelationConsistency, UltraPermutationRelation)
 
         SumcheckArrayOfValuesOverSubrelations expected_values;
 
-        const auto parameters = RelationParameters<FF>::get_random();
+        const auto parameters = RelationParameters<FF>::get_random(&engine);
         const auto& beta = parameters.beta;
         const auto& gamma = parameters.gamma;
         const auto& public_input_delta = parameters.public_input_delta;
@@ -234,7 +294,7 @@ TEST_F(UltraRelationConsistency, DeltaRangeConstraintRelation)
         expected_values[2] = contribution_3 * q_delta_range;
         expected_values[3] = contribution_4 * q_delta_range;
 
-        const auto parameters = RelationParameters<FF>::get_random();
+        const auto parameters = RelationParameters<FF>::get_random(&engine);
 
         validate_relation_execution<Relation>(expected_values, input_elements, parameters);
     };
@@ -297,7 +357,7 @@ TEST_F(UltraRelationConsistency, EllipticRelation)
             expected_values[1] = (y_add_identity * (-q_is_double + 1) + (y_double_identity * q_is_double)) * q_elliptic;
         }
 
-        const auto parameters = RelationParameters<FF>::get_random();
+        const auto parameters = RelationParameters<FF>::get_random(&engine);
 
         validate_relation_execution<Relation>(expected_values, input_elements, parameters);
     };
@@ -336,7 +396,7 @@ TEST_F(UltraRelationConsistency, AuxiliaryRelation)
         constexpr FF SUBLIMB_SHIFT_3(SUBLIMB_SHIFT_2 * SUBLIMB_SHIFT);
         constexpr FF SUBLIMB_SHIFT_4(SUBLIMB_SHIFT_3 * SUBLIMB_SHIFT);
 
-        const auto parameters = RelationParameters<FF>::get_random();
+        const auto parameters = RelationParameters<FF>::get_random(&engine);
         const auto& eta = parameters.eta;
         const auto& eta_two = parameters.eta_two;
         const auto& eta_three = parameters.eta_three;
@@ -535,7 +595,7 @@ TEST_F(UltraRelationConsistency, Poseidon2ExternalRelation)
         expected_values[2] = q_poseidon2_external * (v3 - w_3_shift);
         expected_values[3] = q_poseidon2_external * (v4 - w_4_shift);
 
-        const auto parameters = RelationParameters<FF>::get_random();
+        const auto parameters = RelationParameters<FF>::get_random(&engine);
         validate_relation_execution<Relation>(expected_values, input_elements, parameters);
 
         // validate_relation_execution<Relation>(expected_values, input_elements, parameters);
@@ -587,11 +647,21 @@ TEST_F(UltraRelationConsistency, Poseidon2InternalRelation)
         expected_values[2] = q_poseidon2_internal * (t2 - w_3_shift);
         expected_values[3] = q_poseidon2_internal * (t3 - w_4_shift);
 
-        const auto parameters = RelationParameters<FF>::get_random();
+        const auto parameters = RelationParameters<FF>::get_random(&engine);
         validate_relation_execution<Relation>(expected_values, input_elements, parameters);
 
         // validate_relation_execution<Relation>(expected_values, input_elements, parameters);
     };
     run_test(/*random_inputs=*/false);
     run_test(/*random_inputs=*/true);
+};
+
+TEST_F(UltraRelationConsistency, HomogenizationConsistency)
+{
+    validate_homogenization_consistency<UltraArithmeticRelation>();
+};
+
+TEST_F(UltraRelationConsistency, Homogeneity)
+{
+    validate_homogeneity<UltraArithmeticRelation>();
 };

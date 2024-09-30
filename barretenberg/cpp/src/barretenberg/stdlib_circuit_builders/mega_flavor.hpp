@@ -42,10 +42,10 @@ class MegaFlavor {
     static constexpr size_t NUM_WIRES = CircuitBuilder::NUM_WIRES;
     // The number of multivariate polynomials on which a sumcheck prover sumcheck operates (including shifts). We often
     // need containers of this size to hold related data, so we choose a name more agnostic than `NUM_POLYNOMIALS`.
-    static constexpr size_t NUM_ALL_ENTITIES = 63;
+    static constexpr size_t NUM_ALL_ENTITIES = 64;
     // The number of polynomials precomputed to describe a circuit and to aid a prover in constructing a satisfying
     // assignment of witnesses. We again choose a neutral name.
-    static constexpr size_t NUM_PRECOMPUTED_ENTITIES = 30;
+    static constexpr size_t NUM_PRECOMPUTED_ENTITIES = 31;
     // The total number of witness entities not including shifts.
     static constexpr size_t NUM_WITNESS_ENTITIES = 24;
     // Total number of folded polynomials, which is just all polynomials except the shifts
@@ -55,8 +55,9 @@ class MegaFlavor {
 
     // define the tuple of Relations that comprise the Sumcheck relation
     // Note: made generic for use in MegaRecursive.
+    static constexpr bool HOMOGENIZED{ true };
     template <typename FF>
-    using Relations_ = std::tuple<bb::UltraArithmeticRelation<FF>,
+    using Relations_ = std::tuple<bb::UltraArithmeticRelation<FF, HOMOGENIZED>,
                                   bb::UltraPermutationRelation<FF>,
                                   bb::LogDerivLookupRelation<FF>,
                                   bb::DeltaRangeConstraintRelation<FF>,
@@ -70,7 +71,8 @@ class MegaFlavor {
 
     static constexpr size_t MAX_PARTIAL_RELATION_LENGTH = compute_max_partial_relation_length<Relations>();
     static constexpr size_t MAX_TOTAL_RELATION_LENGTH = compute_max_total_relation_length<Relations>();
-    static_assert(MAX_TOTAL_RELATION_LENGTH == 11);
+    // static_assert(MAX_TOTAL_RELATION_LENGTH == 11);
+
     // BATCHED_RELATION_PARTIAL_LENGTH = algebraic degree of sumcheck relation *after* multiplying by the `pow_zeta`
     // random polynomial e.g. For \sum(x) [A(x) * B(x) + C(x)] * PowZeta(X), relation length = 2 and random relation
     // length = 3
@@ -96,6 +98,9 @@ class MegaFlavor {
                                                                    /*optimised=*/true>());
     using SumcheckTupleOfTuplesOfUnivariates = decltype(create_sumcheck_tuple_of_tuples_of_univariates<Relations>());
     using TupleOfArraysOfValues = decltype(create_tuple_of_arrays_of_values<Relations>());
+
+    static constexpr size_t NUM_HOMOGENEOUS_COMPONENTS_IN_TOTAL_RELATION{ 2 };
+    using ComponentEvaluations = std::array<FF, NUM_HOMOGENEOUS_COMPONENTS_IN_TOTAL_RELATION + 1>; // WORKTODO: reduce
 
     // Whether or not the first row of the execution trace is reserved for 0s to enable shifts
     static constexpr bool has_zero_row = true;
@@ -137,7 +142,8 @@ class MegaFlavor {
                               lagrange_first,       // column 26
                               lagrange_last,        // column 27
                               lagrange_ecc_op,      // column 28 // indicator poly for ecc op gates
-                              databus_id            // column 29 // id polynomial, i.e. id_i = i
+                              databus_id,           // column 29 // id polynomial, i.e. id_i = i
+                              homogenizer           // column 30 // used to homogenize the relations
         )
 
         static constexpr CircuitType CIRCUIT_TYPE = CircuitBuilder::CIRCUIT_TYPE;

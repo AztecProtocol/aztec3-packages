@@ -163,6 +163,7 @@ template <typename FF_> class MegaArith {
         {
             this->aux.has_ram_rom = true;
             this->pub_inputs.is_pub_inputs = true;
+            this->arithmetic.is_arithmetic = true;
         }
 
         // Set fixed block sizes for use in structured trace

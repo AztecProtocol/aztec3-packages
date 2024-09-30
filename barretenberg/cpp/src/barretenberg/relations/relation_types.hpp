@@ -30,6 +30,9 @@ concept HasSubrelationLinearlyIndependentMember = requires(T) {
 
 template <typename T>
 concept HasParameterLengthAdjustmentsMember = requires { T::TOTAL_LENGTH_ADJUSTMENTS; };
+
+template <typename T>
+concept HasHomogenizedLength = requires { T::HOMOGENIZED_LENGTH; };
 // The concept needed to adjust the sumcheck univariate lengths in the case of ZK Flavors and to avoid adding redundant
 // constants to the relations that are not used by ZK flavors
 template <typename T>
@@ -70,8 +73,57 @@ consteval std::array<size_t, RelationImpl::SUBRELATION_PARTIAL_LENGTHS.size()> c
         return RelationImpl::SUBRELATION_PARTIAL_LENGTHS;
     }
 };
+
+// WORKTODO: this should be a mega thing
 /**
- * @brief This metod adjusts the subrelation partial lengths to ZK Flavors.
+ * @brief Compute the total subrelation lengths, i.e., the lengths when regarding the challenges as
+ * variables.
+ */
+consteval size_t subrelation_length_to_component_evaluation_index(const size_t HOMOGENIZED_LENGTH)
+{
+    switch (HOMOGENIZED_LENGTH) {
+    case 7:
+        return 0;
+    case 11:
+        return 1;
+    default:
+        return 2;
+    };
+};
+
+/**
+ * @brief Compute the total subrelation lengths, i.e., the lengths when regarding the challenges as
+ * variables.
+ */
+template <typename LengthsArray>
+consteval LengthsArray compute_subrelation_homogenization_adjustments(const size_t len, const LengthsArray& arr)
+{
+    LengthsArray result;
+    for (size_t idx = 0; idx < std::tuple_size<LengthsArray>(); idx++) {
+        // WORKTODO: would be nice to be able to static assert this difference doesn't underflow but idx is not
+        // constexpr
+        result[idx] = len - arr[idx];
+    }
+    return result;
+};
+
+/**
+ * @brief Compute the total subrelation lengths, i.e., the lengths when regarding the challenges as
+ * variables.
+ */
+template <typename LengthsArray, typename Adjustments>
+consteval LengthsArray compute_homogenized_subrelation_lengths(const LengthsArray& len, const Adjustments& adj)
+{
+    LengthsArray result;
+    for (size_t idx = 0; idx < std::tuple_size<LengthsArray>(); idx++) {
+        // WORKTODO: would be nice to be able to static assert this sum is idx-independent
+        result[idx] = len[idx] + adj[idx];
+    }
+    return result;
+};
+
+/**
+ * @brief This method adjusts the subrelation partial lengths to ZK Flavors.
  *
  * @tparam RelationImpl
  * @return consteval
@@ -151,6 +203,9 @@ concept isSkippable = requires(const AllEntities& input) {
     } -> std::same_as<bool>;
 };
 
+template <typename T>
+concept ArrayAccessOnEntity = requires(T a, size_t i) { a.get_all()[0].value_at(i); };
+
 /**
  * @brief A wrapper for Relations to expose methods used by the Sumcheck prover or verifier to add the
  * contribution of a given relation to the corresponding accumulator.
@@ -188,7 +243,8 @@ template <typename RelationImpl> class Relation : public RelationImpl {
                                                  NUM_KEYS - 1>;
     using SumcheckTupleOfUnivariatesOverSubrelations =
         TupleOfUnivariates<FF, RelationImpl::SUBRELATION_PARTIAL_LENGTHS>;
-    // The containter constructor for sumcheck univariates corresponding to each subrelation in ZK Flavor's relations
+    // The containter constructor for sumcheck univariates corresponding to each subrelation in ZK Flavor's
+    // relations
     using ZKSumcheckTupleOfUnivariatesOverSubrelations =
         TupleOfUnivariates<FF, compute_zk_partial_subrelation_lengths<RelationImpl>()>;
 

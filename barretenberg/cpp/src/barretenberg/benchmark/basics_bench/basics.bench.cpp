@@ -35,6 +35,84 @@ using Curve = curve::BN254;
 using Fr = Curve::ScalarField;
 #define MAX_REPETITION_LOG 12
 
+// using FF = uint64_t;
+using FF = Fr;
+
+void ff_default_constructor(State& state)
+{
+    for (auto _ : state) {
+        std::vector<FF> x(1 << state.range(0));
+        DoNotOptimize(x);
+    }
+}
+
+void ff_limbs_constructor(State& state)
+{
+    for (auto _ : state) {
+        std::vector<FF> x(1 << state.range(0), FF{ 0, 0, 0, 0 });
+        DoNotOptimize(x);
+    }
+}
+
+void ff_from_literal(State& state)
+{
+    for (auto _ : state) {
+        std::vector<FF> x(1 << state.range(0), FF(0));
+        DoNotOptimize(x);
+    }
+}
+
+void malloc_and_free(State& state)
+{
+    for (auto _ : state) {
+        FF* ptr = (FF*)malloc((1 << state.range(0)) * sizeof(FF));
+        DoNotOptimize(ptr);
+    }
+}
+
+void vector_from_malloc_and_free(State& state)
+{
+    const auto f = [&state]() {
+        FF* ptr = (FF*)malloc((1 << state.range(0)) * sizeof(FF));
+        auto result = std::vector<FF>(ptr, ptr + (1 << state.range(0)));
+        free(ptr);
+        return result;
+    };
+
+    for (auto _ : state) {
+        auto result = f();
+        DoNotOptimize(result);
+    }
+}
+
+// Try to illustrate: cost of putting stuff in the uninitialized vector is _all_ instantiation cost. This we always paid
+// for, hence there should be negligible additional cost in this loop.
+void unique_ptr(State& state)
+{
+    for (auto _ : state) {
+        // std::unique_ptr<FF[]> ptr(new FF[1 << state.range(0)]);
+        for (size_t idx = 0; idx < 1 << state.range(0); idx++) {
+            // ptr[idx] = idx + 1; // 19ms with or without'
+            auto x = FF(idx + 1); // 10ms
+            DoNotOptimize(x);
+        }
+        // DoNotOptimize(ptr);
+    }
+}
+
+void vector_from_unique_ptr(State& state)
+{
+    const auto f = [&state]() {
+        auto ptr = std::make_unique<FF[]>(1 << state.range(0));
+        return std::vector<FF>(ptr.get(), ptr.get() + (1 << state.range(0)));
+    };
+
+    for (auto _ : state) {
+        auto result = f();
+        DoNotOptimize(result);
+    }
+}
+
 /**
  * @brief Benchmark for evaluating the cost of starting parallel_for
  *
@@ -468,6 +546,13 @@ void pippenger(State& state)
 }
 } // namespace
 
+BENCHMARK(ff_default_constructor)->Unit(kMillisecond)->DenseRange(20, 21);
+BENCHMARK(ff_limbs_constructor)->Unit(kMillisecond)->DenseRange(20, 21);
+BENCHMARK(ff_from_literal)->Unit(kMillisecond)->DenseRange(20, 21);
+BENCHMARK(vector_from_malloc_and_free)->Unit(kMillisecond)->DenseRange(20, 21);
+BENCHMARK(malloc_and_free)->Unit(kMillisecond)->DenseRange(20, 21);
+BENCHMARK(unique_ptr)->Unit(kMillisecond)->DenseRange(20, 21);
+BENCHMARK(vector_from_unique_ptr)->Unit(kMillisecond)->DenseRange(20, 21);
 BENCHMARK(parallel_for_field_element_addition)->Unit(kMicrosecond)->DenseRange(0, MAX_REPETITION_LOG);
 BENCHMARK(ff_addition)->Unit(kMicrosecond)->DenseRange(12, 30);
 BENCHMARK(ff_multiplication)->Unit(kMicrosecond)->DenseRange(12, 27);

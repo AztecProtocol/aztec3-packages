@@ -90,11 +90,10 @@ template <typename Flavor> class ProtogalaxyTests : public testing::Test {
         return { prover_accumulator, verifier_accumulator };
     }
 
-    static void check_accumulator_target_sum_manual(std::shared_ptr<DeciderProvingKey>& accumulator,
-                                                    bool expected_result)
+    static void check_accumulator_target_sum_manual(std::shared_ptr<DeciderProvingKey>& accumulator, bool expect_equal)
     {
         size_t accumulator_size = accumulator->proving_key.circuit_size;
-        auto expected_honk_evals = Fun::compute_row_evaluations(
+        auto [component_evaluations, expected_honk_evals] = Fun::compute_row_evaluations(
             accumulator->proving_key.polynomials, accumulator->alphas, accumulator->relation_parameters);
         // Construct pow(\vec{betas*}) as in the paper
         GateSeparatorPolynomial expected_gate_separators(accumulator->gate_challenges,
@@ -105,7 +104,11 @@ template <typename Flavor> class ProtogalaxyTests : public testing::Test {
         for (size_t idx = 0; idx < accumulator_size; idx++) {
             expected_target_sum += expected_honk_evals[idx] * expected_gate_separators[idx];
         }
-        EXPECT_EQ(accumulator->target_sum == expected_target_sum, expected_result);
+        if (expect_equal) {
+            EXPECT_EQ(accumulator->target_sum, expected_target_sum);
+        } else {
+            EXPECT_NE(accumulator->target_sum, expected_target_sum);
+        }
     }
 
     static void decide_and_verify(std::shared_ptr<DeciderProvingKey>& prover_accumulator,
@@ -147,7 +150,7 @@ template <typename Flavor> class ProtogalaxyTests : public testing::Test {
         for (auto& alpha : decider_pk->alphas) {
             alpha = FF::random_element();
         }
-        auto full_honk_evals = Fun::compute_row_evaluations(
+        auto [component_evaluations, full_honk_evals] = Fun::compute_row_evaluations(
             decider_pk->proving_key.polynomials, decider_pk->alphas, decider_pk->relation_parameters);
 
         // Evaluations should be 0 for valid circuit
@@ -196,7 +199,8 @@ template <typename Flavor> class ProtogalaxyTests : public testing::Test {
             alpha = FF::random_element();
         }
 
-        auto full_honk_evals = Fun::compute_row_evaluations(full_polynomials, alphas, relation_parameters);
+        auto [component_evaluations, full_honk_evals] =
+            Fun::compute_row_evaluations(full_polynomials, alphas, relation_parameters);
         std::vector<FF> betas(log_size);
         for (size_t idx = 0; idx < log_size; idx++) {
             betas[idx] = FF::random_element();
@@ -220,7 +224,7 @@ template <typename Flavor> class ProtogalaxyTests : public testing::Test {
         accumulator->alphas = alphas;
 
         auto deltas = compute_round_challenge_pows(log_size, FF::random_element());
-        auto perturbator = Fun::compute_perturbator(accumulator, deltas);
+        auto [component_evaluations_again, perturbator] = Fun::compute_perturbator(accumulator, deltas);
 
         // Ensure the constant coefficient of the perturbator is equal to the target sum as indicated by the paper
         EXPECT_EQ(perturbator[0], target_sum);

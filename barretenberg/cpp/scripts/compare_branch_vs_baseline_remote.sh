@@ -19,6 +19,11 @@ HARDWARE_CONCURRENCY=${HARDWARE_CONCURRENCY:-16}
 BASELINE_BRANCH="master"
 BENCH_TOOLS_DIR="$BUILD_DIR/_deps/benchmark-src/tools"
 
+if [ ! -z "$(git status --untracked-files=no --porcelain)" ]; then
+  echo "Git status is unclean; the script will not be able to check out $BASELINE_BRANCH."
+  exit 1
+fi
+
 echo -e "\nComparing $BENCHMARK between $BASELINE_BRANCH and current branch:"
 
 # Move above script dir.
@@ -37,7 +42,7 @@ scp $BB_SSH_KEY $BB_SSH_INSTANCE:$BB_SSH_CPP_PATH/build/results_after.json $BUIL
 
 # Run benchmark in baseline branch
 git checkout $BASELINE_BRANCH
-echo -e "\nRunning benchmark in feature branch.."
+echo -e "\nRunning benchmark in baseline branch.."
 ./scripts/benchmark_remote.sh $BENCHMARK\
                               "./$BENCHMARK --benchmark_filter=$FILTER\
                                             --benchmark_out=results_before.json\

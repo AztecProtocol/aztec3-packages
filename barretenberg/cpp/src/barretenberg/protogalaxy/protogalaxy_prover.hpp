@@ -23,6 +23,8 @@ template <class DeciderProvingKeys_> class ProtogalaxyProver_ {
     using DeciderPK = typename DeciderProvingKeys_::DeciderPK;
     using CommitmentKey = typename Flavor::CommitmentKey;
     using DeciderProvingKeys = DeciderProvingKeys_;
+    using RelationEvaluations = typename Flavor::TupleOfArraysOfValues; // WORKTODO: del?
+    using ComponentEvaluations = typename Flavor::ComponentEvaluations;
 
     static constexpr size_t NUM_SUBRELATIONS = DeciderProvingKeys_::NUM_SUBRELATIONS;
 
@@ -32,6 +34,7 @@ template <class DeciderProvingKeys_> class ProtogalaxyProver_ {
     // the state updated and carried forward beween rounds
     std::shared_ptr<Transcript> transcript = std::make_shared<Transcript>();
     std::shared_ptr<DeciderProvingKey> accumulator;
+    std::shared_ptr<ComponentEvaluations[]> component_evaluations;
     Polynomial<FF> perturbator;
     std::vector<FF> deltas;
     CombinerQuotient combiner_quotient;
@@ -68,7 +71,8 @@ template <class DeciderProvingKeys_> class ProtogalaxyProver_ {
      * @param accumulator
      * @return std::tuple<std::vector<FF>, Polynomial<FF>> deltas, perturbator
      */
-    std::tuple<std::vector<FF>, Polynomial<FF>> perturbator_round(const std::shared_ptr<const DeciderPK>& accumulator);
+    std::tuple<std::vector<FF>, std::shared_ptr<ComponentEvaluations[]>, Polynomial<FF>> perturbator_round(
+        const std::shared_ptr<const DeciderPK>& accumulator);
 
     /**
      * @brief Steps 6 - 11 of the paper.
@@ -78,7 +82,8 @@ template <class DeciderProvingKeys_> class ProtogalaxyProver_ {
     std::tuple<std::vector<FF>, UnivariateRelationSeparator, UnivariateRelationParameters, FF, CombinerQuotient>
     combiner_quotient_round(const std::vector<FF>& gate_challenges,
                             const std::vector<FF>& deltas,
-                            const DeciderProvingKeys_& keys);
+                            const DeciderProvingKeys_& keys,
+                            const std::shared_ptr<ComponentEvaluations[]>& component_evaluations);
 
     /**
      * @brief Steps 12 - 13 of the paper plus the prover folding work.

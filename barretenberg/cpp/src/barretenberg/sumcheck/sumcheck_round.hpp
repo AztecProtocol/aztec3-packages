@@ -143,7 +143,7 @@ template <typename Flavor> class SumcheckProverRound {
         const bb::GateSeparatorPolynomial<FF>& gate_sparators,
         const RelationSeparator alpha,
         ZKSumcheckData<Flavor> zk_sumcheck_data, // only populated when Flavor HasZK
-        RowDisablingPolynomial<FF> row_disabling_poly)
+        RowDisablingPolynomial<Flavor> row_disabling_poly)
     {
         PROFILE_THIS_NAME("compute_univariate");
 
@@ -218,44 +218,81 @@ template <typename Flavor> class SumcheckProverRound {
         const bb::GateSeparatorPolynomial<FF>& gate_sparators,
         const RelationSeparator alpha,
         const size_t round_idx,
-        const RowDisablingPolynomial<FF> row_disabling_polynomial)
+        const RowDisablingPolynomial<Flavor> row_disabling_polynomial)
     {
         SumcheckTupleOfTuplesOfUnivariates univariate_accumulator;
         ExtendedEdges extended_edges;
+        SumcheckRoundUnivariate result;
 
-        // In Round 0, we have to compute the contribution from 2 edges: n - 1 = (1,1,...,1) and n-4 = (0,1,...,1).
-        size_t edge_idx = (round_idx == 0) ? round_size - 4 : round_size - 2;
+        if constexpr (std::is_same_v<Flavor, TranslatorFlavor>) {
+            size_t end_idx = (round_idx < 3) ? (1 << 3) / (1 << (round_idx)) : 2;
+            for (size_t edge_idx = 0; edge_idx < end_idx; edge_idx += 2) {
+                extend_edges(extended_edges, polynomials, edge_idx);
+                accumulate_relation_univariates(univariate_accumulator,
+                                                extended_edges,
+                                                relation_parameters,
+                                                gate_sparators[(edge_idx >> 1) * gate_sparators.periodicity]);
+            }
+            auto first_piece =
+                batch_over_relations<SumcheckRoundUnivariate>(univariate_accumulator, alpha, gate_sparators);
+            auto row_disabling_factor = bb::Univariate<FF, 2>(
+                { row_disabling_polynomial.eval_at_0_aux, row_disabling_polynomial.eval_at_1_aux });
+            auto row_disabling_factor_extended =
+                row_disabling_factor.template extend_to<SumcheckRoundUnivariate::LENGTH>();
+            first_piece *= row_disabling_factor_extended;
 
-        extend_edges(extended_edges, polynomials, edge_idx);
-        accumulate_relation_univariates(univariate_accumulator,
-                                        extended_edges,
-                                        relation_parameters,
-                                        gate_sparators[(edge_idx >> 1) * gate_sparators.periodicity]);
+            Utils::zero_univariates(univariate_accumulator);
 
-        SumcheckRoundUnivariate result =
-            batch_over_relations<SumcheckRoundUnivariate>(univariate_accumulator, alpha, gate_sparators);
+            size_t start_idx = (round_idx < 7) ? round_size - (1 << 7) / (1 << round_idx) : round_size - 2;
 
-        if (round_idx == 0) {
-            edge_idx += 2;
+            for (size_t edge_idx = start_idx; edge_idx < round_size; edge_idx += 2) {
+                // info("edge idx at the end ", edge_idx);
+                extend_edges(extended_edges, polynomials, edge_idx);
+                accumulate_relation_univariates(univariate_accumulator,
+                                                extended_edges,
+                                                relation_parameters,
+                                                gate_sparators[(edge_idx >> 1) * gate_sparators.periodicity]);
+            }
+            auto second_piece =
+                batch_over_relations<SumcheckRoundUnivariate>(univariate_accumulator, alpha, gate_sparators);
+            row_disabling_factor =
+                bb::Univariate<FF, 2>({ row_disabling_polynomial.eval_at_0, row_disabling_polynomial.eval_at_1 });
+            row_disabling_factor_extended = row_disabling_factor.template extend_to<SumcheckRoundUnivariate::LENGTH>();
+            return first_piece + second_piece * row_disabling_factor_extended;
+        } else {
+
+            // In Round 0, we have to compute the contribution from 2 edges: n - 1 = (1,1,...,1) and n-4 = (0,1,...,1).
+            size_t edge_idx = (round_idx == 0) ? round_size - 4 : round_size - 2;
+
             extend_edges(extended_edges, polynomials, edge_idx);
             accumulate_relation_univariates(univariate_accumulator,
                                             extended_edges,
                                             relation_parameters,
                                             gate_sparators[(edge_idx >> 1) * gate_sparators.periodicity]);
 
-            result += batch_over_relations<SumcheckRoundUnivariate>(univariate_accumulator, alpha, gate_sparators);
-        }
+            result = batch_over_relations<SumcheckRoundUnivariate>(univariate_accumulator, alpha, gate_sparators);
 
-        // In later Rounds, the contribution from the main relation is multiplied by the exntension of the linear
-        // polynomial (0, u_2*...*u_{d-1}) (in Lagrange basis)
-        if (round_idx > 1) {
-            auto row_disabling_factor =
-                bb::Univariate<FF, 2>({ row_disabling_polynomial.eval_at_0, row_disabling_polynomial.eval_at_1 });
-            auto row_disabling_factor_extended =
-                row_disabling_factor.template extend_to<SumcheckRoundUnivariate::LENGTH>();
-            result *= row_disabling_factor_extended;
-        }
+            if (round_idx == 0) {
+                edge_idx += 2;
+                extend_edges(extended_edges, polynomials, edge_idx);
+                accumulate_relation_univariates(univariate_accumulator,
+                                                extended_edges,
+                                                relation_parameters,
+                                                gate_sparators[(edge_idx >> 1) * gate_sparators.periodicity]);
 
+                result += batch_over_relations<SumcheckRoundUnivariate>(univariate_accumulator, alpha, gate_sparators);
+            }
+
+            // In later Rounds, the contribution from the main relation is multiplied by the exntension of the linear
+            // polynomial (0, u_2*...*u_{d-1}) (in Lagrange basis)
+            if (round_idx > 1) {
+                auto row_disabling_factor =
+                    bb::Univariate<FF, 2>({ row_disabling_polynomial.eval_at_0, row_disabling_polynomial.eval_at_1 });
+                auto row_disabling_factor_extended =
+                    row_disabling_factor.template extend_to<SumcheckRoundUnivariate::LENGTH>();
+                result *= row_disabling_factor_extended;
+            }
+        }
         return result;
     }
 

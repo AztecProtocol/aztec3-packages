@@ -102,10 +102,10 @@ class TranslatorFlavor {
     static constexpr RepeatedCommitmentsData REPEATED_COMMITMENTS =
         RepeatedCommitmentsData(NUM_PRECOMPUTED_ENTITIES + NUM_WIRES_NON_SHIFTED,
                                 NUM_PRECOMPUTED_ENTITIES + NUM_WIRES_NON_SHIFTED + NUM_SHIFTED_WITNESSES,
-                                NUM_SHIFTED_WITNESSES,
+                                0,
                                 TO_BE_CONCATENATED_START,
                                 CONCATENATED_START,
-                                NUM_CONCATENATED);
+                                0);
     using GrandProductRelations = std::tuple<TranslatorPermutationRelation<FF>>;
     // define the tuple of Relations that comprise the Sumcheck relation
     template <typename FF>
@@ -618,12 +618,14 @@ class TranslatorFlavor {
   public:
     static inline size_t compute_total_num_gates(const CircuitBuilder& builder)
     {
+        info(builder.num_gates);
         return std::max(builder.num_gates, MINIMUM_MINI_CIRCUIT_SIZE);
     }
 
     static inline size_t compute_dyadic_circuit_size(const CircuitBuilder& builder)
     {
         const size_t total_num_gates = compute_total_num_gates(builder);
+        info("total num gates", total_num_gates);
 
         // Next power of 2
         const size_t mini_circuit_dyadic_size = builder.get_circuit_subgroup_size(total_num_gates);
@@ -736,11 +738,14 @@ class TranslatorFlavor {
         {
             const size_t mini_circuit_dyadic_size = compute_mini_circuit_dyadic_size(builder);
 
+            // We start from 10 to adjust to first 8 disabled rows
+            for (size_t i = 8; i < mini_circuit_dyadic_size - 1; i += 2) {
+                polynomials.lagrange_even_in_minicircuit.at(i + 2) = 1;
+            }
             for (size_t i = 1; i < mini_circuit_dyadic_size - 1; i += 2) {
                 polynomials.lagrange_odd_in_minicircuit.at(i) = 1;
-                polynomials.lagrange_even_in_minicircuit.at(i + 1) = 1;
             }
-            polynomials.lagrange_second.at(1) = 1;
+            polynomials.lagrange_second.at(9) = 1;
             polynomials.lagrange_second_to_last_in_minicircuit.at(mini_circuit_dyadic_size - 2) = 1;
         }
 
@@ -790,7 +795,7 @@ class TranslatorFlavor {
     };
 
     /**
-     * @brief The verification key is responsible for storing the commitments to the precomputed (non-witnessk)
+     * @brief The verification key is responsible for storing the commitments to the precomputed (non-witness)
      * polynomials used by the verifier.
      *
      * @note Note the discrepancy with what sort of data is stored here vs in the proving key. We may want to

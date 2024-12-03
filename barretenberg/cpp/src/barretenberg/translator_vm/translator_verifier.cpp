@@ -49,7 +49,7 @@ void TranslatorVerifier::put_translation_data_in_relation_parameters(const uint2
 };
 
 /**
- * @brief This function verifies an TranslatorFlavor Honk proof for given program settings.
+ * @brief This function verifies a TranslatorFlavor Honk proof for given program settings.
  */
 bool TranslatorVerifier::verify_proof(const HonkProof& proof)
 {
@@ -113,6 +113,7 @@ bool TranslatorVerifier::verify_proof(const HonkProof& proof)
     auto [multivariate_challenge, claimed_evaluations, libra_evaluations, sumcheck_verified] =
         sumcheck.verify(relation_parameters, alpha, gate_challenges);
 
+    info("SUMCHECK verified?", sumcheck_verified.value());
     // If Sumcheck did not verify, return false
     if (sumcheck_verified.has_value() && !sumcheck_verified.value()) {
         return false;
@@ -172,6 +173,7 @@ bool TranslatorVerifier::verify_translation(const TranslationEvaluations& transl
 
     bool is_value_reconstructed =
         reconstruct_value_from_eccvm_evaluations(translation_evaluations, relation_parameters);
+    info("is val reconstructed? ", is_value_reconstructed);
     return is_value_reconstructed;
 }
 

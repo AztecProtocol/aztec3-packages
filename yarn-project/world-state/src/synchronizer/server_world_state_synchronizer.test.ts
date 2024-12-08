@@ -39,14 +39,14 @@ describe('ServerWorldStateSynchronizer', () => {
 
   const LATEST_BLOCK_NUMBER = 5;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     log = createDebugLogger('aztec:world-state:test:server_world_state_synchronizer');
 
     // Seed l1 to l2 msgs
     l1ToL2Messages = times(randomInt(2 ** L1_TO_L2_MSG_SUBTREE_HEIGHT), Fr.random);
 
     // Compute inHash for verification
-    inHash = new MerkleTreeCalculator(
+    inHash = await new MerkleTreeCalculator(
       L1_TO_L2_MSG_SUBTREE_HEIGHT,
       Buffer.alloc(32),
       new SHA256Trunc().hash,

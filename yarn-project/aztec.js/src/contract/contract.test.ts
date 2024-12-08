@@ -1,10 +1,10 @@
 import {
-  type Tx,
-  type TxExecutionRequest,
-  type TxHash,
-  type TxProvingResult,
-  type TxReceipt,
-  type TxSimulationResult,
+    type Tx,
+    type TxExecutionRequest,
+    type TxHash,
+    type TxProvingResult,
+    type TxReceipt,
+    type TxSimulationResult,
 } from '@aztec/circuit-types';
 import {
   AztecAddress,
@@ -140,9 +140,9 @@ describe('Contract Class', () => {
     notes: {},
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     contractAddress = AztecAddress.random();
-    account = CompleteAddress.random();
+    account = await CompleteAddress.random();
     contractInstance = { address: contractAddress } as ContractInstanceWithAddress;
 
     wallet = mock<Wallet>();

@@ -263,7 +263,7 @@ export class Tx extends Gossipable {
     );
   }
 
-  static random() {
+  static async random() {
     return new Tx(
       PrivateKernelTailCircuitPublicInputs.emptyWithNullifier(),
       ClientIvcProof.empty(),

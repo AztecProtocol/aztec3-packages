@@ -38,7 +38,7 @@ export class DualSideEffectTrace implements PublicSideEffectTraceInterface {
     return this.innerCallTrace.getCounter();
   }
 
-  public tracePublicStorageRead(
+  public async tracePublicStorageRead(
     contractAddress: AztecAddress,
     slot: Fr,
     value: Fr,
@@ -46,11 +46,11 @@ export class DualSideEffectTrace implements PublicSideEffectTraceInterface {
     leafIndex: Fr,
     path: Fr[],
   ) {
-    this.innerCallTrace.tracePublicStorageRead(contractAddress, slot, value, leafPreimage, leafIndex, path);
-    this.enqueuedCallTrace.tracePublicStorageRead(contractAddress, slot, value, leafPreimage, leafIndex, path);
+    await this.innerCallTrace.tracePublicStorageRead(contractAddress, slot, value, leafPreimage, leafIndex, path);
+    await this.enqueuedCallTrace.tracePublicStorageRead(contractAddress, slot, value, leafPreimage, leafIndex, path);
   }
 
-  public tracePublicStorageWrite(
+  public async tracePublicStorageWrite(
     contractAddress: AztecAddress,
     slot: Fr,
     value: Fr,
@@ -60,7 +60,7 @@ export class DualSideEffectTrace implements PublicSideEffectTraceInterface {
     newLeafPreimage: PublicDataTreeLeafPreimage,
     insertionPath: Fr[],
   ) {
-    this.innerCallTrace.tracePublicStorageWrite(
+    await this.innerCallTrace.tracePublicStorageWrite(
       contractAddress,
       slot,
       value,
@@ -70,7 +70,7 @@ export class DualSideEffectTrace implements PublicSideEffectTraceInterface {
       newLeafPreimage,
       insertionPath,
     );
-    this.enqueuedCallTrace.tracePublicStorageWrite(
+    await this.enqueuedCallTrace.tracePublicStorageWrite(
       contractAddress,
       slot,
       value,
@@ -160,7 +160,7 @@ export class DualSideEffectTrace implements PublicSideEffectTraceInterface {
    * Trace a nested call.
    * Accept some results from a finished nested call's trace into this one.
    */
-  public traceNestedCall(
+  public async traceNestedCall(
     /** The trace of the nested call. */
     nestedCallTrace: this,
     /** The execution environment of the nested call. */
@@ -174,7 +174,7 @@ export class DualSideEffectTrace implements PublicSideEffectTraceInterface {
     /** Function name for logging */
     functionName: string = 'unknown',
   ) {
-    this.innerCallTrace.traceNestedCall(
+    await this.innerCallTrace.traceNestedCall(
       nestedCallTrace.innerCallTrace,
       nestedEnvironment,
       startGasLeft,
@@ -182,7 +182,7 @@ export class DualSideEffectTrace implements PublicSideEffectTraceInterface {
       avmCallResults,
       functionName,
     );
-    this.enqueuedCallTrace.traceNestedCall(
+    await this.enqueuedCallTrace.traceNestedCall(
       nestedCallTrace.enqueuedCallTrace,
       nestedEnvironment,
       startGasLeft,

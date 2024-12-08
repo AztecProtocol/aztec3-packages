@@ -121,17 +121,17 @@ const TIMESTAMP = new Fr(99833);
 describe('AVM simulator: transpiled Noir contracts', () => {
   it('bulk testing', async () => {
     const functionName = 'bulk_testing';
-    const functionSelector = getAvmTestContractFunctionSelector(functionName);
+    const functionSelector = await getAvmTestContractFunctionSelector(functionName);
     const args = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(x => new Fr(x));
     const calldata = [functionSelector.toField(), ...args];
     const globals = GlobalVariables.empty();
     globals.timestamp = TIMESTAMP;
 
     const bytecode = getAvmTestContractBytecode('public_dispatch');
-    const fnSelector = getAvmTestContractFunctionSelector('public_dispatch');
+    const fnSelector = await getAvmTestContractFunctionSelector('public_dispatch');
     const publicFn: PublicFunction = { bytecode, selector: fnSelector };
-    const contractClass = makeContractClassPublic(0, publicFn);
-    const contractInstance = makeContractInstanceFromClassId(contractClass.id);
+    const contractClass = await makeContractClassPublic(0, publicFn);
+    const contractInstance = await makeContractInstanceFromClassId(contractClass.id);
 
     // The values here should match those in getContractInstance test case
     const instanceGet = new SerializableContractInstance({
@@ -209,7 +209,7 @@ describe('AVM simulator: transpiled Noir contracts', () => {
 
   it('addition via dispatch', async () => {
     const calldata: Fr[] = [
-      FunctionSelector.fromSignature('add_args_return(Field,Field)').toField(),
+      (await FunctionSelector.fromSignature('add_args_return(Field,Field)')).toField(),
       new Fr(1),
       new Fr(2),
     ];
@@ -224,7 +224,10 @@ describe('AVM simulator: transpiled Noir contracts', () => {
 
   it('get_args_hash via dispatch', async () => {
     const calldata = [new Fr(8), new Fr(1), new Fr(2), new Fr(3)];
-    const dispatchCalldata = [FunctionSelector.fromSignature('get_args_hash(u8,[Field;3])').toField(), ...calldata];
+    const dispatchCalldata = [
+      (await FunctionSelector.fromSignature('get_args_hash(u8,[Field;3])')).toField(),
+      ...calldata,
+    ];
 
     const context = initContext({ env: initExecutionEnvironment({ calldata: dispatchCalldata }) });
     const bytecode = getAvmTestContractBytecode('public_dispatch');
@@ -307,7 +310,7 @@ describe('AVM simulator: transpiled Noir contracts', () => {
 
     expect(results.reverted).toBe(false);
     const grumpkin = new Grumpkin();
-    const g3 = grumpkin.mul(grumpkin.generator(), new Fq(3));
+    const g3 = await grumpkin.mul(grumpkin.generator(), new Fq(3));
     expect(results.output).toEqual([g3.x, g3.y, Fr.ZERO]);
   });
 
@@ -319,9 +322,9 @@ describe('AVM simulator: transpiled Noir contracts', () => {
 
     expect(results.reverted).toBe(false);
     const grumpkin = new Grumpkin();
-    const g3 = grumpkin.mul(grumpkin.generator(), new Fq(3));
-    const g20 = grumpkin.mul(grumpkin.generator(), new Fq(20));
-    const expectedResult = grumpkin.add(g3, g20);
+    const g3 = await grumpkin.mul(grumpkin.generator(), new Fq(3));
+    const g20 = await grumpkin.mul(grumpkin.generator(), new Fq(20));
+    const expectedResult = await grumpkin.add(g3, g20);
     expect(results.output).toEqual([expectedResult.x, expectedResult.y, Fr.ZERO]);
   });
 
@@ -334,7 +337,7 @@ describe('AVM simulator: transpiled Noir contracts', () => {
 
     expect(results.reverted).toBe(false);
     // This doesnt include infinites
-    const expectedResult = pedersenCommit([Buffer.from([100]), Buffer.from([1])], 20).map(f => new Fr(f));
+    const expectedResult = (await pedersenCommit([Buffer.from([100]), Buffer.from([1])], 20)).map(f => new Fr(f));
     // TODO: Come back to the handling of infinities when we confirm how they're handled in bb
     const isInf = expectedResult[0] === new Fr(0) && expectedResult[1] === new Fr(0);
     expectedResult.push(new Fr(isInf));
@@ -430,7 +433,7 @@ describe('AVM simulator: transpiled Noir contracts', () => {
     ['poseidon2_hash', /*input=*/ randomMemoryFields(10), /*output=*/ poseidon2FromMemoryFields],
     ['pedersen_hash', /*input=*/ randomMemoryFields(10), /*output=*/ pedersenFromMemoryFields],
     ['pedersen_hash_with_index', /*input=*/ randomMemoryFields(10), /*output=*/ indexedPedersenFromMemoryFields],
-  ])('Hashes in noir contracts', (name: string, input: MemoryValue[], output: (msg: any[]) => Fr[]) => {
+  ])('Hashes in noir contracts', (name: string, input: MemoryValue[], output: (msg: any[]) => Fr[] | Promise<Fr[]>) => {
     it(`Should execute contract function that performs ${name}`, async () => {
       const calldata = input.map(e => e.toFr());
 
@@ -933,12 +936,12 @@ describe('AVM simulator: transpiled Noir contracts', () => {
         const nestedBytecode = getAvmTestContractBytecode('public_dispatch');
         mockGetBytecode(worldStateDB, nestedBytecode);
 
-        const contractClass = makeContractClassPublic(0, {
+        const contractClass = await makeContractClassPublic(0, {
           bytecode: nestedBytecode,
           selector: FunctionSelector.random(),
         });
         mockGetContractClass(worldStateDB, contractClass);
-        const contractInstance = makeContractInstanceFromClassId(contractClass.id);
+        const contractInstance = await makeContractInstanceFromClassId(contractClass.id);
         mockGetContractInstance(worldStateDB, contractInstance);
 
         const nestedTrace = mock<PublicSideEffectTraceInterface>();
@@ -958,12 +961,12 @@ describe('AVM simulator: transpiled Noir contracts', () => {
         const nestedBytecode = getAvmTestContractBytecode('public_dispatch');
         mockGetBytecode(worldStateDB, nestedBytecode);
 
-        const contractClass = makeContractClassPublic(0, {
+        const contractClass = await makeContractClassPublic(0, {
           bytecode: nestedBytecode,
           selector: FunctionSelector.random(),
         });
         mockGetContractClass(worldStateDB, contractClass);
-        const contractInstance = makeContractInstanceFromClassId(contractClass.id);
+        const contractInstance = await makeContractInstanceFromClassId(contractClass.id);
         mockGetContractInstance(worldStateDB, contractInstance);
 
         const nestedTrace = mock<PublicSideEffectTraceInterface>();
@@ -978,7 +981,7 @@ describe('AVM simulator: transpiled Noir contracts', () => {
 
       it(`Nested call with not enough gas (expect failure)`, async () => {
         const gas = [/*l2=*/ 5, /*da=*/ 10000].map(g => new Fr(g));
-        const targetFunctionSelector = FunctionSelector.fromSignature(
+        const targetFunctionSelector = await FunctionSelector.fromSignature(
           'nested_call_to_add_with_gas(Field,Field,Field,Field)',
         );
         const calldata: Fr[] = [targetFunctionSelector.toField(), value0, value1, ...gas];
@@ -986,12 +989,12 @@ describe('AVM simulator: transpiled Noir contracts', () => {
         const artifact = getAvmTestContractArtifact('public_dispatch');
         mockGetBytecode(worldStateDB, artifact.bytecode);
 
-        const contractClass = makeContractClassPublic(0, {
+        const contractClass = await makeContractClassPublic(0, {
           bytecode: artifact.bytecode,
           selector: FunctionSelector.random(),
         });
         mockGetContractClass(worldStateDB, contractClass);
-        const contractInstance = makeContractInstanceFromClassId(contractClass.id);
+        const contractInstance = await makeContractInstanceFromClassId(contractClass.id);
         mockGetContractInstance(worldStateDB, contractInstance);
 
         mockTraceFork(trace);
@@ -1010,12 +1013,12 @@ describe('AVM simulator: transpiled Noir contracts', () => {
         const nestedBytecode = getAvmTestContractBytecode('public_dispatch');
         mockGetBytecode(worldStateDB, nestedBytecode);
 
-        const contractClass = makeContractClassPublic(0, {
+        const contractClass = await makeContractClassPublic(0, {
           bytecode: nestedBytecode,
           selector: FunctionSelector.random(),
         });
         mockGetContractClass(worldStateDB, contractClass);
-        const contractInstance = makeContractInstanceFromClassId(contractClass.id);
+        const contractInstance = await makeContractInstanceFromClassId(contractClass.id);
         mockGetContractInstance(worldStateDB, contractInstance);
 
         const nestedTrace = mock<PublicSideEffectTraceInterface>();
@@ -1041,12 +1044,12 @@ describe('AVM simulator: transpiled Noir contracts', () => {
         const nestedBytecode = getAvmTestContractBytecode('public_dispatch');
         mockGetBytecode(worldStateDB, nestedBytecode);
 
-        const contractClass = makeContractClassPublic(0, {
+        const contractClass = await makeContractClassPublic(0, {
           bytecode: nestedBytecode,
           selector: FunctionSelector.random(),
         });
         mockGetContractClass(worldStateDB, contractClass);
-        const contractInstance = makeContractInstanceFromClassId(contractClass.id);
+        const contractInstance = await makeContractInstanceFromClassId(contractClass.id);
         mockGetContractInstance(worldStateDB, contractInstance);
 
         mockTraceFork(trace);
@@ -1065,12 +1068,12 @@ describe('AVM simulator: transpiled Noir contracts', () => {
         const nestedBytecode = getAvmTestContractBytecode('public_dispatch');
         mockGetBytecode(worldStateDB, nestedBytecode);
 
-        const contractClass = makeContractClassPublic(0, {
+        const contractClass = await makeContractClassPublic(0, {
           bytecode: nestedBytecode,
           selector: FunctionSelector.random(),
         });
         mockGetContractClass(worldStateDB, contractClass);
-        const contractInstance = makeContractInstanceFromClassId(contractClass.id);
+        const contractInstance = await makeContractInstanceFromClassId(contractClass.id);
         mockGetContractInstance(worldStateDB, contractInstance);
 
         mockTraceFork(trace);
@@ -1119,7 +1122,7 @@ describe('AVM simulator: transpiled Noir contracts', () => {
       });
     });
   });
-  describe('Side effects including merkle checks', () => {
+  describe('Side effects including merkle checks', async () => {
     const address = AztecAddress.fromNumber(1);
     const sender = AztecAddress.fromNumber(42);
 
@@ -1354,14 +1357,14 @@ function keccakF1600FromMemoryUint64s(mem: Uint64[]): Fr[] {
   return [...keccakf1600(mem.map(u => u.toBigInt()))].map(b => new Fr(b));
 }
 
-function poseidon2FromMemoryFields(fields: Fieldable[]): Fr[] {
-  return [poseidon2Hash(fields)];
+async function poseidon2FromMemoryFields(fields: Fieldable[]): Promise<Fr[]> {
+  return [await poseidon2Hash(fields)];
 }
 
-function pedersenFromMemoryFields(fields: Fieldable[]): Fr[] {
-  return [pedersenHash(fields)];
+async function pedersenFromMemoryFields(fields: Fieldable[]): Promise<Fr[]> {
+  return [await pedersenHash(fields)];
 }
 
-function indexedPedersenFromMemoryFields(fields: Fieldable[]): Fr[] {
-  return [pedersenHash(fields, /*index=*/ 20)];
+async function indexedPedersenFromMemoryFields(fields: Fieldable[]): Promise<Fr[]> {
+  return [await pedersenHash(fields, /*index=*/ 20)];
 }

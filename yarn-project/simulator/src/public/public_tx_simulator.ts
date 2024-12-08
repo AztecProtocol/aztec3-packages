@@ -115,7 +115,7 @@ export class PublicTxSimulator {
 
     const endStateReference = await this.db.getStateReference();
 
-    const avmProvingRequest = context.generateProvingRequest(endStateReference);
+    const avmProvingRequest =await context.generateProvingRequest(endStateReference);
     const avmCircuitPublicInputs = avmProvingRequest.inputs.output!;
 
     const revertCode = context.getFinalRevertCode();

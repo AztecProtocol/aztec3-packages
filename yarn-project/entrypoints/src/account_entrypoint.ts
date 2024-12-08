@@ -25,14 +25,14 @@ export class DefaultAccountEntrypoint implements EntrypointInterface {
 
   async createTxExecutionRequest(exec: ExecutionRequestInit): Promise<TxExecutionRequest> {
     const { calls, fee, nonce, cancellable } = exec;
-    const appPayload = EntrypointPayload.fromAppExecution(calls, nonce);
+    const appPayload = await EntrypointPayload.fromAppExecution(calls, nonce);
     const feePayload = await EntrypointPayload.fromFeeOptions(this.address, fee);
 
     const abi = this.getEntrypointAbi();
     const entrypointPackedArgs = PackedValues.fromValues(encodeArguments(abi, [appPayload, feePayload, !!cancellable]));
 
     const combinedPayloadAuthWitness = await this.auth.createAuthWit(
-      computeCombinedPayloadHash(appPayload, feePayload),
+      await computeCombinedPayloadHash(appPayload, feePayload),
     );
 
     const txRequest = TxExecutionRequest.from({

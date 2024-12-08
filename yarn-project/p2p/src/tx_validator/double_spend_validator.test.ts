@@ -18,19 +18,19 @@ describe('DoubleSpendTxValidator', () => {
   });
 
   it('rejects duplicates in non revertible data', async () => {
-    const badTx = mockTxForRollup();
+    const badTx = await mockTxForRollup();
     badTx.data.forRollup!.end.nullifiers[1] = badTx.data.forRollup!.end.nullifiers[0];
     await expect(txValidator.validateTxs([badTx])).resolves.toEqual([[], [badTx]]);
   });
 
   it('rejects duplicates in revertible data', async () => {
-    const badTx = mockTxForRollup();
+    const badTx = await mockTxForRollup();
     badTx.data.forRollup!.end.nullifiers[1] = badTx.data.forRollup!.end.nullifiers[0];
     await expect(txValidator.validateTxs([badTx])).resolves.toEqual([[], [badTx]]);
   });
 
   it('rejects duplicates across phases', async () => {
-    const badTx = mockTx(1, {
+    const badTx = await mockTx(1, {
       numberOfNonRevertiblePublicCallRequests: 1,
       numberOfRevertiblePublicCallRequests: 1,
     });
@@ -40,14 +40,14 @@ describe('DoubleSpendTxValidator', () => {
   });
 
   it('rejects duplicates across txs', async () => {
-    const firstTx = mockTxForRollup(1);
-    const secondTx = mockTxForRollup(2);
+    const firstTx = await mockTxForRollup(1);
+    const secondTx = await mockTxForRollup(2);
     secondTx.data.forRollup!.end.nullifiers[0] = firstTx.data.forRollup!.end.nullifiers[0];
     await expect(txValidator.validateTxs([firstTx, secondTx])).resolves.toEqual([[firstTx], [secondTx]]);
   });
 
   it('rejects duplicates against history', async () => {
-    const badTx = mockTx();
+    const badTx = await mockTx();
     nullifierSource.getNullifierIndex.mockReturnValueOnce(Promise.resolve(1n));
     await expect(txValidator.validateTxs([badTx])).resolves.toEqual([[], [badTx]]);
   });

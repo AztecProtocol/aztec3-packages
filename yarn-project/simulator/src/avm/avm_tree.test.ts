@@ -136,7 +136,7 @@ describe('Simple Note Hash Consistency', () => {
 
     // Check that the roots are consistent
     const wsRoot = await getWorldStateRoot(treeId);
-    const computedRoot = treeContainer.treeMap.get(treeId)!.getRoot();
+    const computedRoot = await treeContainer.treeMap.get(treeId)!.getRoot();
     expect(computedRoot.toBuffer()).toEqual(wsRoot);
 
     // Check a sibling path from a random index is consistent
@@ -163,7 +163,7 @@ describe('Simple Note Hash Consistency', () => {
 
     // Check that the roots are consistent
     const wsRoot = await getWorldStateRoot(treeId);
-    const computedRoot = treeContainer.treeMap.get(treeId)!.getRoot();
+    const computedRoot = await treeContainer.treeMap.get(treeId)!.getRoot();
     expect(computedRoot.toBuffer()).toEqual(wsRoot);
 
     // Check the sibling path from an index before the fork
@@ -202,7 +202,7 @@ describe('Simple Public Data Consistency', () => {
 
     // Compare the roots of the container and the world state trees
     const wsRoot = await getWorldStateRoot(treeId);
-    const computedRoot = treeContainer.treeMap.get(treeId)!.getRoot();
+    const computedRoot = await treeContainer.treeMap.get(treeId)!.getRoot();
     expect(computedRoot.toBuffer()).toEqual(wsRoot);
 
     // Check that all the accumulated insertion results match
@@ -231,7 +231,7 @@ describe('Simple Public Data Consistency', () => {
 
     // Compare the roots of the container and the world state trees
     const wsRoot = await getWorldStateRoot(treeId);
-    const computedRoot = treeContainer.treeMap.get(treeId)!.getRoot();
+    const computedRoot = await treeContainer.treeMap.get(treeId)!.getRoot();
     expect(computedRoot.toBuffer()).toEqual(wsRoot);
 
     // Get a sibling path from a random index and check it is consistent
@@ -270,7 +270,7 @@ describe('Simple Public Data Consistency', () => {
 
     // Check the roots are consistent
     const wsRoot = await getWorldStateRoot(treeId);
-    const computedRoot = treeContainer.treeMap.get(treeId)!.getRoot();
+    const computedRoot = await treeContainer.treeMap.get(treeId)!.getRoot();
     expect(computedRoot.toBuffer()).toEqual(wsRoot);
 
     // Check the insertion results match
@@ -300,7 +300,7 @@ describe('Simple Nullifier Consistency', () => {
 
     // Compare the roots of the container and the world state
     const wsRoot = await getWorldStateRoot(treeId);
-    const computedRoot = treeContainer.treeMap.get(treeId)!.getRoot();
+    const computedRoot = await treeContainer.treeMap.get(treeId)!.getRoot();
     expect(computedRoot.toBuffer()).toEqual(wsRoot);
 
     // Check that all the accumulated insertion results match
@@ -328,7 +328,7 @@ describe('Simple Nullifier Consistency', () => {
 
     // Compare the roots of the container and the world state
     const wsRoot = await getWorldStateRoot(treeId);
-    const computedRoot = treeContainer.treeMap.get(treeId)!.getRoot();
+    const computedRoot = await treeContainer.treeMap.get(treeId)!.getRoot();
     expect(computedRoot.toBuffer()).toEqual(wsRoot);
 
     // Check insertion results - note we can only compare against the post-insertion results
@@ -435,7 +435,7 @@ describe('Big Random Avm Ephemeral Container Test', () => {
     const computedRoots = [];
     for (const treeId of [MerkleTreeId.NOTE_HASH_TREE, MerkleTreeId.NULLIFIER_TREE, MerkleTreeId.PUBLIC_DATA_TREE]) {
       wsRoots.push(await getWorldStateRoot(treeId));
-      computedRoots.push(treeContainer.treeMap.get(treeId)!.getRoot().toBuffer());
+      computedRoots.push((await treeContainer.treeMap.get(treeId)!.getRoot()).toBuffer());
     }
 
     // All the roots should match
@@ -473,17 +473,17 @@ describe('Checking forking and merging', () => {
     // Write the last element to the forked container
     await forkedContainer.writePublicStorage(slots[slots.length - 1], values[slots.length - 1]);
     const forkedRoot = forkedContainer.treeMap.get(treeId)!.getRoot();
-    let originalRoot = treeContainer.treeMap.get(treeId)!.getRoot();
+    let originalRoot = await treeContainer.treeMap.get(treeId)!.getRoot();
 
     // The roots should NOT match since we have an extra element
-    expect(forkedRoot.toBuffer()).not.toEqual(originalRoot.toBuffer());
+    expect((await forkedRoot).toBuffer()).not.toEqual(originalRoot.toBuffer());
 
     // Write the last element to original container
     await treeContainer.writePublicStorage(slots[slots.length - 1], values[slots.length - 1]);
-    originalRoot = treeContainer.treeMap.get(treeId)!.getRoot();
+    originalRoot = await treeContainer.treeMap.get(treeId)!.getRoot();
 
     // We should be consistent now
-    expect(forkedRoot.toBuffer()).toEqual(originalRoot.toBuffer());
+    expect((await forkedRoot).toBuffer()).toEqual(originalRoot.toBuffer());
   });
 
   it('Fork-Rollback-Fork-Merge should be consistent', async () => {
@@ -512,7 +512,7 @@ describe('Checking forking and merging', () => {
     wsInsertionResults.push(await publicDataInsertWorldState(slots[1], values[1]));
     wsInsertionResults.push(await publicDataInsertWorldState(slots[3], values[3]));
 
-    const containerRoot = forkedContainer.treeMap.get(treeId)!.getRoot();
+    const containerRoot = await forkedContainer.treeMap.get(treeId)!.getRoot();
     const wsRoot = await getWorldStateRoot(treeId);
     expect(containerRoot.toBuffer()).toEqual(wsRoot);
 
@@ -545,17 +545,17 @@ describe('AVM Ephemeral Tree Sanity Test', () => {
     );
 
     const expectedFrontier0 = new Fr(4);
-    const exepctedFrontier1 = poseidon2Hash([new Fr(4), new Fr(5)]);
-    const expectedFrontier2 = poseidon2Hash([
-      poseidon2Hash([new Fr(0), new Fr(1)]),
-      poseidon2Hash([new Fr(2), new Fr(3)]),
+    const exepctedFrontier1 = await poseidon2Hash([new Fr(4), new Fr(5)]);
+    const expectedFrontier2 = await poseidon2Hash([
+      await poseidon2Hash([new Fr(0), new Fr(1)]),
+      await poseidon2Hash([new Fr(2), new Fr(3)]),
     ]);
     const expectedFrontier = [expectedFrontier0, exepctedFrontier1, expectedFrontier2];
     expect(tree.frontier).toEqual(expectedFrontier);
     // Check root
     await worldStateTrees.appendLeaves(MerkleTreeId.NOTE_HASH_TREE, leaves);
     const treeInfo = await worldStateTrees.getTreeInfo(MerkleTreeId.NOTE_HASH_TREE, true);
-    const localRoot = tree.getRoot();
+    const localRoot = await tree.getRoot();
     expect(localRoot.toBuffer()).toEqual(treeInfo.root);
   });
 });

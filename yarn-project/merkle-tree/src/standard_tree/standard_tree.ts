@@ -18,10 +18,10 @@ export class StandardTree<T extends Bufferable = Buffer> extends TreeBase<T> imp
    * @param leaves - The leaves to append.
    * @returns Empty promise.
    */
-  public override appendLeaves(leaves: T[]): Promise<void> {
+  public override async appendLeaves(leaves: T[]): Promise<void> {
     this.hasher.reset();
     const timer = new Timer();
-    super.appendLeaves(leaves);
+    await super.appendLeaves(leaves);
     this.log.debug(`Inserted ${leaves.length} leaves into ${this.getName()} tree`, {
       eventName: 'tree-insertion',
       duration: timer.ms(),
@@ -43,14 +43,18 @@ export class StandardTree<T extends Bufferable = Buffer> extends TreeBase<T> imp
     return this.#snapshotBuilder.getSnapshot(blockNumber);
   }
 
-  public findLeafIndex(value: T, includeUncommitted: boolean): bigint | undefined {
-    return this.findLeafIndexAfter(value, 0n, includeUncommitted);
+  public async findLeafIndex(value: T, includeUncommitted: boolean): Promise<bigint | undefined> {
+    return await this.findLeafIndexAfter(value, 0n, includeUncommitted);
   }
 
-  public findLeafIndexAfter(value: T, startIndex: bigint, includeUncommitted: boolean): bigint | undefined {
+  public async findLeafIndexAfter(
+    value: T,
+    startIndex: bigint,
+    includeUncommitted: boolean,
+  ): Promise<bigint | undefined> {
     const buffer = serializeToBuffer(value);
     for (let i = startIndex; i < this.getNumLeaves(includeUncommitted); i++) {
-      const currentValue = this.getLeafValue(i, includeUncommitted);
+      const currentValue = await this.getLeafValue(i, includeUncommitted);
       if (currentValue && serializeToBuffer(currentValue).equals(buffer)) {
         return i;
       }

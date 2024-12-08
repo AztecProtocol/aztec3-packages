@@ -81,7 +81,7 @@ export function describePxeDatabase(getDatabase: () => PxeDatabase) {
       let storageSlots: Fr[];
       let notes: IncomingNoteDao[];
 
-      const filteringTests: [() => IncomingNotesFilter, () => IncomingNoteDao[]][] = [
+      const filteringTests: [() => IncomingNotesFilter, () => IncomingNoteDao[] | Promise<IncomingNoteDao[]>][] = [
         [() => ({}), () => notes],
 
         [
@@ -115,7 +115,7 @@ export function describePxeDatabase(getDatabase: () => PxeDatabase) {
       ];
 
       beforeEach(async () => {
-        owners = Array.from({ length: 2 }).map(() => CompleteAddress.random());
+        owners = await Promise.all(Array.from({ length: 2 }).map(() => CompleteAddress.random()));
         contractAddresses = Array.from({ length: 2 }).map(() => AztecAddress.random());
         storageSlots = Array.from({ length: 2 }).map(() => Fr.random());
 
@@ -138,7 +138,7 @@ export function describePxeDatabase(getDatabase: () => PxeDatabase) {
         await database.addNotes(notes, []);
         const returnedNotes = await database.getIncomingNotes(getFilter());
 
-        expect(returnedNotes.sort()).toEqual(getExpected().sort());
+        expect(returnedNotes.sort()).toEqual((await getExpected()).sort());
       });
 
       it.each(filteringTests)('stores notes one by one and retrieves notes', async (getFilter, getExpected) => {
@@ -148,7 +148,7 @@ export function describePxeDatabase(getDatabase: () => PxeDatabase) {
 
         const returnedNotes = await database.getIncomingNotes(getFilter());
 
-        expect(returnedNotes.sort()).toEqual(getExpected().sort());
+        expect(returnedNotes.sort()).toEqual((await getExpected()).sort());
       });
 
       it.each(filteringTests)('retrieves nullified notes', async (getFilter, getExpected) => {
@@ -169,7 +169,7 @@ export function describePxeDatabase(getDatabase: () => PxeDatabase) {
 
         await expect(
           database.getIncomingNotes({ ...getFilter(), status: NoteStatus.ACTIVE_OR_NULLIFIED }),
-        ).resolves.toEqual(getExpected());
+        ).resolves.toEqual(await getExpected());
       });
 
       it('skips nullified notes by default or when requesting active', async () => {
@@ -351,17 +351,19 @@ export function describePxeDatabase(getDatabase: () => PxeDatabase) {
       ];
 
       beforeEach(async () => {
-        owners = Array.from({ length: 2 }).map(() => CompleteAddress.random());
+        owners = await Promise.all(Array.from({ length: 2 }).map(() => CompleteAddress.random()));
         contractAddresses = Array.from({ length: 2 }).map(() => AztecAddress.random());
         storageSlots = Array.from({ length: 2 }).map(() => Fr.random());
 
-        notes = Array.from({ length: 10 }).map((_, i) =>
-          OutgoingNoteDao.random({
-            contractAddress: contractAddresses[i % contractAddresses.length],
-            storageSlot: storageSlots[i % storageSlots.length],
-            ovpkM: owners[i % owners.length].publicKeys.masterOutgoingViewingPublicKey,
-            index: BigInt(i),
-          }),
+        notes = await Promise.all(
+          Array.from({ length: 10 }).map((_, i) =>
+            OutgoingNoteDao.random({
+              contractAddress: contractAddresses[i % contractAddresses.length],
+              storageSlot: storageSlots[i % storageSlots.length],
+              ovpkM: owners[i % owners.length].publicKeys.masterOutgoingViewingPublicKey,
+              index: BigInt(i),
+            }),
+          ),
         );
 
         for (const owner of owners) {
@@ -390,22 +392,22 @@ export function describePxeDatabase(getDatabase: () => PxeDatabase) {
 
     describe('addresses', () => {
       it('stores and retrieves addresses', async () => {
-        const address = CompleteAddress.random();
+        const address = await CompleteAddress.random();
         await expect(database.addCompleteAddress(address)).resolves.toBe(true);
         await expect(database.getCompleteAddress(address.address)).resolves.toEqual(address);
       });
 
       it('silently ignores an address it already knows about', async () => {
-        const address = CompleteAddress.random();
+        const address = await CompleteAddress.random();
         await expect(database.addCompleteAddress(address)).resolves.toBe(true);
         await expect(database.addCompleteAddress(address)).resolves.toBe(false);
       });
 
       it.skip('refuses to overwrite an address with a different public key', async () => {
-        const address = CompleteAddress.random();
+        const address = await CompleteAddress.random();
         const otherAddress = new CompleteAddress(
           address.address,
-          new PublicKeys(Point.random(), Point.random(), Point.random(), Point.random()),
+          new PublicKeys(await Point.random(), await Point.random(), await Point.random(), await Point.random()),
           address.partialAddress,
         );
 
@@ -414,7 +416,7 @@ export function describePxeDatabase(getDatabase: () => PxeDatabase) {
       });
 
       it('returns all addresses', async () => {
-        const addresses = Array.from({ length: 10 }).map(() => CompleteAddress.random());
+        const addresses = await Promise.all(Array.from({ length: 10 }).map(() => CompleteAddress.random()));
         for (const address of addresses) {
           await database.addCompleteAddress(address);
         }
@@ -428,7 +430,7 @@ export function describePxeDatabase(getDatabase: () => PxeDatabase) {
       });
 
       it("returns undefined if it doesn't have an address", async () => {
-        expect(await database.getCompleteAddress(CompleteAddress.random().address)).toBeUndefined();
+        expect(await database.getCompleteAddress((await CompleteAddress.random()).address)).toBeUndefined();
       });
     });
 
@@ -455,7 +457,7 @@ export function describePxeDatabase(getDatabase: () => PxeDatabase) {
 
       it('stores a contract instance', async () => {
         const address = AztecAddress.random();
-        const instance = SerializableContractInstance.random().withAddress(address);
+        const instance = (await SerializableContractInstance.random()).withAddress(address);
         await database.addContractInstance(instance);
         await expect(database.getContractInstance(address)).resolves.toEqual(instance);
       });

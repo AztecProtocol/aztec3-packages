@@ -31,7 +31,7 @@ describe('Point', () => {
     );
 
     const [x, sign] = p.toXAndSign();
-    const p2 = Point.fromXAndSign(x, sign);
+    const p2 = await Point.fromXAndSign(x, sign);
 
     expect(p.equals(p2)).toBeTruthy();
   });
@@ -43,9 +43,9 @@ describe('Point', () => {
     expect(p.equals(p2)).toBeTruthy();
   });
 
-  it('converts to and from compressed buffer', () => {
-    const p = Point.random();
-    const p2 = Point.fromCompressedBuffer(p.toCompressedBuffer());
+  it('converts to and from compressed buffer', async () => {
+    const p = await Point.random();
+    const p2 = await Point.fromCompressedBuffer(p.toCompressedBuffer());
 
     expect(p.equals(p2)).toBeTruthy();
   });

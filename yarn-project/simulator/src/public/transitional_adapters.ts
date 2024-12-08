@@ -24,7 +24,7 @@ import { assertLength } from '@aztec/foundation/serialize';
 
 import { type PublicEnqueuedCallSideEffectTrace } from './enqueued_call_side_effect_trace.js';
 
-export function generateAvmCircuitPublicInputs(
+export async function generateAvmCircuitPublicInputs(
   trace: PublicEnqueuedCallSideEffectTrace,
   globalVariables: GlobalVariables,
   startStateReference: StateReference,
@@ -39,7 +39,7 @@ export function generateAvmCircuitPublicInputs(
   endGasUsed: Gas,
   transactionFee: Fr,
   revertCode: RevertCode,
-): AvmCircuitPublicInputs {
+): Promise<AvmCircuitPublicInputs> {
   const startTreeSnapshots = new TreeSnapshots(
     startStateReference.l1ToL2MessageTree,
     startStateReference.partial.noteHashTree,
@@ -103,9 +103,9 @@ export function generateAvmCircuitPublicInputs(
     const noteHash = scopedNoteHash.value;
     if (!noteHash.isZero()) {
       const noteHashIndexInTx = i + countAccumulatedItems(noteHashesFromPrivate);
-      const nonce = computeNoteHashNonce(txHash, noteHashIndexInTx);
-      const uniqueNoteHash = computeUniqueNoteHash(nonce, noteHash);
-      const siloedNoteHash = siloNoteHash(scopedNoteHash.contractAddress, uniqueNoteHash);
+      const nonce = await computeNoteHashNonce(txHash, noteHashIndexInTx);
+      const uniqueNoteHash = await computeUniqueNoteHash(nonce, noteHash);
+      const siloedNoteHash = await siloNoteHash(scopedNoteHash.contractAddress, uniqueNoteHash);
       avmCircuitPublicInputs.accumulatedData.noteHashes[noteHashIndexInTx] = siloedNoteHash;
     }
   }

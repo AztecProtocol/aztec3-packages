@@ -34,7 +34,7 @@ describe('Synchronizer', () => {
   });
 
   it('sets header from latest block', async () => {
-    const block = L2Block.random(1, 4);
+    const block = await L2Block.random(1, 4);
     await synchronizer.handleBlockStreamEvent({ type: 'blocks-added', blocks: [block] });
 
     const obtainedHeader = database.getBlockHeader();
@@ -49,7 +49,10 @@ describe('Synchronizer', () => {
       Promise.resolve(L2Block.random(blockNumber as number).header),
     );
 
-    await synchronizer.handleBlockStreamEvent({ type: 'blocks-added', blocks: times(5, L2Block.random) });
+    await synchronizer.handleBlockStreamEvent({
+      type: 'blocks-added',
+      blocks: await Promise.all(times(5, L2Block.random)),
+    });
     await synchronizer.handleBlockStreamEvent({ type: 'chain-pruned', blockNumber: 3 });
 
     expect(removeNotesAfter).toHaveBeenCalledWith(3);

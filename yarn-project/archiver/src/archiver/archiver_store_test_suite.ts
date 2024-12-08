@@ -59,9 +59,9 @@ export function describeArchiverDataStore(testName: string, getStore: () => Arch
       },
     });
 
-    beforeEach(() => {
+    beforeEach(async () => {
       store = getStore();
-      blocks = times(10, i => makeL1Published(L2Block.random(i + 1), i + 10));
+      blocks = await Promise.all(times(10, async i => makeL1Published(await L2Block.random(i + 1), i + 10)));
     });
 
     describe('addBlocks', () => {
@@ -89,7 +89,9 @@ export function describeArchiverDataStore(testName: string, getStore: () => Arch
       });
 
       it('can unwind multiple empty blocks', async () => {
-        const emptyBlocks = times(10, i => makeL1Published(L2Block.random(i + 1, 0), i + 10));
+        const emptyBlocks = await Promise.all(
+          times(10, async i => makeL1Published(await L2Block.random(i + 1, 0), i + 10)),
+        );
         await store.addBlocks(emptyBlocks);
         expect(await store.getSynchedL2BlockNumber()).toBe(10);
 
@@ -284,7 +286,7 @@ export function describeArchiverDataStore(testName: string, getStore: () => Arch
       const blockNum = 10;
 
       beforeEach(async () => {
-        contractInstance = { ...SerializableContractInstance.random(), address: AztecAddress.random() };
+        contractInstance = { ...(await SerializableContractInstance.random()), address: AztecAddress.random() };
         await store.addContractInstances([contractInstance], blockNum);
       });
 
@@ -716,8 +718,8 @@ export function describeArchiverDataStore(testName: string, getStore: () => Arch
       const numBlocks = 10;
       const nullifiersPerBlock = new Map<number, Fr[]>();
 
-      beforeEach(() => {
-        blocks = times(numBlocks, (index: number) => L2Block.random(index + 1, 1));
+      beforeEach(async () => {
+        blocks = await Promise.all(times(numBlocks, (index: number) => L2Block.random(index + 1, 1)));
 
         blocks.forEach((block, blockIndex) => {
           nullifiersPerBlock.set(

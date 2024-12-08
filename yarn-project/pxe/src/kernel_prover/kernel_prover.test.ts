@@ -134,7 +134,7 @@ describe('Kernel Prover', () => {
 
   const prove = (executionResult: PrivateExecutionResult) => prover.prove(txRequest, executionResult);
 
-  beforeEach(() => {
+  beforeEach(async () => {
     txRequest = makeTxRequest();
 
     oracle = mock<ProvingDataOracle>();
@@ -143,7 +143,7 @@ describe('Kernel Prover', () => {
 
     oracle.getContractAddressPreimage.mockResolvedValue({
       contractClassId: Fr.random(),
-      publicKeys: PublicKeys.random(),
+      publicKeys: await PublicKeys.random(),
       saltedInitializationHash: Fr.random(),
     });
     oracle.getContractClassIdPreimage.mockResolvedValue({

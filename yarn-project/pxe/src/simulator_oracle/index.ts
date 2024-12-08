@@ -302,7 +302,7 @@ export class SimulatorOracle implements DBOracle {
   async #calculateTaggingSecret(contractAddress: AztecAddress, sender: AztecAddress, recipient: AztecAddress) {
     const senderCompleteAddress = await this.getCompleteAddress(sender);
     const senderIvsk = await this.keyStore.getMasterIncomingViewingSecretKey(sender);
-    const sharedSecret = computeTaggingSecret(senderCompleteAddress, senderIvsk, recipient);
+    const sharedSecret = await computeTaggingSecret(senderCompleteAddress, senderIvsk, recipient);
     // Silo the secret to the app so it can't be used to track other app's notes
     const siloedSecret = poseidon2Hash([sharedSecret.x, sharedSecret.y, contractAddress]);
     return siloedSecret;
@@ -328,10 +328,12 @@ export class SimulatorOracle implements DBOracle {
     const contacts = [...this.db.getContactAddresses(), ...(await this.keyStore.getAccounts())].filter(
       (address, index, self) => index === self.findIndex(otherAddress => otherAddress.equals(address)),
     );
-    const appTaggingSecrets = contacts.map(contact => {
-      const sharedSecret = computeTaggingSecret(recipientCompleteAddress, recipientIvsk, contact);
-      return poseidon2Hash([sharedSecret.x, sharedSecret.y, contractAddress]);
-    });
+    const appTaggingSecrets = await Promise.all(
+      contacts.map(async contact => {
+        const sharedSecret = await computeTaggingSecret(recipientCompleteAddress, recipientIvsk, contact);
+        return poseidon2Hash([sharedSecret.x, sharedSecret.y, contractAddress]);
+      }),
+    );
     const indexes = await this.db.getTaggingSecretsIndexesAsRecipient(appTaggingSecrets);
     return appTaggingSecrets.map((secret, i) => new IndexedTaggingSecret(secret, indexes[i]));
   }
@@ -537,7 +539,7 @@ export class SimulatorOracle implements DBOracle {
     const ivskM = await this.keyStore.getMasterSecretKey(
       recipientCompleteAddress.publicKeys.masterIncomingViewingPublicKey,
     );
-    const addressSecret = computeAddressSecret(recipientCompleteAddress.getPreaddress(), ivskM);
+    const addressSecret = await computeAddressSecret(await recipientCompleteAddress.getPreaddress(), ivskM);
     const ovskM = await this.keyStore.getMasterSecretKey(
       recipientCompleteAddress.publicKeys.masterOutgoingViewingPublicKey,
     );

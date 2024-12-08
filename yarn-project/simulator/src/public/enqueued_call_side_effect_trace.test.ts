@@ -53,7 +53,7 @@ describe('Enqueued-call Side Effect Trace', () => {
     trace = new PublicEnqueuedCallSideEffectTrace(startCounter);
   });
 
-  it('Should trace storage reads', () => {
+  it('Should trace storage reads', async () => {
     const leafPreimage = new PublicDataTreeLeafPreimage(slot, value, Fr.ZERO, 0n);
     trace.tracePublicStorageRead(address, slot, value, leafPreimage, leafIndex, siblingPath);
     expect(trace.getCounter()).toBe(startCounterPlus1);
@@ -62,7 +62,7 @@ describe('Enqueued-call Side Effect Trace', () => {
     expect(trace.getAvmCircuitHints().publicDataReads.items).toEqual([expected]);
   });
 
-  it('Should trace storage writes', () => {
+  it('Should trace storage writes', async () => {
     const lowLeafPreimage = new PublicDataTreeLeafPreimage(slot, value, Fr.ZERO, 0n);
     const newLeafPreimage = new PublicDataTreeLeafPreimage(slot, value, Fr.ZERO, 0n);
 
@@ -78,7 +78,7 @@ describe('Enqueued-call Side Effect Trace', () => {
     );
     expect(trace.getCounter()).toBe(startCounterPlus1);
 
-    const leafSlot = computePublicDataTreeLeafSlot(address, slot);
+    const leafSlot = await computePublicDataTreeLeafSlot(address, slot);
     const expected = [new PublicDataUpdateRequest(leafSlot, value, startCounter /*contractAddress*/)];
     expect(trace.getSideEffects().publicDataWrites).toEqual(expected);
 
@@ -115,7 +115,7 @@ describe('Enqueued-call Side Effect Trace', () => {
     expect(trace.getAvmCircuitHints().nullifierReads.items).toEqual([expected]);
   });
 
-  it('Should trace nullifiers', () => {
+  it('Should trace nullifiers', async () => {
     const lowLeafPreimage = new NullifierLeafPreimage(utxo, Fr.ZERO, 0n);
     trace.traceNewNullifier(utxo, lowLeafPreimage, lowLeafIndex, lowLeafSiblingPath, siblingPath);
     expect(trace.getCounter()).toBe(startCounterPlus1);
@@ -156,8 +156,8 @@ describe('Enqueued-call Side Effect Trace', () => {
     expect(trace.getSideEffects().unencryptedLogsHashes).toEqual(expectedHashes);
   });
 
-  it('Should trace get contract instance', () => {
-    const instance = SerializableContractInstance.random();
+  it('Should trace get contract instance', async () => {
+    const instance = await SerializableContractInstance.random();
     const { version: _, ...instanceWithoutVersion } = instance;
     const exists = true;
     trace.traceGetContractInstance(address, exists, instance);
@@ -176,21 +176,22 @@ describe('Enqueued-call Side Effect Trace', () => {
       for (let i = 0; i < MAX_PUBLIC_DATA_UPDATE_REQUESTS_PER_TX; i++) {
         const lowLeafPreimage = new PublicDataTreeLeafPreimage(new Fr(i), new Fr(i), Fr.ZERO, 0n);
         const newLeafPreimage = new PublicDataTreeLeafPreimage(new Fr(i + 1), new Fr(i + 1), Fr.ZERO, 0n);
-        trace.tracePublicStorageWrite(address, slot, value, lowLeafPreimage, Fr.ZERO, [], newLeafPreimage, []);
+        await trace.tracePublicStorageWrite(address, slot, value, lowLeafPreimage, Fr.ZERO, [], newLeafPreimage, []);
       }
       const leafPreimage = new PublicDataTreeLeafPreimage(new Fr(42), new Fr(42), Fr.ZERO, 0n);
-      expect(() =>
-        trace.tracePublicStorageWrite(
-          AztecAddress.fromNumber(42),
-          new Fr(42),
-          value,
-          leafPreimage,
-          Fr.ZERO,
-          [],
-          leafPreimage,
-          [],
-        ),
-      ).toThrow(SideEffectLimitReachedError);
+      await expect(
+        async () =>
+          await trace.tracePublicStorageWrite(
+            AztecAddress.fromNumber(42),
+            new Fr(42),
+            value,
+            leafPreimage,
+            Fr.ZERO,
+            [],
+            leafPreimage,
+            [],
+          ),
+      ).rejects.toThrow(SideEffectLimitReachedError);
     });
 
     it('Should enforce maximum number of new note hashes', () => {
@@ -259,20 +260,20 @@ describe('Enqueued-call Side Effect Trace', () => {
   });
 
   describe.each([false, true])('Should merge forked traces', reverted => {
-    it(`${reverted ? 'Reverted' : 'Successful'} forked trace should be merged properly`, () => {
+    it(`${reverted ? 'Reverted' : 'Successful'} forked trace should be merged properly`, async () => {
       const existsDefault = true;
 
       const nestedTrace = new PublicEnqueuedCallSideEffectTrace(startCounter);
       let testCounter = startCounter;
       const leafPreimage = new PublicDataTreeLeafPreimage(slot, value, Fr.ZERO, 0n);
       const lowLeafPreimage = new NullifierLeafPreimage(utxo, Fr.ZERO, 0n);
-      nestedTrace.tracePublicStorageRead(address, slot, value, leafPreimage, Fr.ZERO, []);
+      await nestedTrace.tracePublicStorageRead(address, slot, value, leafPreimage, Fr.ZERO, []);
       testCounter++;
-      nestedTrace.tracePublicStorageWrite(address, slot, value, leafPreimage, Fr.ZERO, [], leafPreimage, []);
+      await nestedTrace.tracePublicStorageWrite(address, slot, value, leafPreimage, Fr.ZERO, [], leafPreimage, []);
       testCounter++;
-      nestedTrace.traceNoteHashCheck(address, utxo, leafIndex, existsDefault, []);
+      await nestedTrace.traceNoteHashCheck(address, utxo, leafIndex, existsDefault, []);
       // counter does not increment for note hash checks
-      nestedTrace.traceNewNoteHash(address, utxo, Fr.ZERO, []);
+      await nestedTrace.traceNewNoteHash(address, utxo, Fr.ZERO, []);
       testCounter++;
       nestedTrace.traceNullifierCheck(utxo, true, lowLeafPreimage, Fr.ZERO, []);
       testCounter++;
@@ -280,15 +281,15 @@ describe('Enqueued-call Side Effect Trace', () => {
       testCounter++;
       nestedTrace.traceNewNullifier(utxo, lowLeafPreimage, Fr.ZERO, [], []);
       testCounter++;
-      nestedTrace.traceL1ToL2MessageCheck(address, utxo, leafIndex, existsDefault, []);
+      await nestedTrace.traceL1ToL2MessageCheck(address, utxo, leafIndex, existsDefault, []);
       // counter does not increment for l1tol2 message checks
-      nestedTrace.traceNewL2ToL1Message(address, recipient, content);
+      await nestedTrace.traceNewL2ToL1Message(address, recipient, content);
       testCounter++;
-      nestedTrace.traceUnencryptedLog(address, log);
+      await nestedTrace.traceUnencryptedLog(address, log);
       testCounter++;
-      nestedTrace.traceGetContractInstance(address, /*exists=*/ true, contractInstance);
+      await nestedTrace.traceGetContractInstance(address, /*exists=*/ true, contractInstance);
       testCounter++;
-      nestedTrace.traceGetContractInstance(address, /*exists=*/ false, contractInstance);
+      await nestedTrace.traceGetContractInstance(address, /*exists=*/ false, contractInstance);
       testCounter++;
 
       trace.merge(nestedTrace, reverted);

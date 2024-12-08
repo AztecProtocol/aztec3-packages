@@ -28,26 +28,29 @@ export class AccountManager {
   /** Deployment salt for the account contract. */
   public readonly salt: Fr;
 
-  private instance: ContractInstanceWithAddress;
+  private instance: Promise<ContractInstanceWithAddress>;
 
   constructor(private pxe: PXE, private secretKey: Fr, private accountContract: AccountContract, salt?: Salt) {
-    this.salt = salt !== undefined ? new Fr(salt) : Fr.random();
+    salt = salt !== undefined ? new Fr(salt) : Fr.random();
+    this.salt = salt;
 
-    const { publicKeys } = deriveKeys(secretKey);
+    this.instance = (async () => {
+      const { publicKeys } = await deriveKeys(secretKey);
 
-    this.instance = getContractInstanceFromDeployParams(this.accountContract.getContractArtifact(), {
-      constructorArgs: this.accountContract.getDeploymentArgs(),
-      salt: this.salt,
-      publicKeys,
-    });
+      return await getContractInstanceFromDeployParams(this.accountContract.getContractArtifact(), {
+        constructorArgs: await this.accountContract.getDeploymentArgs(),
+        salt,
+        publicKeys,
+      });
+    })();
   }
 
-  protected getPublicKeys() {
-    return this.instance.publicKeys;
+  protected async getPublicKeys() {
+    return (await this.instance).publicKeys;
   }
 
-  protected getPublicKeysHash() {
-    return this.getPublicKeys().hash();
+  protected async getPublicKeysHash() {
+    return (await this.getPublicKeys()).hash();
   }
 
   /**
@@ -56,7 +59,7 @@ export class AccountManager {
    */
   public async getAccount(): Promise<AccountInterface> {
     const nodeInfo = await this.pxe.getNodeInfo();
-    const completeAddress = this.getCompleteAddress();
+    const completeAddress = await this.getCompleteAddress();
     return this.accountContract.getInterface(completeAddress, nodeInfo);
   }
 
@@ -65,8 +68,8 @@ export class AccountManager {
    * Does not require the account to be deployed or registered.
    * @returns The address, partial address, and encryption public key.
    */
-  public getCompleteAddress(): CompleteAddress {
-    return CompleteAddress.fromSecretKeyAndInstance(this.secretKey, this.instance);
+  public async getCompleteAddress(): Promise<CompleteAddress> {
+    return await CompleteAddress.fromSecretKeyAndInstance(this.secretKey, await this.instance);
   }
 
   /**
@@ -74,8 +77,8 @@ export class AccountManager {
    * Does not require the account to be deployed or registered.
    * @returns The address.
    */
-  public getAddress() {
-    return this.getCompleteAddress().address;
+  public async getAddress() {
+    return (await this.getCompleteAddress()).address;
   }
 
   /**
@@ -83,8 +86,8 @@ export class AccountManager {
    * Does not require the account to be deployed or registered.
    * @returns ContractInstance instance.
    */
-  public getInstance(): ContractInstanceWithAddress {
-    return this.instance;
+  public async getInstance(): Promise<ContractInstanceWithAddress> {
+    return await this.instance;
   }
 
   /**
@@ -107,10 +110,10 @@ export class AccountManager {
   public async register(): Promise<AccountWalletWithSecretKey> {
     await this.pxe.registerContract({
       artifact: this.accountContract.getContractArtifact(),
-      instance: this.getInstance(),
+      instance: await this.getInstance(),
     });
 
-    await this.pxe.registerAccount(this.secretKey, this.getCompleteAddress().partialAddress);
+    await this.pxe.registerAccount(this.secretKey, (await this.getCompleteAddress()).partialAddress);
 
     return this.getWallet();
   }
@@ -128,7 +131,7 @@ export class AccountManager {
       );
     }
 
-    await this.pxe.registerAccount(this.secretKey, this.getCompleteAddress().partialAddress);
+    await this.pxe.registerAccount(this.secretKey, (await this.getCompleteAddress()).partialAddress);
 
     const { l1ChainId: chainId, protocolVersion } = await this.pxe.getNodeInfo();
     const deployWallet = new SignerlessWallet(this.pxe, new DefaultMultiCallEntrypoint(chainId, protocolVersion));
@@ -136,10 +139,10 @@ export class AccountManager {
     // We use a signerless wallet with the multi call entrypoint in order to make multiple calls in one go
     // If we used getWallet, the deployment would get routed via the account contract entrypoint
     // and it can't be used unless the contract is initialized
-    const args = this.accountContract.getDeploymentArgs() ?? [];
+    const args = (await this.accountContract.getDeploymentArgs()) ?? [];
     return new DeployAccountMethod(
-      this.accountContract.getAuthWitnessProvider(this.getCompleteAddress()),
-      this.getPublicKeys(),
+      this.accountContract.getAuthWitnessProvider(await this.getCompleteAddress()),
+      await this.getPublicKeys(),
       deployWallet,
       this.accountContract.getContractArtifact(),
       args,

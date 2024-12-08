@@ -214,7 +214,7 @@ export class PublicEnqueuedCallSideEffectTrace implements PublicSideEffectTraceI
     this.incrementSideEffectCounter();
   }
 
-  public tracePublicStorageWrite(
+  public async tracePublicStorageWrite(
     contractAddress: AztecAddress,
     slot: Fr,
     value: Fr,
@@ -238,7 +238,7 @@ export class PublicEnqueuedCallSideEffectTrace implements PublicSideEffectTraceI
       );
     }
 
-    const leafSlot = computePublicDataTreeLeafSlot(contractAddress, slot);
+    const leafSlot = await computePublicDataTreeLeafSlot(contractAddress, slot);
     this.publicDataWrites.push(new PublicDataUpdateRequest(leafSlot, value, this.sideEffectCounter));
 
     // New hinting
@@ -277,7 +277,7 @@ export class PublicEnqueuedCallSideEffectTrace implements PublicSideEffectTraceI
     }
 
     // TODO(dbanks12): make unique and silo instead of scoping
-    //const siloedNoteHash = siloNoteHash(contractAddress, noteHash);
+    //const siloedNoteHash = await siloNoteHash(contractAddress, noteHash);
     this.noteHashes.push(new NoteHash(noteHash, this.sideEffectCounter).scope(contractAddress));
     this.log.debug(`NEW_NOTE_HASH cnt: ${this.sideEffectCounter}`);
     this.avmCircuitHints.noteHashWrites.items.push(new AvmAppendTreeHint(leafIndex, noteHash, path));
@@ -417,7 +417,7 @@ export class PublicEnqueuedCallSideEffectTrace implements PublicSideEffectTraceI
    * Trace a nested call.
    * Accept some results from a finished nested call's trace into this one.
    */
-  public traceNestedCall(
+  public async traceNestedCall(
     /** The trace of the nested call. */
     _nestedCallTrace: this,
     /** The execution environment of the nested call. */

@@ -61,7 +61,7 @@ export class LightweightBlockBuilder implements BlockBuilder {
           this.db.getInitialHeader(),
           this.globalVariables!.chainId,
           this.globalVariables!.version,
-          getVKTreeRoot(),
+          await getVKTreeRoot(),
           protocolContractTreeRoot,
         ),
       );

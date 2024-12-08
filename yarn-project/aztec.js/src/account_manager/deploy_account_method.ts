@@ -19,7 +19,7 @@ import { EntrypointPayload, computeCombinedPayloadHash } from '../entrypoint/pay
  */
 export class DeployAccountMethod extends DeployMethod {
   #authWitnessProvider: AuthWitnessProvider;
-  #feePaymentArtifact: FunctionArtifact | undefined;
+  #feePaymentArtifact: Promise<FunctionArtifact | undefined>;
 
   constructor(
     authWitnessProvider: AuthWitnessProvider,
@@ -43,7 +43,7 @@ export class DeployAccountMethod extends DeployMethod {
     this.#feePaymentArtifact =
       typeof feePaymentNameOrArtifact === 'string'
         ? getFunctionArtifact(artifact, feePaymentNameOrArtifact)
-        : feePaymentNameOrArtifact;
+        : Promise.resolve(feePaymentNameOrArtifact);
   }
 
   protected override async getInitializeFunctionCalls(
@@ -58,23 +58,20 @@ export class DeployAccountMethod extends DeployMethod {
       const feePayload = await EntrypointPayload.fromFeeOptions(address, fee);
 
       exec.calls.push({
-        name: this.#feePaymentArtifact.name,
+        name: feePaymentArtifact.name,
         to: address,
-        args: encodeArguments(this.#feePaymentArtifact, [emptyAppPayload, feePayload, false]),
-        selector: FunctionSelector.fromNameAndParameters(
-          this.#feePaymentArtifact.name,
-          this.#feePaymentArtifact.parameters,
-        ),
-        type: this.#feePaymentArtifact.functionType,
-        isStatic: this.#feePaymentArtifact.isStatic,
-        returnTypes: this.#feePaymentArtifact.returnTypes,
+        args: encodeArguments(feePaymentArtifact, [emptyAppPayload, feePayload, false]),
+        selector: await FunctionSelector.fromNameAndParameters(feePaymentArtifact.name, feePaymentArtifact.parameters),
+        type: feePaymentArtifact.functionType,
+        isStatic: feePaymentArtifact.isStatic,
+        returnTypes: feePaymentArtifact.returnTypes,
       });
 
       exec.authWitnesses ??= [];
       exec.packedArguments ??= [];
 
       exec.authWitnesses.push(
-        await this.#authWitnessProvider.createAuthWit(computeCombinedPayloadHash(emptyAppPayload, feePayload)),
+        await this.#authWitnessProvider.createAuthWit(await computeCombinedPayloadHash(emptyAppPayload, feePayload)),
       );
 
       exec.packedArguments.push(...emptyAppPayload.packedArguments);

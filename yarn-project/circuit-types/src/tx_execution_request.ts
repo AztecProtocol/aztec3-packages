@@ -132,13 +132,13 @@ export class TxExecutionRequest {
     return TxExecutionRequest.fromBuffer(hexToBuffer(str));
   }
 
-  static random() {
+  static async random() {
     return new TxExecutionRequest(
       AztecAddress.random(),
       FunctionSelector.random(),
       Fr.random(),
       TxContext.empty(),
-      [PackedValues.random()],
+      [await PackedValues.random()],
       [AuthWitness.random()],
     );
   }

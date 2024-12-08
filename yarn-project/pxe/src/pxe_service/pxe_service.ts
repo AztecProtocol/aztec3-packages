@@ -164,7 +164,7 @@ export class PXEService implements PXE {
 
   public async getContractClass(id: Fr): Promise<ContractClassWithId | undefined> {
     const artifact = await this.db.getContractArtifact(id);
-    return artifact && getContractClassFromArtifact(artifact);
+    return artifact && (await getContractClassFromArtifact(artifact));
   }
 
   public getContractArtifact(id: Fr): Promise<ContractArtifact | undefined> {
@@ -239,7 +239,7 @@ export class PXEService implements PXE {
   }
 
   public async registerContractClass(artifact: ContractArtifact): Promise<void> {
-    const contractClassId = computeContractClassId(getContractClassFromArtifact(artifact));
+    const contractClassId = await computeContractClassId(await getContractClassFromArtifact(artifact));
     await this.db.addContractArtifact(contractClassId, artifact);
     this.log.info(`Added contract class ${artifact.name} with id ${contractClassId}`);
   }
@@ -250,8 +250,8 @@ export class PXEService implements PXE {
 
     if (artifact) {
       // If the user provides an artifact, validate it against the expected class id and register it
-      const contractClass = getContractClassFromArtifact(artifact);
-      const contractClassId = computeContractClassId(contractClass);
+      const contractClass = await getContractClassFromArtifact(artifact);
+      const contractClassId = await computeContractClassId(contractClass);
       if (!contractClassId.equals(instance.contractClassId)) {
         throw new Error(
           `Artifact does not match expected class id (computed ${contractClassId} but instance refers to ${instance.contractClassId})`,
@@ -381,7 +381,7 @@ export class PXEService implements PXE {
         throw new Error('Note does not exist.');
       }
 
-      const siloedNullifier = siloNullifier(note.contractAddress, innerNullifier!);
+      const siloedNullifier = await siloNullifier(note.contractAddress, innerNullifier!);
       const [nullifierIndex] = await this.node.findLeavesIndexes('latest', MerkleTreeId.NULLIFIER_TREE, [
         siloedNullifier,
       ]);
@@ -474,7 +474,7 @@ export class PXEService implements PXE {
         break;
       }
 
-      const nonce = computeNoteHashNonce(firstNullifier, i);
+      const nonce = await computeNoteHashNonce(firstNullifier, i);
       const { siloedNoteHash } = await this.simulator.computeNoteHashAndOptionallyANullifier(
         note.contractAddress,
         nonce,
@@ -683,7 +683,7 @@ export class PXEService implements PXE {
     return {
       name: functionDao.name,
       args: encodeArguments(functionDao, args),
-      selector: FunctionSelector.fromNameAndParameters(functionDao.name, functionDao.parameters),
+      selector: await FunctionSelector.fromNameAndParameters(functionDao.name, functionDao.parameters),
       type: functionDao.functionType,
       to,
       isStatic: functionDao.isStatic,
@@ -728,7 +728,7 @@ export class PXEService implements PXE {
 
   async #registerProtocolContracts() {
     for (const name of protocolContractNames) {
-      const { address, contractClass, instance, artifact } = getCanonicalProtocolContract(name);
+      const { address, contractClass, instance, artifact } = await getCanonicalProtocolContract(name);
       await this.db.addContractArtifact(contractClass.id, artifact);
       await this.db.addContractInstance(instance);
       this.log.info(`Added protocol contract ${name} at ${address.toString()}`);
@@ -892,7 +892,7 @@ export class PXEService implements PXE {
   }
 
   public async isContractInitialized(address: AztecAddress): Promise<boolean> {
-    const initNullifier = siloNullifier(address, address.toField());
+    const initNullifier = await siloNullifier(address, address.toField());
     return !!(await this.node.getNullifierMembershipWitness('latest', initNullifier));
   }
 
@@ -923,9 +923,9 @@ export class PXEService implements PXE {
             throw new Error('No registered account');
           }
 
-          const preaddress = registeredAccount.getPreaddress();
+          const preaddress = await registeredAccount.getPreaddress();
 
-          secretKey = computeAddressSecret(preaddress, secretKey);
+          secretKey = await computeAddressSecret(preaddress, secretKey);
         }
 
         return secretKey;
@@ -940,10 +940,10 @@ export class PXEService implements PXE {
         if (decryptedEvent !== undefined) {
           return [decryptedEvent];
         }
-      }
 
-      return [];
-    });
+        return [];
+      }),
+    );
 
     const decodedEvents = visibleEvents
       .map(visibleEvent => {

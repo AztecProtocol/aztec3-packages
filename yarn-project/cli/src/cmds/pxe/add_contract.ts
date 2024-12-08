@@ -1,5 +1,10 @@
-import { AztecAddress, type ContractInstanceWithAddress, type Fr, getContractClassFromArtifact } from '@aztec/aztec.js';
-import { createCompatibleClient } from '@aztec/aztec.js';
+import {
+  AztecAddress,
+  type ContractInstanceWithAddress,
+  type Fr,
+  createCompatibleClient,
+  getContractClassFromArtifact,
+} from '@aztec/aztec.js';
 import { PublicKeys } from '@aztec/circuits.js';
 import { computeContractAddressFromInstance } from '@aztec/circuits.js/contract';
 import { type DebugLogger, type LogFn } from '@aztec/foundation/log';
@@ -22,12 +27,12 @@ export async function addContract(
     version: 1,
     salt,
     initializationHash,
-    contractClassId: getContractClassFromArtifact(artifact).id,
+    contractClassId: (await getContractClassFromArtifact(artifact)).id,
     publicKeys: publicKeys ?? PublicKeys.default(),
     address,
     deployer: deployer ?? AztecAddress.ZERO,
   };
-  const computed = computeContractAddressFromInstance(instance);
+  const computed = await computeContractAddressFromInstance(instance);
   if (!computed.equals(address)) {
     throw new Error(`Contract address ${address.toString()} does not match computed address ${computed.toString()}`);
   }

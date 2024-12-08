@@ -12,18 +12,18 @@ import { deriveDiffieHellmanAESSecret } from './shared_secret_derivation.js';
  * @param deriveSecret - Function to derive the AES secret from the ephemeral secret key and public key
  * @returns The ciphertext
  */
-export function encrypt(
+export async function encrypt(
   plaintext: Buffer,
   secret: GrumpkinScalar,
   publicKey: PublicKey,
-  deriveSecret: (secret: GrumpkinScalar, publicKey: PublicKey) => Buffer = deriveDiffieHellmanAESSecret,
-): Buffer {
-  const aesSecret = deriveSecret(secret, publicKey);
+  deriveSecret: (secret: GrumpkinScalar, publicKey: PublicKey) => Promise<Buffer> = deriveDiffieHellmanAESSecret,
+): Promise<Buffer> {
+  const aesSecret = await deriveSecret(secret, publicKey);
   const key = aesSecret.subarray(0, 16);
   const iv = aesSecret.subarray(16, 32);
 
   const aes128 = new Aes128();
-  return aes128.encryptBufferCBC(plaintext, iv, key);
+  return await aes128.encryptBufferCBC(plaintext, iv, key);
 }
 
 /**
@@ -34,16 +34,16 @@ export function encrypt(
  * @param deriveSecret - Function to derive the AES secret from the ephemeral secret key and public key
  * @returns
  */
-export function decrypt(
+export async function decrypt(
   ciphertext: Buffer,
   secret: GrumpkinScalar,
   publicKey: PublicKey,
-  deriveSecret: (secret: GrumpkinScalar, publicKey: PublicKey) => Buffer = deriveDiffieHellmanAESSecret,
-): Buffer {
-  const aesSecret = deriveSecret(secret, publicKey);
+  deriveSecret: (secret: GrumpkinScalar, publicKey: PublicKey) => Promise<Buffer> = deriveDiffieHellmanAESSecret,
+): Promise<Buffer> {
+  const aesSecret = await deriveSecret(secret, publicKey);
   const key = aesSecret.subarray(0, 16);
   const iv = aesSecret.subarray(16, 32);
 
   const aes128 = new Aes128();
-  return aes128.decryptBufferCBC(ciphertext, iv, key);
+  return await aes128.decryptBufferCBC(ciphertext, iv, key);
 }

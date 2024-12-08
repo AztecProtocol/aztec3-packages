@@ -18,10 +18,10 @@ import {
 describe('hash', () => {
   setupCustomSnapshotSerializers(expect);
 
-  it('computes note hash nonce', () => {
+  it('computes note hash nonce', async () => {
     const nullifierZero = new Fr(123n);
     const noteHashIndex = 456;
-    const res = computeNoteHashNonce(nullifierZero, noteHashIndex);
+    const res = await computeNoteHashNonce(nullifierZero, noteHashIndex);
     expect(res).toMatchSnapshot();
   });
 
@@ -32,17 +32,17 @@ describe('hash', () => {
     expect(res).toMatchSnapshot();
   });
 
-  it('computes siloed note hash', () => {
+  it('computes siloed note hash', async () => {
     const contractAddress = new AztecAddress(new Fr(123n).toBuffer());
     const uniqueNoteHash = new Fr(456);
-    const res = siloNoteHash(contractAddress, uniqueNoteHash);
+    const res = await siloNoteHash(contractAddress, uniqueNoteHash);
     expect(res).toMatchSnapshot();
   });
 
-  it('computes siloed nullifier', () => {
+  it('computes siloed nullifier', async () => {
     const contractAddress = new AztecAddress(new Fr(123n).toBuffer());
     const innerNullifier = new Fr(456);
-    const res = siloNullifier(contractAddress, innerNullifier);
+    const res = await siloNullifier(contractAddress, innerNullifier);
     expect(res).toMatchSnapshot();
   });
 
@@ -52,10 +52,10 @@ describe('hash', () => {
     expect(res).toMatchSnapshot();
   });
 
-  it('computes public data tree leaf slot', () => {
+  it('computes public data tree leaf slot', async () => {
     const contractAddress = makeAztecAddress();
     const value = new Fr(3n);
-    const res = computePublicDataTreeLeafSlot(contractAddress, value);
+    const res = await computePublicDataTreeLeafSlot(contractAddress, value);
     expect(res).toMatchSnapshot();
   });
 
@@ -76,9 +76,9 @@ describe('hash', () => {
     expect(res).toMatchSnapshot();
   });
 
-  it('compute secret message hash', () => {
+  it('compute secret message hash', async () => {
     const value = new Fr(8n);
-    const hash = computeSecretHash(value);
+    const hash = await computeSecretHash(value);
     expect(hash).toMatchSnapshot();
   });
 

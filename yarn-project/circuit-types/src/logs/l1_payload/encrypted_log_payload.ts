@@ -104,9 +104,9 @@ export class EncryptedLogPayload {
   ): PrivateLog {
     const addressPoint = recipient.toAddressPoint();
 
-    const ephPk = derivePublicKeyFromSecretKey(ephSk);
-    const incomingHeaderCiphertext = encrypt(this.contractAddress.toBuffer(), ephSk, addressPoint);
-    const outgoingHeaderCiphertext = encrypt(this.contractAddress.toBuffer(), ephSk, ovKeys.pkM);
+    const ephPk = await derivePublicKeyFromSecretKey(ephSk);
+    const incomingHeaderCiphertext = await encrypt(this.contractAddress.toBuffer(), ephSk, addressPoint);
+    const outgoingHeaderCiphertext = await encrypt(this.contractAddress.toBuffer(), ephSk, ovKeys.pkM);
 
     if (incomingHeaderCiphertext.length !== HEADER_SIZE) {
       throw new Error(`Invalid incoming header size: ${incomingHeaderCiphertext.length}`);

@@ -197,7 +197,7 @@ export class BlockStore {
    * @param txHash - The hash of a tx we try to get the receipt for.
    * @returns The requested tx receipt (or undefined if not found).
    */
-  getSettledTxReceipt(txHash: TxHash): TxReceipt | undefined {
+  async getSettledTxReceipt(txHash: TxHash): Promise<TxReceipt | undefined> {
     const [blockNumber, txIndex] = this.getTxLocation(txHash) ?? [];
     if (typeof blockNumber !== 'number' || typeof txIndex !== 'number') {
       return undefined;

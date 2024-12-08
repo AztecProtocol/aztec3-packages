@@ -171,7 +171,7 @@ export class PrivateExecutionResult {
       [NoteAndSlot.random()],
       new Map([[0, 0]]),
       [Fr.random()],
-      times(nested, () => PrivateExecutionResult.random(0)),
+      await Promise.all(times(nested, async () => await PrivateExecutionResult.random(0))),
       [CountedPublicExecutionRequest.random()],
       PublicExecutionRequest.random(),
       [new CountedContractClassLog(UnencryptedL2Log.random(), randomInt(10))],

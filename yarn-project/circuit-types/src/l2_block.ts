@@ -79,7 +79,7 @@ export class L2Block {
    * @param inHash - The hash of the L1 to L2 messages subtree which got inserted in this block.
    * @returns The L2 block.
    */
-  static random(
+  static async random(
     l2BlockNum: number,
     txsPerBlock = 4,
     numPublicCallsPerTx = 3,
@@ -114,8 +114,8 @@ export class L2Block {
    * Returns the block's hash (hash of block header).
    * @returns The block's hash.
    */
-  public hash(): Fr {
-    return this.header.hash();
+  public async hash(): Promise<Fr> {
+    return await this.header.hash();
   }
 
   /**

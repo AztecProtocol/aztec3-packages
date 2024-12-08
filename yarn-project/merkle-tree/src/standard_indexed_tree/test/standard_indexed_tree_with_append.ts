@@ -12,9 +12,9 @@ export class StandardIndexedTreeWithAppend extends StandardIndexedTree {
    * @returns Empty promise.
    * @remarks This method is inefficient and is here mostly for testing. Use batchInsert instead.
    */
-  public override appendLeaves(leaves: Buffer[]): Promise<void> {
+  public override async appendLeaves(leaves: Buffer[]): Promise<void> {
     for (const leaf of leaves) {
-      this.appendLeaf(leaf);
+      await this.appendLeaf(leaf);
     }
 
     return Promise.resolve();
@@ -33,7 +33,7 @@ export class StandardIndexedTreeWithAppend extends StandardIndexedTree {
    * @param leaf - The leaf to append.
    * @returns Empty promise.
    */
-  private appendLeaf(leaf: Buffer): void {
+  private async appendLeaf(leaf: Buffer): Promise<void> {
     const newLeaf = this.leafFactory.fromBuffer(leaf);
 
     // Special case when appending zero
@@ -48,7 +48,7 @@ export class StandardIndexedTreeWithAppend extends StandardIndexedTree {
     }
 
     const isUpdate = lowLeafIndex.alreadyPresent;
-    const lowLeafPreimage = this.getLatestLeafPreimageCopy(lowLeafIndex.index, true)!;
+    const lowLeafPreimage = (await this.getLatestLeafPreimageCopy(lowLeafIndex.index, true))!;
     const currentSize = this.getNumLeaves(true);
 
     if (isUpdate) {
@@ -59,7 +59,7 @@ export class StandardIndexedTreeWithAppend extends StandardIndexedTree {
         lowLeafPreimage.getNextIndex(),
       );
 
-      this.updateLeaf(newLowLeafPreimage, BigInt(lowLeafIndex.index));
+      await this.updateLeaf(newLowLeafPreimage, BigInt(lowLeafIndex.index));
       this.appendEmptyLeaf();
     } else {
       const newLeafPreimage = this.leafPreimageFactory.fromLeaf(
@@ -74,8 +74,8 @@ export class StandardIndexedTreeWithAppend extends StandardIndexedTree {
         newLeaf.getKey(),
         BigInt(currentSize),
       );
-      this.updateLeaf(newLowLeafPreimage, BigInt(lowLeafIndex.index));
-      this.updateLeaf(newLeafPreimage, currentSize);
+      await this.updateLeaf(newLowLeafPreimage, BigInt(lowLeafIndex.index));
+      await this.updateLeaf(newLeafPreimage, currentSize);
     }
   }
 }

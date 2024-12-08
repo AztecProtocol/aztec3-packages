@@ -97,11 +97,11 @@ describe('sequencer', () => {
   let block: L2Block;
   let mockedGlobalVariables: GlobalVariables;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     lastBlockNumber = 0;
     hash = Fr.ZERO.toString();
 
-    block = L2Block.random(lastBlockNumber + 1);
+    block = await L2Block.random(lastBlockNumber + 1);
 
     mockedGlobalVariables = new GlobalVariables(
       chainId,
@@ -204,7 +204,7 @@ describe('sequencer', () => {
   });
 
   it('builds a block out of a single tx', async () => {
-    const tx = mockTxForRollup();
+    const tx = await mockTxForRollup();
     tx.data.constants.txContext.chainId = chainId;
     const txHash = tx.getTxHash();
 
@@ -237,7 +237,7 @@ describe('sequencer', () => {
       Math.floor(Date.now() / 1000) - slotDuration * 1 - (sequencer.getTimeTable()[delayedState] + 1),
     );
 
-    const tx = mockTxForRollup();
+    const tx = await mockTxForRollup();
     tx.data.constants.txContext.chainId = chainId;
 
     p2p.getTxs.mockReturnValueOnce([tx]);
@@ -258,7 +258,7 @@ describe('sequencer', () => {
   });
 
   it('builds a block when it is their turn', async () => {
-    const tx = mockTxForRollup();
+    const tx = await mockTxForRollup();
     tx.data.constants.txContext.chainId = chainId;
     const txHash = tx.getTxHash();
 
@@ -299,7 +299,7 @@ describe('sequencer', () => {
 
   it('builds a block out of several txs rejecting double spends', async () => {
     const doubleSpendTxIndex = 1;
-    const txs = [mockTxForRollup(0x10000), mockTxForRollup(0x20000), mockTxForRollup(0x30000)];
+    const txs = [await mockTxForRollup(0x10000), await mockTxForRollup(0x20000), await mockTxForRollup(0x30000)];
     txs.forEach(tx => {
       tx.data.constants.txContext.chainId = chainId;
     });
@@ -334,7 +334,7 @@ describe('sequencer', () => {
 
   it('builds a block out of several txs rejecting incorrect chain ids', async () => {
     const invalidChainTxIndex = 1;
-    const txs = [mockTxForRollup(0x10000), mockTxForRollup(0x20000), mockTxForRollup(0x30000)];
+    const txs = [await mockTxForRollup(0x10000), await mockTxForRollup(0x20000), await mockTxForRollup(0x30000)];
     txs.forEach(tx => {
       tx.data.constants.txContext.chainId = chainId;
     });
@@ -364,7 +364,7 @@ describe('sequencer', () => {
   it('builds a block out of several txs dropping the ones that go over max size', async () => {
     const invalidTransactionIndex = 1;
 
-    const txs = [mockTxForRollup(0x10000), mockTxForRollup(0x20000), mockTxForRollup(0x30000)];
+    const txs = [await mockTxForRollup(0x10000), await mockTxForRollup(0x20000), await mockTxForRollup(0x30000)];
     txs.forEach(tx => {
       tx.data.constants.txContext.chainId = chainId;
     });
@@ -392,12 +392,14 @@ describe('sequencer', () => {
   });
 
   it('builds a block once it reaches the minimum number of transactions', async () => {
-    const txs = times(8, i => {
-      const tx = mockTxForRollup(i * 0x10000);
-      tx.data.constants.txContext.chainId = chainId;
-      return tx;
-    });
-    const block = L2Block.random(lastBlockNumber + 1);
+    const txs = await Promise.all(
+      times(8, async i => {
+        const tx = await mockTxForRollup(i * 0x10000);
+        tx.data.constants.txContext.chainId = chainId;
+        return tx;
+      }),
+    );
+    const block = await L2Block.random(lastBlockNumber + 1);
 
     blockBuilder.setBlockCompleted.mockResolvedValue(block);
     publisher.proposeL2Block.mockResolvedValueOnce(true);
@@ -433,12 +435,14 @@ describe('sequencer', () => {
   });
 
   it('builds a block that contains zero real transactions once flushed', async () => {
-    const txs = times(8, i => {
-      const tx = mockTxForRollup(i * 0x10000);
-      tx.data.constants.txContext.chainId = chainId;
-      return tx;
-    });
-    const block = L2Block.random(lastBlockNumber + 1);
+    const txs = await Promise.all(
+      times(8, async i => {
+        const tx = await mockTxForRollup(i * 0x10000);
+        tx.data.constants.txContext.chainId = chainId;
+        return tx;
+      }),
+    );
+    const block = await L2Block.random(lastBlockNumber + 1);
 
     blockBuilder.setBlockCompleted.mockResolvedValue(block);
     publisher.proposeL2Block.mockResolvedValueOnce(true);
@@ -474,12 +478,14 @@ describe('sequencer', () => {
   });
 
   it('builds a block that contains less than the minimum number of transactions once flushed', async () => {
-    const txs = times(8, i => {
-      const tx = mockTxForRollup(i * 0x10000);
-      tx.data.constants.txContext.chainId = chainId;
-      return tx;
-    });
-    const block = L2Block.random(lastBlockNumber + 1);
+    const txs = await Promise.all(
+      times(8, async i => {
+        const tx = await mockTxForRollup(i * 0x10000);
+        tx.data.constants.txContext.chainId = chainId;
+        return tx;
+      }),
+    );
+    const block = await L2Block.random(lastBlockNumber + 1);
 
     blockBuilder.setBlockCompleted.mockResolvedValue(block);
     publisher.proposeL2Block.mockResolvedValueOnce(true);
@@ -518,7 +524,7 @@ describe('sequencer', () => {
   });
 
   it('aborts building a block if the chain moves underneath it', async () => {
-    const tx = mockTxForRollup();
+    const tx = await mockTxForRollup();
     tx.data.constants.txContext.chainId = chainId;
 
     p2p.getTxs.mockReturnValueOnce([tx]);
@@ -552,10 +558,10 @@ describe('sequencer', () => {
   describe('Handling proof quotes', () => {
     let txHash: TxHash;
     let currentEpoch = 0n;
-    const setupForBlockNumber = (blockNumber: number) => {
+    const setupForBlockNumber = async (blockNumber: number) => {
       currentEpoch = BigInt(blockNumber) / BigInt(epochDuration);
       // Create a new block and header
-      block = L2Block.random(blockNumber);
+      block = await L2Block.random(blockNumber);
 
       mockedGlobalVariables = new GlobalVariables(
         chainId,
@@ -593,7 +599,7 @@ describe('sequencer', () => {
         Promise.resolve(slotNumber / BigInt(epochDuration)),
       );
 
-      const tx = mockTxForRollup();
+      const tx = await mockTxForRollup();
       tx.data.constants.txContext.chainId = chainId;
       txHash = tx.getTxHash();
 
@@ -603,7 +609,7 @@ describe('sequencer', () => {
 
     it('submits a valid proof quote with a block', async () => {
       const blockNumber = epochDuration + 1;
-      setupForBlockNumber(blockNumber);
+      await setupForBlockNumber(blockNumber);
 
       const proofQuote = mockEpochProofQuote(
         currentEpoch - 1n,
@@ -626,7 +632,7 @@ describe('sequencer', () => {
 
     it('does not claim the epoch previous to the first', async () => {
       const blockNumber = 1;
-      setupForBlockNumber(blockNumber);
+      await setupForBlockNumber(blockNumber);
 
       const proofQuote = mockEpochProofQuote(
         0n,
@@ -648,7 +654,7 @@ describe('sequencer', () => {
 
     it('does not submit a quote with an expired slot number', async () => {
       const blockNumber = epochDuration + 1;
-      setupForBlockNumber(blockNumber);
+      await setupForBlockNumber(blockNumber);
 
       const proofQuote = mockEpochProofQuote(
         currentEpoch - 1n,
@@ -672,7 +678,7 @@ describe('sequencer', () => {
 
     it('does not submit a valid quote if unable to claim epoch', async () => {
       const blockNumber = epochDuration + 1;
-      setupForBlockNumber(blockNumber);
+      await setupForBlockNumber(blockNumber);
 
       const proofQuote = mockEpochProofQuote(
         currentEpoch - 1n,
@@ -694,7 +700,7 @@ describe('sequencer', () => {
 
     it('does not submit an invalid quote', async () => {
       const blockNumber = epochDuration + 1;
-      setupForBlockNumber(blockNumber);
+      await setupForBlockNumber(blockNumber);
 
       const proofQuote = mockEpochProofQuote(
         currentEpoch - 1n,
@@ -719,7 +725,7 @@ describe('sequencer', () => {
 
     it('only selects valid quotes', async () => {
       const blockNumber = epochDuration + 1;
-      setupForBlockNumber(blockNumber);
+      await setupForBlockNumber(blockNumber);
 
       // Create 1 valid quote and 3 that have a higher fee but are invalid
       const validProofQuote = mockEpochProofQuote(
@@ -774,7 +780,7 @@ describe('sequencer', () => {
 
     it('selects the lowest cost valid quote', async () => {
       const blockNumber = epochDuration + 1;
-      setupForBlockNumber(blockNumber);
+      await setupForBlockNumber(blockNumber);
 
       // Create 3 valid quotes with different fees.
       // And 3 invalid quotes with lower fees

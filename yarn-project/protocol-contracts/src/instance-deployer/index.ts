@@ -3,6 +3,6 @@ import { type ProtocolContract, getCanonicalProtocolContract } from '../protocol
 export * from './contract_instance_deployed_event.js';
 
 /** Returns the canonical deployment of the instance deployer contract. */
-export function getCanonicalInstanceDeployer(): ProtocolContract {
-  return getCanonicalProtocolContract('ContractInstanceDeployer');
+export async function getCanonicalInstanceDeployer(): Promise<ProtocolContract> {
+  return await getCanonicalProtocolContract('ContractInstanceDeployer');
 }

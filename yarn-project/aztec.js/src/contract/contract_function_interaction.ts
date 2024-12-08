@@ -73,12 +73,12 @@ export class ContractFunctionInteraction extends BaseContractInteraction {
    * block for constructing batch requests.
    * @returns An execution request wrapped in promise.
    */
-  public request(): FunctionCall {
+  public async request(): Promise<FunctionCall> {
     const args = encodeArguments(this.functionDao, this.args);
     return {
       name: this.functionDao.name,
       args,
-      selector: FunctionSelector.fromNameAndParameters(this.functionDao.name, this.functionDao.parameters),
+      selector: await FunctionSelector.fromNameAndParameters(this.functionDao.name, this.functionDao.parameters),
       type: this.functionDao.functionType,
       to: this.contractAddress,
       isStatic: this.functionDao.isStatic,

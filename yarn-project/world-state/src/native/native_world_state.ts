@@ -136,7 +136,7 @@ export class NativeWorldStateService implements MerkleTreeDatabase {
 
     // the initial header _must_ be the first element in the archive tree
     // if this assertion fails, check that the hashing done in Header in yarn-project matches the initial header hash done in world_state.cpp
-    const initialHeaderIndex = await committed.findLeafIndex(MerkleTreeId.ARCHIVE, this.initialHeader.hash());
+    const initialHeaderIndex = await committed.findLeafIndex(MerkleTreeId.ARCHIVE, await this.initialHeader.hash());
     assert.strictEqual(initialHeaderIndex, 0n, 'Invalid initial archive state');
   }
 

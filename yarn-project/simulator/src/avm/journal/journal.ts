@@ -152,7 +152,7 @@ export class AvmPersistableStateManager {
     this.log.debug(`Storage write (address=${contractAddress}, slot=${slot}): value=${value}`);
     // Cache storage writes for later reference/reads
     this.publicStorage.write(contractAddress, slot, value);
-    const leafSlot = computePublicDataTreeLeafSlot(contractAddress, slot);
+    const leafSlot = await computePublicDataTreeLeafSlot(contractAddress, slot);
     if (this.doMerkleOperations) {
       const result = await this.merkleTrees.writePublicStorage(leafSlot, value);
       assert(result !== undefined, 'Public data tree insertion error. You might want to disable skipMerkleOperations.');
@@ -181,7 +181,7 @@ export class AvmPersistableStateManager {
         insertionPath,
       );
     } else {
-      this.trace.tracePublicStorageWrite(contractAddress, slot, value);
+      await this.trace.tracePublicStorageWrite(contractAddress, slot, value);
     }
   }
 
@@ -196,7 +196,7 @@ export class AvmPersistableStateManager {
     const { value, cached } = await this.publicStorage.read(contractAddress, slot);
     this.log.debug(`Storage read  (address=${contractAddress}, slot=${slot}): value=${value}, cached=${cached}`);
 
-    const leafSlot = computePublicDataTreeLeafSlot(contractAddress, slot);
+    const leafSlot = await computePublicDataTreeLeafSlot(contractAddress, slot);
 
     if (this.doMerkleOperations) {
       // Get leaf if present, low leaf if absent
@@ -231,7 +231,7 @@ export class AvmPersistableStateManager {
       // prove that this is a low leaf that skips leafSlot, and then prove membership of the leaf.
       this.trace.tracePublicStorageRead(contractAddress, slot, value, leafPreimage, new Fr(leafIndex), leafPath);
     } else {
-      this.trace.tracePublicStorageRead(contractAddress, slot, value);
+      await this.trace.tracePublicStorageRead(contractAddress, slot, value);
     }
 
     return Promise.resolve(value);
@@ -563,7 +563,7 @@ export class AvmPersistableStateManager {
 
     this.log.verbose(`[AVM] Tracing nested external contract call ${functionName}`);
 
-    this.trace.traceNestedCall(
+   await this.trace.traceNestedCall(
       forkedState.trace,
       nestedEnvironment,
       startGasLeft,

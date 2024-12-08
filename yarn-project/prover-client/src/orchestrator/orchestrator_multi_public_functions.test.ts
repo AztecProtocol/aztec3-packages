@@ -28,11 +28,13 @@ describe('prover/orchestrator/public-functions', () => {
         numberOfNonRevertiblePublicCallRequests: number,
         numberOfRevertiblePublicCallRequests: number,
       ) => {
-        const txs = times(numTransactions, (i: number) =>
-          mockTx(100000 * testCount++ + 1000 * i, {
-            numberOfNonRevertiblePublicCallRequests,
-            numberOfRevertiblePublicCallRequests,
-          }),
+        const txs = await Promise.all(
+          times(numTransactions, (i: number) =>
+            mockTx(100000 * testCount++ + 1000 * i, {
+              numberOfNonRevertiblePublicCallRequests,
+              numberOfRevertiblePublicCallRequests,
+            }),
+          ),
         );
         for (const tx of txs) {
           tx.data.constants.historicalHeader = context.getBlockHeader(0);

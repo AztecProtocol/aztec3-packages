@@ -5,6 +5,6 @@ export * from './private_function_broadcasted_event.js';
 export * from './unconstrained_function_broadcasted_event.js';
 
 /** Returns the canonical deployment of the class registerer contract. */
-export function getCanonicalClassRegisterer(): ProtocolContract {
-  return getCanonicalProtocolContract('ContractClassRegisterer');
+export async function getCanonicalClassRegisterer(): Promise<ProtocolContract> {
+  return await getCanonicalProtocolContract('ContractClassRegisterer');
 }

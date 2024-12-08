@@ -48,7 +48,7 @@ export class TXEPublicContractDataSource implements ContractDataSource {
       artifactHash: contractClass!.artifactHash,
       packedBytecode: contractClass!.packedBytecode,
       publicFunctions: publicFunctions,
-      privateFunctionsRoot: new Fr(privateFunctionsRoot!.root),
+      privateFunctionsRoot: new Fr((await privateFunctionsRoot!).root),
       version: contractClass!.version,
       privateFunctions: [],
       unconstrainedFunctions: [],

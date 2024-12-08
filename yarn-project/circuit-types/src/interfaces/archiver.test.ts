@@ -184,7 +184,7 @@ describe('ArchiverApiSchema', () => {
   });
 
   it('getContractClass', async () => {
-    const contractClass = getContractClassFromArtifact(artifact);
+    const contractClass = await getContractClassFromArtifact(artifact);
     const result = await context.client.getContractClass(Fr.random());
     expect(result).toEqual({
       ...omit(contractClass, 'publicBytecodeCommitment'),
@@ -247,7 +247,7 @@ describe('ArchiverApiSchema', () => {
   });
 
   it('addContractClass', async () => {
-    const contractClass = getContractClassFromArtifact(artifact);
+    const contractClass = await getContractClassFromArtifact(artifact);
     await context.client.addContractClass({
       ...omit(contractClass, 'publicBytecodeCommitment'),
       unconstrainedFunctions: [],
@@ -280,12 +280,12 @@ class MockArchiver implements ArchiverApi {
   getBlockHeader(_number: number | 'latest'): Promise<BlockHeader | undefined> {
     return Promise.resolve(BlockHeader.empty());
   }
-  getBlocks(from: number, _limit: number, _proven?: boolean | undefined): Promise<L2Block[]> {
-    return Promise.resolve([L2Block.random(from)]);
+  async getBlocks(from: number, _limit: number, _proven?: boolean | undefined): Promise<L2Block[]> {
+    return [await L2Block.random(from)];
   }
-  getTxEffect(_txHash: TxHash): Promise<InBlock<TxEffect> | undefined> {
+  async getTxEffect(_txHash: TxHash): Promise<InBlock<TxEffect> | undefined> {
     expect(_txHash).toBeInstanceOf(TxHash);
-    return Promise.resolve({ l2BlockNumber: 1, l2BlockHash: '0x12', data: TxEffect.random() });
+    return Promise.resolve({ l2BlockNumber: 1, l2BlockHash: '0x12', data: await TxEffect.random() });
   }
   getSettledTxReceipt(txHash: TxHash): Promise<TxReceipt | undefined> {
     expect(txHash).toBeInstanceOf(TxHash);
@@ -297,9 +297,9 @@ class MockArchiver implements ArchiverApi {
   getL2EpochNumber(): Promise<bigint> {
     return Promise.resolve(1n);
   }
-  getBlocksForEpoch(epochNumber: bigint): Promise<L2Block[]> {
+  async getBlocksForEpoch(epochNumber: bigint): Promise<L2Block[]> {
     expect(epochNumber).toEqual(1n);
-    return Promise.resolve([L2Block.random(Number(epochNumber))]);
+    return [await L2Block.random(Number(epochNumber))];
   }
   isEpochComplete(epochNumber: bigint): Promise<boolean> {
     expect(epochNumber).toEqual(1n);
@@ -341,10 +341,10 @@ class MockArchiver implements ArchiverApi {
     expect(selector).toBeInstanceOf(FunctionSelector);
     return Promise.resolve({ selector, bytecode: Buffer.alloc(10, 10) });
   }
-  getContractClass(id: Fr): Promise<ContractClassPublic | undefined> {
+  async getContractClass(id: Fr): Promise<ContractClassPublic | undefined> {
     expect(id).toBeInstanceOf(Fr);
-    const contractClass = getContractClassFromArtifact(this.artifact);
-    return Promise.resolve({ ...contractClass, unconstrainedFunctions: [], privateFunctions: [] });
+    const contractClass = await getContractClassFromArtifact(this.artifact);
+    return { ...contractClass, unconstrainedFunctions: [], privateFunctions: [] };
   }
   getBytecodeCommitment(id: Fr): Promise<Fr | undefined> {
     expect(id).toBeInstanceOf(Fr);
@@ -366,10 +366,10 @@ class MockArchiver implements ArchiverApi {
       contractClassId: Fr.random(),
       deployer: AztecAddress.random(),
       initializationHash: Fr.random(),
-      publicKeys: PublicKeys.random(),
+      publicKeys: await PublicKeys.random(),
       salt: Fr.random(),
       version: 1,
-    });
+    };
   }
   getContractClassIds(): Promise<Fr[]> {
     return Promise.resolve([Fr.random()]);

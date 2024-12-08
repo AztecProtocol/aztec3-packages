@@ -116,12 +116,12 @@ describe('External Calls', () => {
       );
       mockGetBytecode(worldStateDB, otherContextInstructionsBytecode);
 
-      const contractClass = makeContractClassPublic(0, {
+      const contractClass = await makeContractClassPublic(0, {
         bytecode: otherContextInstructionsBytecode,
         selector: FunctionSelector.random(),
       });
       mockGetContractClass(worldStateDB, contractClass);
-      const contractInstance = makeContractInstanceFromClassId(contractClass.id);
+      const contractInstance = await makeContractInstanceFromClassId(contractClass.id);
       mockGetContractInstance(worldStateDB, contractInstance);
 
       const { l2GasLeft: initialL2Gas, daGasLeft: initialDaGas } = context.machineState;
@@ -167,12 +167,12 @@ describe('External Calls', () => {
       );
       mockGetBytecode(worldStateDB, otherContextInstructionsBytecode);
 
-      const contractClass = makeContractClassPublic(0, {
+      const contractClass = await makeContractClassPublic(0, {
         bytecode: otherContextInstructionsBytecode,
         selector: FunctionSelector.random(),
       });
       mockGetContractClass(worldStateDB, contractClass);
-      const contractInstance = makeContractInstanceFromClassId(contractClass.id);
+      const contractInstance = await makeContractInstanceFromClassId(contractClass.id);
       mockGetContractInstance(worldStateDB, contractInstance);
 
       const { l2GasLeft: initialL2Gas, daGasLeft: initialDaGas } = context.machineState;
@@ -252,12 +252,12 @@ describe('External Calls', () => {
       const otherContextInstructionsBytecode = markBytecodeAsAvm(encodeToBytecode(otherContextInstructions));
       mockGetBytecode(worldStateDB, otherContextInstructionsBytecode);
 
-      const contractClass = makeContractClassPublic(0, {
+      const contractClass = await makeContractClassPublic(0, {
         bytecode: otherContextInstructionsBytecode,
         selector: FunctionSelector.random(),
       });
       mockGetContractClass(worldStateDB, contractClass);
-      const contractInstance = makeContractInstanceFromClassId(contractClass.id);
+      const contractInstance = await makeContractInstanceFromClassId(contractClass.id);
       mockGetContractInstance(worldStateDB, contractInstance);
 
       const instruction = new StaticCall(

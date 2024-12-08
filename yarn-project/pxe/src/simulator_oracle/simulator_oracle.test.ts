@@ -147,7 +147,7 @@ describe('Simulator oracle', () => {
     const SENDER_OFFSET_WINDOW_SIZE = 10;
     let senders: { completeAddress: CompleteAddress; ivsk: Fq; secretKey: Fr }[];
 
-    function generateMockLogs(senderOffset: number) {
+    async function generateMockLogs(senderOffset: number) {
       const logs: { [k: string]: TxScopedL2Log[] } = {};
 
       // Add a random note from every address in the address book for our account with index senderOffset
@@ -200,7 +200,7 @@ describe('Simulator oracle', () => {
       // Add a random note from every address in the address book for a random recipient with index senderOffset
       // Compute the tag as sender (knowledge of preaddress and ivsk)
       for (const sender of senders) {
-        const keys = deriveKeys(Fr.random());
+        const keys = await deriveKeys(Fr.random());
         const partialAddress = Fr.random();
         const randomRecipient = computeAddress(keys.publicKeys, partialAddress);
         const tag = computeSiloedTagForIndex(sender, randomRecipient, contractAddress, senderOffset);
@@ -213,7 +213,7 @@ describe('Simulator oracle', () => {
           randomRecipient,
           new KeyValidationRequest(
             keys.publicKeys.masterOutgoingViewingPublicKey,
-            computeOvskApp(keys.masterOutgoingViewingSecretKey, contractAddress),
+            await computeOvskApp(keys.masterOutgoingViewingSecretKey, contractAddress),
           ),
         );
         const log = new TxScopedL2Log(TxHash.random(), 0, blockNumber, false, randomNote.encrypt());
@@ -253,10 +253,12 @@ describe('Simulator oracle', () => {
       // Recompute the secrets (as recipient) to ensure indexes are updated
 
       const ivsk = await keyStore.getMasterIncomingViewingSecretKey(recipient.address);
-      const secrets = senders.map(sender => {
-        const firstSenderSharedSecret = computeTaggingSecret(recipient, ivsk, sender.completeAddress.address);
-        return poseidon2Hash([firstSenderSharedSecret.x, firstSenderSharedSecret.y, contractAddress]);
-      });
+      const secrets = await Promise.all(
+        senders.map(async sender => {
+          const firstSenderSharedSecret = await computeTaggingSecret(recipient, ivsk, sender.completeAddress.address);
+          return await poseidon2Hash([firstSenderSharedSecret.x, firstSenderSharedSecret.y, contractAddress]);
+        }),
+      );
 
       // First sender should have 2 logs, but keep index 1 since they were built using the same tag
       // Next 4 senders hould also have index 1 = offset + 1
@@ -333,10 +335,12 @@ describe('Simulator oracle', () => {
 
       // Recompute the secrets (as recipient) to ensure indexes are updated
       const ivsk = await keyStore.getMasterIncomingViewingSecretKey(recipient.address);
-      const secrets = senders.map(sender => {
-        const firstSenderSharedSecret = computeTaggingSecret(recipient, ivsk, sender.completeAddress.address);
-        return poseidon2Hash([firstSenderSharedSecret.x, firstSenderSharedSecret.y, contractAddress]);
-      });
+      const secrets = await Promise.all(
+        senders.map(async sender => {
+          const firstSenderSharedSecret = await computeTaggingSecret(recipient, ivsk, sender.completeAddress.address);
+          return await poseidon2Hash([firstSenderSharedSecret.x, firstSenderSharedSecret.y, contractAddress]);
+        }),
+      );
 
       // First sender should have 2 logs, but keep index 1 since they were built using the same tag
       // Next 4 senders hould also have index 6 = offset + 1
@@ -357,10 +361,12 @@ describe('Simulator oracle', () => {
 
       // Recompute the secrets (as recipient) to update indexes
       const ivsk = await keyStore.getMasterIncomingViewingSecretKey(recipient.address);
-      const secrets = senders.map(sender => {
-        const firstSenderSharedSecret = computeTaggingSecret(recipient, ivsk, sender.completeAddress.address);
-        return poseidon2Hash([firstSenderSharedSecret.x, firstSenderSharedSecret.y, contractAddress]);
-      });
+      const secrets = await Promise.all(
+        senders.map(async sender => {
+          const firstSenderSharedSecret = await computeTaggingSecret(recipient, ivsk, sender.completeAddress.address);
+          return await poseidon2Hash([firstSenderSharedSecret.x, firstSenderSharedSecret.y, contractAddress]);
+        }),
+      );
 
       // Increase our indexes to 2
       await database.setTaggingSecretsIndexesAsRecipient(secrets.map(secret => new IndexedTaggingSecret(secret, 2)));
@@ -390,10 +396,12 @@ describe('Simulator oracle', () => {
 
       // Recompute the secrets (as recipient) to update indexes
       const ivsk = await keyStore.getMasterIncomingViewingSecretKey(recipient.address);
-      const secrets = senders.map(sender => {
-        const firstSenderSharedSecret = computeTaggingSecret(recipient, ivsk, sender.completeAddress.address);
-        return poseidon2Hash([firstSenderSharedSecret.x, firstSenderSharedSecret.y, contractAddress]);
-      });
+      const secrets = await Promise.all(
+        senders.map(async sender => {
+          const firstSenderSharedSecret = await computeTaggingSecret(recipient, ivsk, sender.completeAddress.address);
+          return await poseidon2Hash([firstSenderSharedSecret.x, firstSenderSharedSecret.y, contractAddress]);
+        }),
+      );
 
       await database.setTaggingSecretsIndexesAsRecipient(
         secrets.map(secret => new IndexedTaggingSecret(secret, SENDER_OFFSET_WINDOW_SIZE + 1)),
@@ -479,14 +487,12 @@ describe('Simulator oracle', () => {
       removeNullifiedNotesSpy = jest.spyOn(database, 'removeNullifiedNotes');
       removeNullifiedNotesSpy.mockImplementation(() => Promise.resolve([]));
       simulator = mock<AcirSimulator>();
-      simulator.computeNoteHashAndOptionallyANullifier.mockImplementation((...args: any) =>
-        Promise.resolve({
-          noteHash: Fr.random(),
-          uniqueNoteHash: Fr.random(),
-          siloedNoteHash: pedersenHash(args[5].items), // args[5] is note
-          innerNullifier: Fr.random(),
-        }),
-      );
+      simulator.computeNoteHashAndOptionallyANullifier.mockImplementation(async (...args: any) => ({
+        noteHash: Fr.random(),
+        uniqueNoteHash: Fr.random(),
+        siloedNoteHash: await pedersenHash(args[5].items), // args[5] is note
+        innerNullifier: Fr.random(),
+      }));
     });
 
     afterEach(() => {
@@ -512,7 +518,7 @@ describe('Simulator oracle', () => {
       }, {});
       Object.keys(groupedByTx).forEach(blockNumberKey => {
         const blockNumber = parseInt(blockNumberKey);
-        Object.keys(groupedByTx[blockNumber]).forEach(txIndexKey => {
+        Object.keys(groupedByTx[blockNumber]).forEach(async txIndexKey => {
           const txIndex = parseInt(txIndexKey);
           const requestsInTx = groupedByTx[blockNumber][txIndex];
           const maxNoteIndex = Math.max(...requestsInTx.map(request => request.noteHashIndex));
@@ -530,7 +536,7 @@ describe('Simulator oracle', () => {
               (request.blockNumber - 1) * NUM_NOTE_HASHES_PER_BLOCK + request.txIndex * MAX_NOTE_HASHES_PER_TX;
             const taggedLog = new TxScopedL2Log(txHash, dataStartIndex, blockNumber, false, request.encrypt());
             const note = request.snippetOfNoteDao.note;
-            const noteHash = pedersenHash(note.items);
+            const noteHash = await pedersenHash(note.items);
             txEffectsMap[txHash.toString()].noteHashes[request.noteHashIndex] = noteHash;
             taggedLogs.push(taggedLog);
           }
@@ -557,7 +563,7 @@ describe('Simulator oracle', () => {
         0,
         2,
         recipient.address,
-        KeyValidationRequest.random(),
+        await KeyValidationRequest.random(),
       );
       const taggedLogs = mockTaggedLogs([request]);
 
@@ -582,7 +588,7 @@ describe('Simulator oracle', () => {
         4,
         0,
         2,
-        CompleteAddress.random().address,
+        (await CompleteAddress.random()).address,
         recipientOvKeys,
       );
 
@@ -614,7 +620,7 @@ describe('Simulator oracle', () => {
           2,
           3,
           0,
-          CompleteAddress.random().address,
+          (await CompleteAddress.random()).address,
           recipientOvKeys,
         ),
         new MockNoteRequest(
@@ -623,15 +629,15 @@ describe('Simulator oracle', () => {
           3,
           2,
           recipient.address,
-          KeyValidationRequest.random(),
+          await KeyValidationRequest.random(),
         ),
         new MockNoteRequest(
           getRandomNoteLogPayload(Fr.random(), contractAddress),
           9,
           3,
           2,
-          CompleteAddress.random().address,
-          KeyValidationRequest.random(),
+          (await CompleteAddress.random()).address,
+          await KeyValidationRequest.random(),
         ),
         new MockNoteRequest(
           getRandomNoteLogPayload(Fr.random(), contractAddress),
@@ -682,16 +688,16 @@ describe('Simulator oracle', () => {
           2,
           1,
           1,
-          CompleteAddress.random().address,
-          KeyValidationRequest.random(),
+          (await CompleteAddress.random()).address,
+          await KeyValidationRequest.random(),
         ),
         new MockNoteRequest(
           getRandomNoteLogPayload(),
           2,
           3,
           0,
-          CompleteAddress.random().address,
-          KeyValidationRequest.random(),
+          (await CompleteAddress.random()).address,
+          await KeyValidationRequest.random(),
         ),
       ];
 

@@ -74,7 +74,7 @@ describe('e2e_deploy_contract contract class registration', () => {
 
     // TODO(#10007) Remove this test as well.
     it('starts archiver with pre-registered common contracts', async () => {
-      const classId = computeContractClassId(getContractClassFromArtifact(TokenContractArtifact));
+      const classId = await computeContractClassId(await getContractClassFromArtifact(TokenContractArtifact));
       expect(await aztecNode.getContractClass(classId)).not.toBeUndefined();
     });
 

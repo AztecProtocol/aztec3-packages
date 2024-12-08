@@ -230,65 +230,50 @@ pub fn poseidon2_hash_with_separator<let N: u32, T>(inputs: [Field; N], separato
 where
     T: ToField,
 {
-    // We manually hash the inputs here, since we cannot express with the type system a constant size inputs array of N + 1
-    let in_len = N + 1;
-    let two_pow_64 = 18446744073709551616;
-    let iv: Field = (in_len as Field) * two_pow_64;
-    let mut sponge = std::hash::poseidon2::Poseidon2::new(iv);
-    sponge.absorb(separator.to_field());
-
+    let mut to_hash: [Field; N + 1] = std::mem::zeroed();
+    to_hash[0] = separator.to_field();
     for i in 0..inputs.len() {
-        sponge.absorb(inputs[i]);
+        to_hash[i + 1] = inputs[i]);
     }
 
-    sponge.squeeze()
+    poseidon2_hash(to_hash)
 }
 
 pub fn poseidon2_hash_with_separator_slice<T>(inputs: [Field], separator: T) -> Field
 where
     T: ToField,
 {
-    let in_len = inputs.len() + 1;
-    let two_pow_64 = 18446744073709551616;
-    let iv: Field = (in_len as Field) * two_pow_64;
-    let mut sponge = std::hash::poseidon2::Poseidon2::new(iv);
-    sponge.absorb(separator.to_field());
-
+    let mut to_hash: [Field; N + 1] = std::mem::zeroed();
+    to_hash[0] = separator.to_field();
     for i in 0..inputs.len() {
-        sponge.absorb(inputs[i]);
+        to_hash[i + 1] = inputs[i]);
     }
 
-    sponge.squeeze()
+    poseidon2_hash(to_hash)
 }
 
 #[no_predicates]
 pub fn poseidon2_hash_bytes<let N: u32>(inputs: [u8; N]) -> Field {
-    // We manually hash the inputs here, since we cannot express with the type system a constant size inputs array of Math.ceil(N/31)
-    let mut in_len = N / 31;
-    let mut has_padding = false;
-    if N % 31 != 0 {
-        in_len += 1;
-        has_padding = true;
-    }
+    let mut to_hash: [Field; (N + 30) / 31] = std::mem::zeroed(); // (N + 30) / 31 is ceil(N, 31)
 
-    let two_pow_64 = 18446744073709551616;
-    let iv: Field = (in_len as Field) * two_pow_64;
-    let mut sponge = std::hash::poseidon2::Poseidon2::new(iv);
-
+    let mut field_index = 0;
     let mut current_field = [0; 31];
     for i in 0..inputs.len() {
-        let index = i % 31;
-        current_field[index] = inputs[i];
-        if index == 30 {
-            sponge.absorb(field_from_bytes(current_field, false));
+        let byte_index = i % 31;
+        current_field[byte_index] = inputs[i];
+        if byte_index == 30 {
+            to_hash[field_index] = field_from_bytes(current_field, false);
+            field_index += 1;
             current_field = [0; 31];
         }
     }
+
+    let has_padding = (N % 31) != 0;
     if has_padding {
-        sponge.absorb(field_from_bytes(current_field, false));
+        to_hash[field_index] = field_from_bytes(current_field, false);
     }
 
-    sponge.squeeze()
+    poseidon2_hash(to_hash)
 }
 
 #[test]

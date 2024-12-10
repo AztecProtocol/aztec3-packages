@@ -1,3 +1,4 @@
+mod test;
 mod test_note;
 
 // A contract used for testing a random hodgepodge of small features from simulator and end-to-end tests.
@@ -9,14 +10,14 @@ contract Test {
     use dep::aztec::encrypted_logs::encrypted_event_emission::encode_and_encrypt_event_unconstrained;
     use dep::aztec::encrypted_logs::encrypted_note_emission::encode_and_encrypt_note;
     use dep::aztec::prelude::{
-        AztecAddress, EthAddress, FunctionSelector, NoteGetterOptions, NoteViewerOptions,
+        AztecAddress, EthAddress, FunctionSelector, Map, NoteGetterOptions, NoteViewerOptions,
         PrivateImmutable, PrivateSet,
     };
 
     use dep::aztec::protocol_types::{
         constants::{MAX_NOTE_HASH_READ_REQUESTS_PER_CALL, PRIVATE_LOG_SIZE_IN_FIELDS},
         point::Point,
-        traits::Serialize,
+        traits::{Deserialize, Serialize},
         utils::arrays::array_concat,
     };
 
@@ -40,7 +41,6 @@ contract Test {
     };
     use dep::value_note::value_note::ValueNote;
     // TODO investigate why the macros require EmbeddedCurvePoint and EmbeddedCurveScalar
-    use std::embedded_curve_ops::{EmbeddedCurvePoint, EmbeddedCurveScalar};
     use std::meta::derive;
 
     use crate::test_note::TestNote;
@@ -55,10 +55,41 @@ contract Test {
         value4: Field,
     }
 
+    struct ExampleStruct {
+        value0: Field,
+        value1: Field,
+        value2: Field,
+        value3: Field,
+        value4: Field,
+    }
+
+    impl Serialize<5> for ExampleStruct {
+        fn serialize(self) -> [Field; 5] {
+            [self.value0, self.value1, self.value2, self.value3, self.value4]
+        }
+    }
+
+    impl Deserialize<5> for ExampleStruct {
+        fn deserialize(value: [Field; 5]) -> Self {
+            Self {
+                value0: value[0],
+                value1: value[1],
+                value2: value[2],
+                value3: value[3],
+                value4: value[4],
+            }
+        }
+    }
+
+    // This struct is used to test the storage slot allocation mechanism - if modified the test_storage_slot_allocation
+    // test function must also be updated accordingly.
     #[storage]
     struct Storage<Context> {
         example_constant: PrivateImmutable<TestNote, Context>,
         example_set: PrivateSet<TestNote, Context>,
+        example_struct: PrivateImmutable<ExampleStruct, Context>,
+        example_struct_in_map: Map<AztecAddress, PrivateImmutable<ExampleStruct, Context>, Context>,
+        another_example_struct: PrivateImmutable<ExampleStruct, Context>,
     }
 
     #[private]

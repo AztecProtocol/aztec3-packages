@@ -12,7 +12,7 @@ pub struct Map<K, V, Context> {
 }
 // docs:end:map
 
-impl<K, T, Context, let N: u32> Storage<T, N> for Map<K, T, Context>
+impl<K, T, Context, let N: u32> Storage<N> for Map<K, T, Context>
 where
     T: Serialize<N> + Deserialize<N>,
 {}

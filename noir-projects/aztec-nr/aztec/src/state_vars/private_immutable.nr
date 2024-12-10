@@ -22,7 +22,7 @@ pub struct PrivateImmutable<Note, Context> {
 }
 // docs:end:struct
 
-impl<T, Context, let N: u32> Storage<T, N> for PrivateImmutable<T, Context>
+impl<T, Context, let N: u32> Storage<N> for PrivateImmutable<T, Context>
 where
     T: Serialize<N> + Deserialize<N>,
 {}

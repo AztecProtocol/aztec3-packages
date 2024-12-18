@@ -168,7 +168,11 @@ export class AztecNodeService implements AztecNode, Traceable {
       log.warn(`Aztec node is accepting fake proofs`);
     }
 
-    const epochProofQuoteHasher = new EpochProofQuoteHasher(config.l1Contracts.rollupAddress, config.l1ChainId);
+    const epochProofQuoteHasher = new EpochProofQuoteHasher(
+      config.l1Contracts.rollupAddress,
+      config.rollupVersion,
+      config.l1ChainId,
+    );
     const epochCache = await EpochCache.create(config.l1Contracts.rollupAddress, config, { dateProvider });
 
     // create the tx pool and the p2p client, which will need the l2 block source
@@ -213,7 +217,7 @@ export class AztecNodeService implements AztecNode, Traceable {
       worldStateSynchronizer,
       sequencer,
       ethereumChain.chainInfo.id,
-      config.version,
+      +config.rollupVersion,
       new GlobalVariableBuilder(config),
       proofVerifier,
       telemetry,

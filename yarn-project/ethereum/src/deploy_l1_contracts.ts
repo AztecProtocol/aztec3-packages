@@ -382,6 +382,7 @@ export const deployL1Contracts = async (
     aztecEpochDuration: args.aztecEpochDuration,
     targetCommitteeSize: args.aztecTargetCommitteeSize,
     aztecEpochProofClaimWindowInL2Slots: args.aztecEpochProofClaimWindowInL2Slots,
+    rollupVersion: args.rollupVersion,
     minimumStake: MINIMUM_STAKE,
   };
   const rollupArgs = [

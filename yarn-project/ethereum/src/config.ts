@@ -11,6 +11,8 @@ export type L1ContractsConfig = {
   aztecTargetCommitteeSize: number;
   /** The number of L2 slots that we can wait for a proof of an epoch to be produced. */
   aztecEpochProofClaimWindowInL2Slots: number;
+  /** The version of the rollup. */
+  rollupVersion: number;
 };
 
 export const DefaultL1ContractsConfig: L1ContractsConfig = {
@@ -19,6 +21,7 @@ export const DefaultL1ContractsConfig: L1ContractsConfig = {
   aztecEpochDuration: 16,
   aztecTargetCommitteeSize: 48,
   aztecEpochProofClaimWindowInL2Slots: 13,
+  rollupVersion: 1,
 };
 
 export const l1ContractsConfigMappings: ConfigMappingsType<L1ContractsConfig> = {
@@ -46,6 +49,12 @@ export const l1ContractsConfigMappings: ConfigMappingsType<L1ContractsConfig> = 
     env: 'AZTEC_EPOCH_PROOF_CLAIM_WINDOW_IN_L2_SLOTS',
     description: 'The number of L2 slots that we can wait for a proof of an epoch to be produced.',
     ...numberConfigHelper(DefaultL1ContractsConfig.aztecEpochProofClaimWindowInL2Slots),
+  },
+  rollupVersion: {
+    env: 'ROLLUP_VERSION',
+    description: 'The version of the rollup.',
+    defaultValue: DefaultL1ContractsConfig.rollupVersion,
+    ...numberConfigHelper(DefaultL1ContractsConfig.rollupVersion),
   },
 };
 

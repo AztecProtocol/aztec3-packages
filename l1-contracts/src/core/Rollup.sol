@@ -51,6 +51,7 @@ struct Config {
   uint256 targetCommitteeSize;
   uint256 aztecEpochProofClaimWindowInL2Slots;
   uint256 minimumStake;
+  string rollupVersion;
 }
 
 /**
@@ -60,7 +61,7 @@ struct Config {
  * not giving a damn about gas costs.
  * @dev WARNING: This contract is VERY close to the size limit (500B at time of writing).
  */
-contract Rollup is EIP712("Aztec Rollup", "1"), Ownable, Leonidas, IRollup, ITestRollup {
+contract Rollup is EIP712, Ownable, Leonidas, IRollup, ITestRollup {
   using SlotLib for Slot;
   using EpochLib for Epoch;
   using ProposeLib for ProposeArgs;
@@ -108,6 +109,7 @@ contract Rollup is EIP712("Aztec Rollup", "1"), Ownable, Leonidas, IRollup, ITes
     address _ares,
     Config memory _config
   )
+    EIP712("Aztec Rollup", _config.rollupVersion)
     Ownable(_ares)
     Leonidas(
       _ares,

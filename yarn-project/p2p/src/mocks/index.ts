@@ -1,5 +1,6 @@
 import {
   type ClientProtocolCircuitVerifier,
+  EpochProofQuoteHasher,
   type L2BlockSource,
   type P2PClientType,
   type Tx,
@@ -103,6 +104,7 @@ export async function createTestLibP2PService<T extends P2PClientType>(
   l2BlockSource: L2BlockSource,
   worldStateSynchronizer: WorldStateSynchronizer,
   epochCache: EpochCache,
+  epochProofQuoteHasher: EpochProofQuoteHasher,
   mempools: MemPools<T>,
   telemetry: TelemetryClient,
   port: number = 0,
@@ -135,6 +137,7 @@ export async function createTestLibP2PService<T extends P2PClientType>(
     mempools,
     l2BlockSource,
     epochCache,
+    epochProofQuoteHasher,
     proofVerifier,
     worldStateSynchronizer,
     telemetry,

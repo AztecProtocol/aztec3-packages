@@ -3,6 +3,7 @@ import {
   BlockProposal,
   type ClientProtocolCircuitVerifier,
   EpochProofQuote,
+  EpochProofQuoteHasher,
   type Gossipable,
   type L2BlockSource,
   MerkleTreeId,
@@ -111,6 +112,7 @@ export class LibP2PService<T extends P2PClientType> extends WithTracer implement
     private mempools: MemPools<T>,
     private l2BlockSource: L2BlockSource,
     private epochCache: EpochCache,
+    private proofQuoteHasher: EpochProofQuoteHasher,
     private proofVerifier: ClientProtocolCircuitVerifier,
     private worldStateSynchronizer: WorldStateSynchronizer,
     private telemetry: TelemetryClient,
@@ -128,7 +130,7 @@ export class LibP2PService<T extends P2PClientType> extends WithTracer implement
 
     this.attestationValidator = new AttestationValidator(epochCache);
     this.blockProposalValidator = new BlockProposalValidator(epochCache);
-    this.epochProofQuoteValidator = new EpochProofQuoteValidator(epochCache);
+    this.epochProofQuoteValidator = new EpochProofQuoteValidator(epochCache, this.proofQuoteHasher);
 
     this.blockReceivedCallback = (block: BlockProposal): Promise<BlockAttestation | undefined> => {
       this.logger.verbose(
@@ -239,6 +241,7 @@ export class LibP2PService<T extends P2PClientType> extends WithTracer implement
     mempools: MemPools<T>,
     l2BlockSource: L2BlockSource,
     epochCache: EpochCache,
+    proofQuoteHasher: EpochProofQuoteHasher,
     proofVerifier: ClientProtocolCircuitVerifier,
     worldStateSynchronizer: WorldStateSynchronizer,
     store: AztecKVStore,
@@ -354,6 +357,7 @@ export class LibP2PService<T extends P2PClientType> extends WithTracer implement
       mempools,
       l2BlockSource,
       epochCache,
+      proofQuoteHasher,
       proofVerifier,
       worldStateSynchronizer,
       telemetry,

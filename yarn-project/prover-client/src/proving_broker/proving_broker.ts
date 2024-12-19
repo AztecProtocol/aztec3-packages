@@ -175,9 +175,10 @@ export class ProvingBroker implements ProvingJobProducer, ProvingJobConsumer, Tr
     if (this.jobsCache.has(job.id)) {
       const existing = this.jobsCache.get(job.id);
       assert.deepStrictEqual(job, existing, 'Duplicate proving job ID');
-      this.logger.debug(`Duplicate proving job id=${job.id} epochNumber=${job.epochNumber}. Ignoring`, {
+      this.logger.warn(`Cached proving job id=${job.id} epochNumber=${job.epochNumber}. Not enqueuing again`, {
         provingJobId: job.id,
       });
+      this.instrumentation.incCachedJobs(job.type);
       return;
     }
 

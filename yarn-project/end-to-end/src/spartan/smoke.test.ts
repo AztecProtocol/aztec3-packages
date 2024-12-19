@@ -2,6 +2,7 @@ import { type PXE, createCompatibleClient } from '@aztec/aztec.js';
 import { createLogger } from '@aztec/foundation/log';
 import { RollupAbi } from '@aztec/l1-artifacts';
 
+import { type ChildProcess } from 'child_process';
 import { createPublicClient, getAddress, getContract, http } from 'viem';
 import { foundry } from 'viem/chains';
 
@@ -25,23 +26,29 @@ const qosAlerts: AlertConfig[] = [
 
 describe('smoke test', () => {
   let pxe: PXE;
+  let portForwards: ChildProcess[];
   beforeAll(async () => {
     let PXE_URL;
+    portForwards = [];
     if (isK8sConfig(config)) {
-      await startPortForward({
-        resource: `svc/${config.INSTANCE_NAME}-aztec-network-pxe`,
-        namespace: config.NAMESPACE,
-        containerPort: config.CONTAINER_PXE_PORT,
-        hostPort: config.HOST_PXE_PORT,
-      });
+      portForwards.push(
+        await startPortForward({
+          resource: `svc/${config.INSTANCE_NAME}-aztec-network-pxe`,
+          namespace: config.NAMESPACE,
+          containerPort: config.CONTAINER_PXE_PORT,
+          hostPort: config.HOST_PXE_PORT,
+        }),
+      );
       PXE_URL = `http://127.0.0.1:${config.HOST_PXE_PORT}`;
 
-      await startPortForward({
-        resource: `svc/metrics-grafana`,
-        namespace: 'metrics',
-        containerPort: config.CONTAINER_METRICS_PORT,
-        hostPort: config.HOST_METRICS_PORT,
-      });
+      portForwards.push(
+        await startPortForward({
+          resource: `svc/metrics-grafana`,
+          namespace: 'metrics',
+          containerPort: config.CONTAINER_METRICS_PORT,
+          hostPort: config.HOST_METRICS_PORT,
+        }),
+      );
     } else {
       PXE_URL = config.PXE_URL;
     }
@@ -50,6 +57,10 @@ describe('smoke test', () => {
 
   afterAll(async () => {
     await runAlertCheck(config, qosAlerts, debugLogger);
+
+    for (const pf of portForwards ?? []) {
+      pf.kill();
+    }
   });
 
   it('should be able to get node enr', async () => {

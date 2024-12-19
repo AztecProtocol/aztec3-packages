@@ -152,10 +152,13 @@ HELM_VALUES=$(helm get values -n "$NAMESPACE" spartan --all -o json)
 export HOST_PXE_PORT=$(echo $FREE_PORTS | awk '{print $1}')
 export CONTAINER_PXE_PORT=$(jq -r '.pxe.service.nodePort' <<< $HELM_VALUES)
 
-export HOST_ETHEREUM_PORT=$(echo $FREE_PORTS | awk '{print $2}')
+export HOST_PROVER_NODE_PORT=$(echo $FREE_PORTS | awk '{print $2}')
+export CONTAINER_PROVER_NODE_PORT=$(jq -r '.proverNode.service.nodePort' <<< $HELM_VALUES)
+
+export HOST_ETHEREUM_PORT=$(echo $FREE_PORTS | awk '{print $3}')
 export CONTAINER_ETHEREUM_PORT=$(jq -r '.ethereum.service.port' <<< $HELM_VALUES)
 
-export HOST_METRICS_PORT=$(echo $FREE_PORTS | awk '{print $3}')
+export HOST_METRICS_PORT=$(echo $FREE_PORTS | awk '{print $4}')
 export CONTAINER_METRICS_PORT=80
 
 export GRAFANA_PASSWORD=$(kubectl get secrets -n metrics metrics-grafana -o jsonpath='{.data.admin-password}' | base64 --decode)

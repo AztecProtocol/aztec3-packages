@@ -2,6 +2,7 @@ import { PeerErrorSeverity, TxHash, mockTx } from '@aztec/circuit-types';
 import { sleep } from '@aztec/foundation/sleep';
 
 import { describe, expect, it, jest } from '@jest/globals';
+import { type PeerId } from '@libp2p/interface';
 import { type MockProxy, mock } from 'jest-mock-extended';
 
 import { CollectiveReqRespTimeoutError, IndividualReqRespTimeoutError } from '../../errors/reqresp.error.js';
@@ -14,19 +15,20 @@ import {
   startNodes,
   stopNodes,
 } from '../../mocks/index.js';
-import { type PeerManager } from '../peer_manager.js';
+import { type PeerScoring } from '../peer-scoring/peer_scoring.js';
 import { ReqRespSubProtocol, RequestableBuffer, TX_REQ_PROTOCOL } from './interface.js';
+import { GoodByeReason } from './protocols/goodbye.js';
 
 const PING_REQUEST = RequestableBuffer.fromBuffer(Buffer.from('ping'));
 
 // The Req Resp protocol should allow nodes to dial specific peers
 // and ask for specific data that they missed via the traditional gossip protocol.
 describe('ReqResp', () => {
-  let peerManager: MockProxy<PeerManager>;
+  let peerScoring: MockProxy<PeerScoring>;
   let nodes: ReqRespNode[];
 
   beforeEach(() => {
-    peerManager = mock<PeerManager>();
+    peerScoring = mock<PeerScoring>();
   });
 
   afterEach(async () => {
@@ -38,7 +40,7 @@ describe('ReqResp', () => {
   it('Should perform a ping request', async () => {
     // Create two nodes
     // They need to discover each other
-    nodes = await createNodes(peerManager, 2);
+    nodes = await createNodes(peerScoring, 2);
     const { req: pinger } = nodes[0];
 
     await startNodes(nodes);
@@ -55,7 +57,7 @@ describe('ReqResp', () => {
   });
 
   it('Should handle gracefully if a peer connected peer is offline', async () => {
-    nodes = await createNodes(peerManager, 2);
+    nodes = await createNodes(peerScoring, 2);
 
     const { req: pinger } = nodes[0];
     const { req: ponger } = nodes[1];
@@ -74,7 +76,7 @@ describe('ReqResp', () => {
   });
 
   it('Should request from a later peer if other peers are offline', async () => {
-    nodes = await createNodes(peerManager, 4);
+    nodes = await createNodes(peerScoring, 4);
 
     await startNodes(nodes);
     await sleep(500);
@@ -110,7 +112,7 @@ describe('ReqResp', () => {
   });
 
   it('Should hit a rate limit if too many requests are made in quick succession', async () => {
-    nodes = await createNodes(peerManager, 2);
+    nodes = await createNodes(peerScoring, 2);
 
     await startNodes(nodes);
 
@@ -137,7 +139,7 @@ describe('ReqResp', () => {
       const txHash = tx.getTxHash();
 
       const protocolHandlers = MOCK_SUB_PROTOCOL_HANDLERS;
-      protocolHandlers[ReqRespSubProtocol.TX] = (message: Buffer): Promise<Buffer> => {
+      protocolHandlers[ReqRespSubProtocol.TX] = (_peerId: PeerId, message: Buffer): Promise<Buffer> => {
         const receivedHash = TxHash.fromBuffer(message);
         if (txHash.equals(receivedHash)) {
           return Promise.resolve(tx.toBuffer());
@@ -145,7 +147,7 @@ describe('ReqResp', () => {
         return Promise.resolve(Buffer.from(''));
       };
 
-      nodes = await createNodes(peerManager, 2);
+      nodes = await createNodes(peerScoring, 2);
 
       await startNodes(nodes, protocolHandlers);
       await sleep(500);
@@ -161,11 +163,11 @@ describe('ReqResp', () => {
       const txHash = tx.getTxHash();
 
       const protocolHandlers = MOCK_SUB_PROTOCOL_HANDLERS;
-      protocolHandlers[ReqRespSubProtocol.TX] = (_message: Buffer): Promise<Buffer> => {
+      protocolHandlers[ReqRespSubProtocol.TX] = (_peerId: PeerId, _message: Buffer): Promise<Buffer> => {
         return Promise.resolve(Buffer.alloc(0));
       };
 
-      nodes = await createNodes(peerManager, 2);
+      nodes = await createNodes(peerScoring, 2);
 
       const spySendRequestToPeer = jest.spyOn(nodes[0].req, 'sendRequestToPeer');
 
@@ -185,11 +187,11 @@ describe('ReqResp', () => {
 
       const protocolHandlers = MOCK_SUB_PROTOCOL_HANDLERS;
       // Return nothing
-      protocolHandlers[ReqRespSubProtocol.TX] = (_message: Buffer): Promise<Buffer> => {
+      protocolHandlers[ReqRespSubProtocol.TX] = (_peerId: PeerId, _message: Buffer): Promise<Buffer> => {
         return Promise.resolve(Buffer.from(''));
       };
 
-      nodes = await createNodes(peerManager, 2);
+      nodes = await createNodes(peerScoring, 2);
 
       await startNodes(nodes, protocolHandlers);
       await sleep(500);
@@ -201,7 +203,7 @@ describe('ReqResp', () => {
     });
 
     it('Should hit individual timeout if nothing is returned over the stream', async () => {
-      nodes = await createNodes(peerManager, 2);
+      nodes = await createNodes(peerScoring, 2);
 
       await startNodes(nodes);
 
@@ -233,7 +235,7 @@ describe('ReqResp', () => {
       );
 
       // Expect the peer to be penalized for timing out
-      expect(peerManager.penalizePeer).toHaveBeenCalledWith(
+      expect(peerScoring.penalizePeer).toHaveBeenCalledWith(
         expect.objectContaining({
           publicKey: nodes[1].p2p.peerId.publicKey, // must use objectContaining as we do not match exactly, as private key is contained in this test mapping
         }),
@@ -242,7 +244,7 @@ describe('ReqResp', () => {
     });
 
     it('Should hit collective timeout if nothing is returned over the stream from multiple peers', async () => {
-      nodes = await createNodes(peerManager, 4);
+      nodes = await createNodes(peerScoring, 4);
 
       await startNodes(nodes);
 
@@ -274,7 +276,7 @@ describe('ReqResp', () => {
 
       // Mock that the node will respond with the tx
       const protocolHandlers = MOCK_SUB_PROTOCOL_HANDLERS;
-      protocolHandlers[ReqRespSubProtocol.TX] = (message: Buffer): Promise<Buffer> => {
+      protocolHandlers[ReqRespSubProtocol.TX] = (_peerId: PeerId, message: Buffer): Promise<Buffer> => {
         const receivedHash = TxHash.fromBuffer(message);
         if (txHash.equals(receivedHash)) {
           return Promise.resolve(tx.toBuffer());
@@ -285,11 +287,11 @@ describe('ReqResp', () => {
       // Mock that the receiving node will find that the transaction is invalid
       const protocolValidators = MOCK_SUB_PROTOCOL_VALIDATORS;
       protocolValidators[ReqRespSubProtocol.TX] = (_request, _response, peer) => {
-        peerManager.penalizePeer(peer, PeerErrorSeverity.LowToleranceError);
+        peerScoring.penalizePeer(peer, PeerErrorSeverity.LowToleranceError);
         return Promise.resolve(false);
       };
 
-      nodes = await createNodes(peerManager, 2);
+      nodes = await createNodes(peerScoring, 2);
 
       await startNodes(nodes, protocolHandlers, protocolValidators);
       await sleep(500);
@@ -300,11 +302,28 @@ describe('ReqResp', () => {
       expect(res).toBeUndefined();
 
       // Expect the peer to be penalized for sending an invalid response
-      expect(peerManager.penalizePeer).toHaveBeenCalledWith(
+      expect(peerScoring.penalizePeer).toHaveBeenCalledWith(
         expect.objectContaining({
           publicKey: nodes[1].p2p.peerId.publicKey, // must use objectContaining as we do not match exactly, as private key is contained in this test mapping
         }),
         PeerErrorSeverity.LowToleranceError,
+      );
+    });
+  });
+
+  describe('Goodbye protocol', () => {
+    it('Should send a goodbye message to a peer', async () => {
+      const nodes = await createNodes(peerScoring, 2);
+
+      await startNodes(nodes);
+      await sleep(500);
+      await connectToPeers(nodes);
+      await sleep(500);
+
+      await nodes[0].req.sendRequestToPeer(
+        nodes[1].p2p.peerId,
+        ReqRespSubProtocol.GOODBYE,
+        Buffer.from([GoodByeReason.SHUTDOWN]),
       );
     });
   });

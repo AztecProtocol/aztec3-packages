@@ -29,15 +29,13 @@ import { DiscV5Service } from '../services/discv5/discV5_service.js';
 import { LibP2PService } from '../services/libp2p/libp2p_service.js';
 import { type PeerManager } from '../services/peer_manager.js';
 import { type P2PReqRespConfig } from '../services/reqresp/config.js';
-import { pingHandler, statusHandler } from '../services/reqresp/handlers.js';
 import {
-  PING_PROTOCOL,
+  ReqRespSubProtocol,
   type ReqRespSubProtocolHandlers,
   type ReqRespSubProtocolValidators,
-  STATUS_PROTOCOL,
-  TX_REQ_PROTOCOL,
   noopValidator,
 } from '../services/reqresp/interface.js';
+import { pingHandler, statusHandler } from '../services/reqresp/protocols/index.js';
 import { ReqResp } from '../services/reqresp/reqresp.js';
 import { type PubSubLibp2p } from '../util.js';
 
@@ -152,17 +150,19 @@ export type ReqRespNode = {
 
 // Mock sub protocol handlers
 export const MOCK_SUB_PROTOCOL_HANDLERS: ReqRespSubProtocolHandlers = {
-  [PING_PROTOCOL]: pingHandler,
-  [STATUS_PROTOCOL]: statusHandler,
-  [TX_REQ_PROTOCOL]: (_msg: any) => Promise.resolve(Buffer.from('tx')),
+  [ReqRespSubProtocol.PING]: pingHandler,
+  [ReqRespSubProtocol.STATUS]: statusHandler,
+  [ReqRespSubProtocol.TX]: (_msg: any) => Promise.resolve(Buffer.from('tx')),
+  [ReqRespSubProtocol.GOODBYE]: (_msg: any) => Promise.resolve(Buffer.from('goodbye')),
 };
 
 // By default, all requests are valid
 // If you want to test an invalid response, you can override the validator
 export const MOCK_SUB_PROTOCOL_VALIDATORS: ReqRespSubProtocolValidators = {
-  [PING_PROTOCOL]: noopValidator,
-  [STATUS_PROTOCOL]: noopValidator,
-  [TX_REQ_PROTOCOL]: noopValidator,
+  [ReqRespSubProtocol.PING]: noopValidator,
+  [ReqRespSubProtocol.STATUS]: noopValidator,
+  [ReqRespSubProtocol.TX]: noopValidator,
+  [ReqRespSubProtocol.GOODBYE]: noopValidator,
 };
 
 /**

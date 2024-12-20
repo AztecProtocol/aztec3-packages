@@ -58,6 +58,7 @@ export const proverAgentConfigMappings: ConfigMappingsType<ProverAgentConfig> = 
   proverTestDelayType: {
     env: 'PROVER_TEST_DELAY_TYPE',
     description: 'The type of artificial delay to introduce',
+    defaultValue: 'fixed',
   },
   proverTestDelayMs: {
     env: 'PROVER_TEST_DELAY_MS',

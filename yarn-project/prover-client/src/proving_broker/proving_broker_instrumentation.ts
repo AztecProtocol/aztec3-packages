@@ -101,7 +101,7 @@ export class ProvingBrokerInstrumentation {
   }
 
   incCachedJobs(proofType: ProvingRequestType) {
-    this.timedOutJobs.add(1, {
+    this.cachedJobs.add(1, {
       [Attributes.PROVING_JOB_TYPE]: ProvingRequestType[proofType],
     });
   }

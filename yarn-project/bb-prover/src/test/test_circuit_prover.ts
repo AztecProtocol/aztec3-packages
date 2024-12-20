@@ -323,7 +323,7 @@ export class TestCircuitProver implements ServerCircuitProver {
     const duration = timer.ms();
     if (this.opts.proverTestDelayType === 'fixed') {
       await sleep(Math.max(0, (this.opts.proverTestDelayMs ?? 0) - duration));
-    } else {
+    } else if (this.opts.proverTestDelayType === 'realistic') {
       const delay = WITGEN_DELAY_MS[type] + PROOF_DELAY_MS[type];
       await sleep(Math.max(0, delay * (this.opts.proverTestDelayFactor ?? 1) - duration));
     }

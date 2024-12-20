@@ -15,7 +15,7 @@ import {
   stopNodes,
 } from '../../mocks/index.js';
 import { type PeerManager } from '../peer_manager.js';
-import { PING_PROTOCOL, ReqRespSubProtocol, RequestableBuffer, TX_REQ_PROTOCOL } from './interface.js';
+import { ReqRespSubProtocol, RequestableBuffer, TX_REQ_PROTOCOL } from './interface.js';
 
 const PING_REQUEST = RequestableBuffer.fromBuffer(Buffer.from('ping'));
 

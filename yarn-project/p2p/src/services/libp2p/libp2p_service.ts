@@ -6,17 +6,17 @@ import {
   type Gossipable,
   type L2BlockSource,
   MerkleTreeId,
+  P2PClientType,
   PeerErrorSeverity,
   type PeerInfo,
   type RawGossipMessage,
   TopicTypeMap,
   Tx,
-  TxHash,
+  type TxHash,
   type WorldStateSynchronizer,
   getTopicTypeForClientType,
   metricsTopicStrToLabels,
 } from '@aztec/circuit-types';
-import { P2PClientType } from '@aztec/circuit-types';
 import { Fr } from '@aztec/circuits.js';
 import { type EpochCache } from '@aztec/epoch-cache';
 import { createLogger } from '@aztec/foundation/log';
@@ -62,7 +62,6 @@ import {
   ReqRespSubProtocol,
   type ReqRespSubProtocolHandlers,
   type SubProtocolMap,
-  TX_REQ_PROTOCOL,
 } from '../reqresp/interface.js';
 import { goodbyeHandler } from '../reqresp/protocols/goodbye.js';
 import { pingHandler, statusHandler } from '../reqresp/protocols/index.js';
@@ -116,10 +115,10 @@ export class LibP2PService<T extends P2PClientType> extends WithTracer implement
     private peerDiscoveryService: PeerDiscoveryService,
     private mempools: MemPools<T>,
     private l2BlockSource: L2BlockSource,
-    private epochCache: EpochCache,
+    epochCache: EpochCache,
     private proofVerifier: ClientProtocolCircuitVerifier,
     private worldStateSynchronizer: WorldStateSynchronizer,
-    private telemetry: TelemetryClient,
+    telemetry: TelemetryClient,
     private requestResponseHandlers: ReqRespSubProtocolHandlers = DEFAULT_SUB_PROTOCOL_HANDLERS,
     private logger = createLogger('p2p:libp2p_service'),
   ) {

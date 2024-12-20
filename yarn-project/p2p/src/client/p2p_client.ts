@@ -32,7 +32,7 @@ import { type AttestationPool } from '../mem_pools/attestation_pool/attestation_
 import { type EpochProofQuotePool } from '../mem_pools/epoch_proof_quote_pool/epoch_proof_quote_pool.js';
 import { type MemPools } from '../mem_pools/interface.js';
 import { type TxPool } from '../mem_pools/tx_pool/index.js';
-import { ReqRespSubProtocol, TX_REQ_PROTOCOL } from '../services/reqresp/interface.js';
+import { ReqRespSubProtocol } from '../services/reqresp/interface.js';
 import type { P2PService } from '../services/service.js';
 
 /**

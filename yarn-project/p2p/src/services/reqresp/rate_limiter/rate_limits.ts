@@ -1,8 +1,8 @@
-import { PING_PROTOCOL, type ReqRespSubProtocolRateLimits, STATUS_PROTOCOL, TX_REQ_PROTOCOL } from '../interface.js';
+import { ReqRespSubProtocol, type ReqRespSubProtocolRateLimits } from '../interface.js';
 
 // TODO(md): these defaults need to be tuned
 export const DEFAULT_RATE_LIMITS: ReqRespSubProtocolRateLimits = {
-  [PING_PROTOCOL]: {
+  [ReqRespSubProtocol.PING]: {
     peerLimit: {
       quotaTimeMs: 1000,
       quotaCount: 5,
@@ -12,7 +12,7 @@ export const DEFAULT_RATE_LIMITS: ReqRespSubProtocolRateLimits = {
       quotaCount: 10,
     },
   },
-  [STATUS_PROTOCOL]: {
+  [ReqRespSubProtocol.STATUS]: {
     peerLimit: {
       quotaTimeMs: 1000,
       quotaCount: 5,
@@ -22,7 +22,18 @@ export const DEFAULT_RATE_LIMITS: ReqRespSubProtocolRateLimits = {
       quotaCount: 10,
     },
   },
-  [TX_REQ_PROTOCOL]: {
+  [ReqRespSubProtocol.TX]: {
+    peerLimit: {
+      quotaTimeMs: 1000,
+      quotaCount: 5,
+    },
+    globalLimit: {
+      quotaTimeMs: 1000,
+      quotaCount: 10,
+    },
+  },
+  // TODO(md): feels like goodbye is an exception to the rule here
+  [ReqRespSubProtocol.GOODBYE]: {
     peerLimit: {
       quotaTimeMs: 1000,
       quotaCount: 5,

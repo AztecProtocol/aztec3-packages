@@ -59,12 +59,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: deploy-network
     steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
-          aws-region: eu-west-2
+      # - name: Configure AWS credentials
+      #   uses: aws-actions/configure-aws-credentials@v1
+      #   with:
+      #     aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+      #     aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+      #     aws-region: eu-west-2
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
@@ -140,7 +140,7 @@ jobs:
             --mnemonic "$MNEMONIC" \
             --json | tee ./basic_contracts.json
 
-          aws s3 cp ./basic_contracts.json ${{ env.CONTRACT_S3_BUCKET }}/devnet/basic_contracts.json
+          # aws s3 cp ./basic_contracts.json ${{ env.CONTRACT_S3_BUCKET }}/devnet/basic_contracts.json
 
           DEVCOIN_L1_ADDRESS=$(jq -r .devCoinL1 ./basic_contracts.json)
           DEVCOIN_DRIP_AMOUNT=1000000000

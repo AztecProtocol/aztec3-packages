@@ -667,8 +667,11 @@ export class BarretenbergApi {
   }
 
   async acirProofAsFieldsUltraHonk(proofBuf: Uint8Array): Promise<Fr[]> {
+    console.log("defining inArgs");
     const inArgs = [proofBuf].map(serializeBufferable);
+    console.log("defining outTypes");
     const outTypes: OutputType[] = [VectorDeserializer(Fr)];
+    console.log("calling wasm export");
     const result = await this.wasm.callWasmExport(
       'acir_proof_as_fields_ultra_honk',
       inArgs,

@@ -16,6 +16,6 @@ fn main(
         proof,
         public_inputs,
         key_hash,
-        0 // PROOF_TYPE_PLONK
+        1 // PROOF_TYPE_HONK
     );
 }

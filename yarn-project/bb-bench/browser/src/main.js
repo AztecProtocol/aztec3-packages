@@ -1,4 +1,4 @@
-import { UltraPlonkBackend } from '@aztec/bb.js';
+import { UltraHonkBackend } from '@aztec/bb.js';
 
 import { Noir } from '@noir-lang/noir_js';
 
@@ -18,7 +18,7 @@ document.getElementById('bbProveSingle').addEventListener('click', async () => {
 const prove = async threads => {
   console.log(`Running with ${threads} threads`);
   try {
-    var backend = new UltraPlonkBackend(main.bytecode, { threads }, { recursive: true });
+    var backend = new UltraHonkBackend(main.bytecode, { threads }, { recursive: true });
     var noir = new Noir(main);
     const baseInput = {
       x: 1,
@@ -43,13 +43,10 @@ const prove = async threads => {
     var isValid = await backend.verifyProof(baseProof);
     if (isValid) console.log('Verifying base proof... ✅');
 
-    const proofArtifacts = await backend.generateRecursiveProofArtifacts(
-      baseProof,
-      1, // 1 public input
-    );
+    const proofArtifacts = await backend.generateRecursiveProofArtifacts(baseProof.proof, baseProof.publicInputs);
 
     // generate the recursion proof
-    backend = new UltraPlonkBackend(recursion.bytecode, { threads: threads }, { recursive: false });
+    backend = new UltraHonkBackend(recursion.bytecode, { threads: threads }, { recursive: false });
     noir = new Noir(recursion);
     const { publicInputs } = baseProof;
     const { vkAsFields, proofAsFields, vkHash } = proofArtifacts;

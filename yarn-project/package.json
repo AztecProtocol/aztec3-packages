@@ -26,6 +26,7 @@
     "aztec-node",
     "validator-client",
     "bb-prover",
+    "bb-bench/browser",
     "bot",
     "builder",
     "pxe",

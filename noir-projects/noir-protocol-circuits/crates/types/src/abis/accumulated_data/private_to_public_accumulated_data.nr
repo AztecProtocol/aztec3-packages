@@ -49,8 +49,7 @@ impl Serialize for PrivateToPublicAccumulatedData {
     let N = PRIVATE_TO_PUBLIC_ACCUMULATED_DATA_LENGTH;
 
     fn serialize(self) -> [Field; Self::N] {
-        let mut fields: BoundedVec<Field, Self::N> =
-            BoundedVec::new();
+        let mut fields: BoundedVec<Field, Self::N> = BoundedVec::new();
 
         fields.extend_from_array(self.note_hashes);
         fields.extend_from_array(self.nullifiers);

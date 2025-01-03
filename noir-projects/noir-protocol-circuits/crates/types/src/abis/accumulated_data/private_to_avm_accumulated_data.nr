@@ -36,8 +36,7 @@ impl Serialize for PrivateToAvmAccumulatedData {
     let N = PRIVATE_TO_AVM_ACCUMULATED_DATA_LENGTH;
 
     fn serialize(self) -> [Field; Self::N] {
-        let mut fields: BoundedVec<Field, Self::N> =
-            BoundedVec::new();
+        let mut fields: BoundedVec<Field, Self::N> = BoundedVec::new();
 
         fields.extend_from_array(self.note_hashes);
         fields.extend_from_array(self.nullifiers);
@@ -104,8 +103,7 @@ impl Serialize for PrivateToAvmAccumulatedDataArrayLengths {
     let N = NUM_PRIVATE_TO_AVM_ACCUMULATED_DATA_ARRAYS;
 
     fn serialize(self) -> [Field; Self::N] {
-        let mut fields: BoundedVec<Field, Self::N> =
-            BoundedVec::new();
+        let mut fields: BoundedVec<Field, Self::N> = BoundedVec::new();
 
         fields.push(self.note_hashes as Field);
         fields.push(self.nullifiers as Field);

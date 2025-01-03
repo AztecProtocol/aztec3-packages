@@ -92,8 +92,7 @@ impl Serialize for PrivateKernelCircuitPublicInputs {
     let N = PRIVATE_KERNEL_CIRCUIT_PUBLIC_INPUTS_LENGTH;
 
     fn serialize(self) -> [Field; Self::N] {
-        let mut fields: BoundedVec<Field, Self::N> =
-            BoundedVec::new();
+        let mut fields: BoundedVec<Field, Self::N> = BoundedVec::new();
 
         fields.extend_from_array(self.constants.serialize());
         fields.push(self.min_revertible_side_effect_counter as Field);

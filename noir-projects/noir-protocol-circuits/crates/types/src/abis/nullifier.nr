@@ -42,8 +42,10 @@ impl Empty for Nullifier {
     }
 }
 
-impl Serialize<NULLIFIER_LENGTH> for Nullifier {
-    fn serialize(self) -> [Field; NULLIFIER_LENGTH] {
+impl Serialize for Nullifier {
+    let N = NULLIFIER_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
         [self.value, self.counter as Field, self.note_hash]
     }
 }
@@ -119,8 +121,10 @@ impl Empty for ScopedNullifier {
     }
 }
 
-impl Serialize<SCOPED_NULLIFIER_LENGTH> for ScopedNullifier {
-    fn serialize(self) -> [Field; SCOPED_NULLIFIER_LENGTH] {
+impl Serialize for ScopedNullifier {
+    let N = SCOPED_NULLIFIER_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
         array_concat(
             self.nullifier.serialize(),
             [self.contract_address.to_field()],

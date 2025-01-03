@@ -24,9 +24,11 @@ impl Eq for CallContext {
     }
 }
 
-impl Serialize<CALL_CONTEXT_LENGTH> for CallContext {
-    fn serialize(self) -> [Field; CALL_CONTEXT_LENGTH] {
-        let mut serialized: BoundedVec<Field, CALL_CONTEXT_LENGTH> = BoundedVec::new();
+impl Serialize for CallContext {
+    let N = CALL_CONTEXT_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
+        let mut serialized: BoundedVec<Field, Self::N> = BoundedVec::new();
 
         serialized.push(self.msg_sender.to_field());
         serialized.push(self.contract_address.to_field());

@@ -15,8 +15,10 @@ impl GasFees {
     }
 }
 
-impl Serialize<GAS_FEES_LENGTH> for GasFees {
-    fn serialize(self) -> [Field; GAS_FEES_LENGTH] {
+impl Serialize for GasFees {
+    let N = GAS_FEES_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
         [self.fee_per_da_gas, self.fee_per_l2_gas]
     }
 }

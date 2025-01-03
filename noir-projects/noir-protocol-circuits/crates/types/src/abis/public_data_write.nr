@@ -17,8 +17,10 @@ impl Empty for PublicDataWrite {
     }
 }
 
-impl Serialize<PUBLIC_DATA_WRITE_LENGTH> for PublicDataWrite {
-    fn serialize(self) -> [Field; PUBLIC_DATA_WRITE_LENGTH] {
+impl Serialize for PublicDataWrite {
+    let N = PUBLIC_DATA_WRITE_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
         [self.leaf_slot, self.value]
     }
 }

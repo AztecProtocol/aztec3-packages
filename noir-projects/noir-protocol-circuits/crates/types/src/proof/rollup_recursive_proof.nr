@@ -7,8 +7,10 @@ pub struct RecursiveProof {
     pub fields: [Field; RECURSIVE_ROLLUP_HONK_PROOF_LENGTH],
 }
 
-impl Serialize<RECURSIVE_ROLLUP_HONK_PROOF_LENGTH> for RecursiveProof {
-    fn serialize(self) -> [Field; RECURSIVE_ROLLUP_HONK_PROOF_LENGTH] {
+impl Serialize for RecursiveProof {
+    let N = RECURSIVE_ROLLUP_HONK_PROOF_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
         self.fields
     }
 }
@@ -29,8 +31,10 @@ pub struct NestedRecursiveProof {
     pub fields: [Field; NESTED_RECURSIVE_ROLLUP_HONK_PROOF_LENGTH],
 }
 
-impl Serialize<NESTED_RECURSIVE_ROLLUP_HONK_PROOF_LENGTH> for NestedRecursiveProof {
-    fn serialize(self) -> [Field; NESTED_RECURSIVE_ROLLUP_HONK_PROOF_LENGTH] {
+impl Serialize for NestedRecursiveProof {
+    let N = NESTED_RECURSIVE_ROLLUP_HONK_PROOF_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
         self.fields
     }
 }

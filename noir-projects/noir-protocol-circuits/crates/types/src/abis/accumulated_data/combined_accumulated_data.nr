@@ -45,9 +45,11 @@ impl Empty for CombinedAccumulatedData {
     }
 }
 
-impl Serialize<COMBINED_ACCUMULATED_DATA_LENGTH> for CombinedAccumulatedData {
-    fn serialize(self) -> [Field; COMBINED_ACCUMULATED_DATA_LENGTH] {
-        let mut fields: BoundedVec<Field, COMBINED_ACCUMULATED_DATA_LENGTH> = BoundedVec::new();
+impl Serialize for CombinedAccumulatedData {
+    let N = COMBINED_ACCUMULATED_DATA_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
+        let mut fields: BoundedVec<Field, Self::N> = BoundedVec::new();
 
         fields.extend_from_array(self.note_hashes);
         fields.extend_from_array(self.nullifiers);
@@ -70,7 +72,7 @@ impl Serialize<COMBINED_ACCUMULATED_DATA_LENGTH> for CombinedAccumulatedData {
             fields.extend_from_array(self.public_data_writes[i].serialize());
         }
 
-        assert_eq(fields.len(), COMBINED_ACCUMULATED_DATA_LENGTH);
+        assert_eq(fields.len(), Self::N);
 
         fields.storage()
     }

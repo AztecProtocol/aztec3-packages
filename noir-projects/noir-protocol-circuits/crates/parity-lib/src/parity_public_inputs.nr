@@ -12,9 +12,11 @@ impl Empty for ParityPublicInputs {
     }
 }
 
-impl Serialize<3> for ParityPublicInputs {
-    fn serialize(self) -> [Field; 3] {
-        let mut fields = [0; 3];
+impl Serialize for ParityPublicInputs {
+    let N = 3;
+
+    fn serialize(self) -> [Field; Self::N] {
+        let mut fields = [0; Self::N];
         fields[0] = self.sha_root;
         fields[1] = self.converted_root;
         fields[2] = self.vk_tree_root;

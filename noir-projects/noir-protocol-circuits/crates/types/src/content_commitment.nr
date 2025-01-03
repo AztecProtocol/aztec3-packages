@@ -7,9 +7,11 @@ pub struct ContentCommitment {
     pub out_hash: Field,
 }
 
-impl Serialize<CONTENT_COMMITMENT_LENGTH> for ContentCommitment {
-    fn serialize(self) -> [Field; CONTENT_COMMITMENT_LENGTH] {
-        let mut fields: BoundedVec<Field, CONTENT_COMMITMENT_LENGTH> = BoundedVec::new();
+impl Serialize for ContentCommitment {
+    let N = CONTENT_COMMITMENT_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
+        let mut fields: BoundedVec<Field, Self::N> = BoundedVec::new();
 
         fields.push(self.num_txs);
         fields.push(self.blobs_hash);

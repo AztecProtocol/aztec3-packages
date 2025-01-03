@@ -38,8 +38,10 @@ impl Empty for ScopedKeyValidationRequestAndGenerator {
     }
 }
 
-impl Serialize<SCOPED_KEY_VALIDATION_REQUEST_AND_GENERATOR_LENGTH> for ScopedKeyValidationRequestAndGenerator {
-    fn serialize(self) -> [Field; SCOPED_KEY_VALIDATION_REQUEST_AND_GENERATOR_LENGTH] {
+impl Serialize for ScopedKeyValidationRequestAndGenerator {
+    let N = SCOPED_KEY_VALIDATION_REQUEST_AND_GENERATOR_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
         array_concat(self.request.serialize(), [self.contract_address.to_field()])
     }
 }

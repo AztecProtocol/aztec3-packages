@@ -50,8 +50,10 @@ impl FromField for AztecAddress {
     }
 }
 
-impl Serialize<AZTEC_ADDRESS_LENGTH> for AztecAddress {
-    fn serialize(self: Self) -> [Field; AZTEC_ADDRESS_LENGTH] {
+impl Serialize for AztecAddress {
+    let N = AZTEC_ADDRESS_LENGTH;
+
+    fn serialize(self: Self) -> [Field; Self::N] {
         [self.to_field()]
     }
 }

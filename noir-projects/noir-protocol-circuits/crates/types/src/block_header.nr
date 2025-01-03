@@ -30,9 +30,11 @@ impl Eq for BlockHeader {
     }
 }
 
-impl Serialize<BLOCK_HEADER_LENGTH> for BlockHeader {
-    fn serialize(self) -> [Field; BLOCK_HEADER_LENGTH] {
-        let mut fields: BoundedVec<Field, BLOCK_HEADER_LENGTH> = BoundedVec::new();
+impl Serialize for BlockHeader {
+    let N = BLOCK_HEADER_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
+        let mut fields: BoundedVec<Field, Self::N> = BoundedVec::new();
 
         fields.extend_from_array(self.last_archive.serialize());
         fields.extend_from_array(self.content_commitment.serialize());

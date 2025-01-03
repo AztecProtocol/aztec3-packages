@@ -20,8 +20,10 @@ impl Eq for TreeSnapshots {
     }
 }
 
-impl Serialize<TREE_SNAPSHOTS_LENGTH> for TreeSnapshots {
-    fn serialize(self) -> [Field; TREE_SNAPSHOTS_LENGTH] {
+impl Serialize for TreeSnapshots {
+    let N = TREE_SNAPSHOTS_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
         let serialized_l1_to_l2_message_tree = self.l1_to_l2_message_tree.serialize();
         let serialized_note_hash_tree = self.note_hash_tree.serialize();
         let serialized_nullifier_tree = self.nullifier_tree.serialize();

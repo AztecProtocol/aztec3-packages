@@ -22,8 +22,10 @@ impl ToField for EthAddress {
     }
 }
 
-impl Serialize<ETH_ADDRESS_LENGTH> for EthAddress {
-    fn serialize(self: Self) -> [Field; ETH_ADDRESS_LENGTH] {
+impl Serialize for EthAddress {
+    let N = ETH_ADDRESS_LENGTH;
+
+    fn serialize(self: Self) -> [Field; Self::N] {
         [self.inner]
     }
 }

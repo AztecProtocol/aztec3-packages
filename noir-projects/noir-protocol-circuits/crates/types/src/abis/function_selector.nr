@@ -11,8 +11,10 @@ impl Eq for FunctionSelector {
     }
 }
 
-impl Serialize<1> for FunctionSelector {
-    fn serialize(self: Self) -> [Field; 1] {
+impl Serialize for FunctionSelector {
+    let N = 1;
+
+    fn serialize(self: Self) -> [Field; Self::N] {
         [self.inner as Field]
     }
 }

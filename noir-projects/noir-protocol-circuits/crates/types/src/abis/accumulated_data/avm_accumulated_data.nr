@@ -38,9 +38,11 @@ impl Empty for AvmAccumulatedData {
     }
 }
 
-impl Serialize<AVM_ACCUMULATED_DATA_LENGTH> for AvmAccumulatedData {
-    fn serialize(self) -> [Field; AVM_ACCUMULATED_DATA_LENGTH] {
-        let mut fields: BoundedVec<Field, AVM_ACCUMULATED_DATA_LENGTH> = BoundedVec::new();
+impl Serialize for AvmAccumulatedData {
+    let N = AVM_ACCUMULATED_DATA_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
+        let mut fields: BoundedVec<Field, Self::N> = BoundedVec::new();
 
         for i in 0..self.note_hashes.len() {
             fields.extend_from_array(self.note_hashes[i].serialize());
@@ -62,7 +64,7 @@ impl Serialize<AVM_ACCUMULATED_DATA_LENGTH> for AvmAccumulatedData {
             fields.extend_from_array(self.public_data_writes[i].serialize());
         }
 
-        assert_eq(fields.len(), AVM_ACCUMULATED_DATA_LENGTH);
+        assert_eq(fields.len(), Self::N);
 
         fields.storage()
     }

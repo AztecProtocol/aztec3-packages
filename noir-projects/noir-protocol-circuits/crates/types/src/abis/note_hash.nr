@@ -29,8 +29,10 @@ impl Empty for NoteHash {
     }
 }
 
-impl Serialize<NOTE_HASH_LENGTH> for NoteHash {
-    fn serialize(self) -> [Field; NOTE_HASH_LENGTH] {
+impl Serialize for NoteHash {
+    let N = NOTE_HASH_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
         [self.value, self.counter as Field]
     }
 }
@@ -88,8 +90,10 @@ impl Empty for ScopedNoteHash {
     }
 }
 
-impl Serialize<SCOPED_NOTE_HASH_LENGTH> for ScopedNoteHash {
-    fn serialize(self) -> [Field; SCOPED_NOTE_HASH_LENGTH] {
+impl Serialize for ScopedNoteHash {
+    let N = SCOPED_NOTE_HASH_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
         array_concat(
             self.note_hash.serialize(),
             [self.contract_address.to_field()],

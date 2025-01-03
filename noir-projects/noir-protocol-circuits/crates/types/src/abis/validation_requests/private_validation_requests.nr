@@ -22,9 +22,11 @@ pub struct PrivateValidationRequests {
     pub split_counter: Option<u32>,
 }
 
-impl Serialize<PRIVATE_VALIDATION_REQUESTS_LENGTH> for PrivateValidationRequests {
-    fn serialize(self) -> [Field; PRIVATE_VALIDATION_REQUESTS_LENGTH] {
-        let mut fields: BoundedVec<Field, PRIVATE_VALIDATION_REQUESTS_LENGTH> = BoundedVec::new();
+impl Serialize for PrivateValidationRequests {
+    let N = PRIVATE_VALIDATION_REQUESTS_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
+        let mut fields: BoundedVec<Field, Self::N> = BoundedVec::new();
 
         fields.extend_from_array(self.for_rollup.serialize());
 
@@ -44,7 +46,7 @@ impl Serialize<PRIVATE_VALIDATION_REQUESTS_LENGTH> for PrivateValidationRequests
         fields.push(self.split_counter.is_some() as Field);
         fields.push(self.split_counter.unwrap_unchecked() as Field);
 
-        assert_eq(fields.len(), PRIVATE_VALIDATION_REQUESTS_LENGTH);
+        assert_eq(fields.len(), Self::N);
 
         fields.storage()
     }

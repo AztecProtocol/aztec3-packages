@@ -66,9 +66,11 @@ impl Eq for BaseOrMergeRollupPublicInputs {
     }
 }
 
-impl Serialize<BASE_OR_MERGE_PUBLIC_INPUTS_LENGTH> for BaseOrMergeRollupPublicInputs {
-    fn serialize(self) -> [Field; BASE_OR_MERGE_PUBLIC_INPUTS_LENGTH] {
-        let mut fields: BoundedVec<Field, BASE_OR_MERGE_PUBLIC_INPUTS_LENGTH> = BoundedVec::new();
+impl Serialize for BaseOrMergeRollupPublicInputs {
+    let N = BASE_OR_MERGE_PUBLIC_INPUTS_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
+        let mut fields: BoundedVec<Field, Self::N> = BoundedVec::new();
 
         fields.push(self.rollup_type as Field);
         fields.push(self.num_txs as Field);
@@ -80,7 +82,7 @@ impl Serialize<BASE_OR_MERGE_PUBLIC_INPUTS_LENGTH> for BaseOrMergeRollupPublicIn
         fields.push(self.out_hash as Field);
         fields.push(self.accumulated_fees as Field);
         fields.push(self.accumulated_mana_used as Field);
-        assert_eq(fields.len(), BASE_OR_MERGE_PUBLIC_INPUTS_LENGTH);
+        assert_eq(fields.len(), Self::N);
 
         fields.storage()
     }

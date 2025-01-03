@@ -105,8 +105,7 @@ impl Serialize for BlockRootOrBlockMergePublicInputs {
     let N = BLOCK_ROOT_OR_BLOCK_MERGE_PUBLIC_INPUTS_LENGTH;
 
     fn serialize(self) -> [Field; Self::N] {
-        let mut fields: BoundedVec<Field, Self::N> =
-            BoundedVec::new();
+        let mut fields: BoundedVec<Field, Self::N> = BoundedVec::new();
 
         fields.extend_from_array(self.previous_archive.serialize());
         fields.extend_from_array(self.new_archive.serialize());

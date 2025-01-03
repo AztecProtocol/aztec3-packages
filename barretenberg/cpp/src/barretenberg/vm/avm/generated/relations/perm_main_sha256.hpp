@@ -16,12 +16,12 @@ class perm_main_sha256_permutation_settings {
 
     // Columns using the Column enum.
     static constexpr Column SRC_SELECTOR = Column::main_sel_op_sha256;
-    static constexpr Column DST_SELECTOR = Column::sha256_sel_sha256_compression;
+    static constexpr Column DST_SELECTOR = Column::sha256_start;
     static constexpr Column INVERSES = Column::perm_main_sha256_inv;
 
     template <typename AllEntities> static inline auto inverse_polynomial_is_computed_at_row(const AllEntities& in)
     {
-        return (in.main_sel_op_sha256 == 1 || in.sha256_sel_sha256_compression == 1);
+        return (in.main_sel_op_sha256 == 1 || in.sha256_start == 1);
     }
 
     template <typename AllEntities> static inline auto get_const_entities(const AllEntities& in)
@@ -29,15 +29,15 @@ class perm_main_sha256_permutation_settings {
         return std::forward_as_tuple(in.perm_main_sha256_inv,
                                      in.main_sel_op_sha256,
                                      in.main_sel_op_sha256,
-                                     in.sha256_sel_sha256_compression,
+                                     in.sha256_start,
                                      in.main_clk,
                                      in.main_ia,
                                      in.main_ib,
                                      in.main_ic,
                                      in.sha256_clk,
-                                     in.sha256_state,
-                                     in.sha256_input,
-                                     in.sha256_output);
+                                     in.sha256_state_offset,
+                                     in.sha256_input_offset,
+                                     in.sha256_output_offset);
     }
 
     template <typename AllEntities> static inline auto get_nonconst_entities(AllEntities& in)
@@ -45,15 +45,15 @@ class perm_main_sha256_permutation_settings {
         return std::forward_as_tuple(in.perm_main_sha256_inv,
                                      in.main_sel_op_sha256,
                                      in.main_sel_op_sha256,
-                                     in.sha256_sel_sha256_compression,
+                                     in.sha256_start,
                                      in.main_clk,
                                      in.main_ia,
                                      in.main_ib,
                                      in.main_ic,
                                      in.sha256_clk,
-                                     in.sha256_state,
-                                     in.sha256_input,
-                                     in.sha256_output);
+                                     in.sha256_state_offset,
+                                     in.sha256_input_offset,
+                                     in.sha256_output_offset);
     }
 };
 

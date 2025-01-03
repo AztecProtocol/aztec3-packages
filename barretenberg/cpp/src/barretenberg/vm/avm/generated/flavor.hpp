@@ -39,10 +39,18 @@
 #include "relations/lookup_byte_lengths.hpp"
 #include "relations/lookup_byte_operations.hpp"
 #include "relations/lookup_cd_value.hpp"
+#include "relations/lookup_ch_and_0.hpp"
+#include "relations/lookup_ch_and_1.hpp"
+#include "relations/lookup_ch_xor.hpp"
 #include "relations/lookup_da_gas_rng_chk_0.hpp"
 #include "relations/lookup_da_gas_rng_chk_1.hpp"
 #include "relations/lookup_l2_gas_rng_chk_0.hpp"
 #include "relations/lookup_l2_gas_rng_chk_1.hpp"
+#include "relations/lookup_maj_and_0.hpp"
+#include "relations/lookup_maj_and_1.hpp"
+#include "relations/lookup_maj_and_2.hpp"
+#include "relations/lookup_maj_xor_0.hpp"
+#include "relations/lookup_maj_xor_1.hpp"
 #include "relations/lookup_mem_rng_chk_0.hpp"
 #include "relations/lookup_mem_rng_chk_1.hpp"
 #include "relations/lookup_mem_rng_chk_2.hpp"
@@ -60,6 +68,15 @@
 #include "relations/lookup_rng_chk_7.hpp"
 #include "relations/lookup_rng_chk_diff.hpp"
 #include "relations/lookup_rng_chk_pow_2.hpp"
+#include "relations/lookup_round_constant.hpp"
+#include "relations/lookup_s_0_xor_0.hpp"
+#include "relations/lookup_s_0_xor_1.hpp"
+#include "relations/lookup_s_1_xor_0.hpp"
+#include "relations/lookup_s_1_xor_1.hpp"
+#include "relations/lookup_w_s_0_xor_0.hpp"
+#include "relations/lookup_w_s_0_xor_1.hpp"
+#include "relations/lookup_w_s_1_xor_0.hpp"
+#include "relations/lookup_w_s_1_xor_1.hpp"
 #include "relations/perm_cmp_alu.hpp"
 #include "relations/perm_main_alu.hpp"
 #include "relations/perm_main_bin.hpp"
@@ -117,13 +134,13 @@ class AvmFlavor {
     // This flavor would not be used with ZK Sumcheck
     static constexpr bool HasZK = false;
 
-    static constexpr size_t NUM_PRECOMPUTED_ENTITIES = 21;
-    static constexpr size_t NUM_WITNESS_ENTITIES = 743;
-    static constexpr size_t NUM_SHIFTED_ENTITIES = 50;
+    static constexpr size_t NUM_PRECOMPUTED_ENTITIES = 24;
+    static constexpr size_t NUM_WITNESS_ENTITIES = 896;
+    static constexpr size_t NUM_SHIFTED_ENTITIES = 77;
     static constexpr size_t NUM_WIRES = NUM_WITNESS_ENTITIES + NUM_PRECOMPUTED_ENTITIES;
     // We have two copies of the witness entities, so we subtract the number of fixed ones (they have no shift), one for
     // the unshifted and one for the shifted
-    static constexpr size_t NUM_ALL_ENTITIES = 814;
+    static constexpr size_t NUM_ALL_ENTITIES = 997;
     // The total number of witnesses including shifts and derived entities.
     static constexpr size_t NUM_ALL_WITNESS_ENTITIES = NUM_WITNESS_ENTITIES + NUM_SHIFTED_ENTITIES;
 
@@ -158,10 +175,18 @@ class AvmFlavor {
         lookup_byte_lengths_relation<FF_>,
         lookup_byte_operations_relation<FF_>,
         lookup_cd_value_relation<FF_>,
+        lookup_ch_and_0_relation<FF_>,
+        lookup_ch_and_1_relation<FF_>,
+        lookup_ch_xor_relation<FF_>,
         lookup_da_gas_rng_chk_0_relation<FF_>,
         lookup_da_gas_rng_chk_1_relation<FF_>,
         lookup_l2_gas_rng_chk_0_relation<FF_>,
         lookup_l2_gas_rng_chk_1_relation<FF_>,
+        lookup_maj_and_0_relation<FF_>,
+        lookup_maj_and_1_relation<FF_>,
+        lookup_maj_and_2_relation<FF_>,
+        lookup_maj_xor_0_relation<FF_>,
+        lookup_maj_xor_1_relation<FF_>,
         lookup_mem_rng_chk_0_relation<FF_>,
         lookup_mem_rng_chk_1_relation<FF_>,
         lookup_mem_rng_chk_2_relation<FF_>,
@@ -179,6 +204,15 @@ class AvmFlavor {
         lookup_rng_chk_7_relation<FF_>,
         lookup_rng_chk_diff_relation<FF_>,
         lookup_rng_chk_pow_2_relation<FF_>,
+        lookup_round_constant_relation<FF_>,
+        lookup_s_0_xor_0_relation<FF_>,
+        lookup_s_0_xor_1_relation<FF_>,
+        lookup_s_1_xor_0_relation<FF_>,
+        lookup_s_1_xor_1_relation<FF_>,
+        lookup_w_s_0_xor_0_relation<FF_>,
+        lookup_w_s_0_xor_1_relation<FF_>,
+        lookup_w_s_1_xor_0_relation<FF_>,
+        lookup_w_s_1_xor_1_relation<FF_>,
         perm_cmp_alu_relation<FF_>,
         perm_main_alu_relation<FF_>,
         perm_main_bin_relation<FF_>,
@@ -486,6 +520,10 @@ class AvmFlavor {
             this->main_sel_start_exec = verification_key->main_sel_start_exec;
             this->main_zeroes = verification_key->main_zeroes;
             this->powers_power_of_2 = verification_key->powers_power_of_2;
+            this->sha256_params_lookup_table_round_constant =
+                verification_key->sha256_params_lookup_table_round_constant;
+            this->sha256_params_lookup_table_round_index = verification_key->sha256_params_lookup_table_round_index;
+            this->sha256_params_lookup_table_sel = verification_key->sha256_params_lookup_table_sel;
         }
     };
 

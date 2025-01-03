@@ -54,7 +54,9 @@ TEST(AvmFullPoseidon2, shouldHashCorrectly)
     AvmCircuitBuilder cb;
     cb.set_trace(std::move(trace));
     auto polys = cb.compute_polynomials();
-    const size_t num_rows = polys.get_polynomial_size();
+    // const size_t num_rows = polys.get_polynomial_size();
+    const size_t num_rows = cb.get_estimated_num_finalized_gates();
+    info("Number of rows: {}", num_rows);
     std::cerr << "Done computing polynomials..." << std::endl;
 
     std::cerr << "Accumulating relations..." << std::endl;

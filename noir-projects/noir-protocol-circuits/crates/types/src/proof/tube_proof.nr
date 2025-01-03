@@ -4,8 +4,10 @@ pub struct TubeProof {
     pub fields: [Field; TUBE_PROOF_LENGTH],
 }
 
-impl Serialize<TUBE_PROOF_LENGTH> for TubeProof {
-    fn serialize(self) -> [Field; TUBE_PROOF_LENGTH] {
+impl Serialize for TubeProof {
+    let N = TUBE_PROOF_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
         self.fields
     }
 }

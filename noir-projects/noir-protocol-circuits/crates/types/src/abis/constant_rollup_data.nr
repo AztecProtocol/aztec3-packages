@@ -33,16 +33,18 @@ impl Empty for ConstantRollupData {
     }
 }
 
-impl Serialize<CONSTANT_ROLLUP_DATA_LENGTH> for ConstantRollupData {
-    fn serialize(self) -> [Field; CONSTANT_ROLLUP_DATA_LENGTH] {
-        let mut fields: BoundedVec<Field, CONSTANT_ROLLUP_DATA_LENGTH> = BoundedVec::new();
+impl Serialize for ConstantRollupData {
+    let N = CONSTANT_ROLLUP_DATA_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
+        let mut fields: BoundedVec<Field, Self::N> = BoundedVec::new();
 
         fields.extend_from_array(self.last_archive.serialize());
         fields.push(self.vk_tree_root);
         fields.push(self.protocol_contract_tree_root);
         fields.extend_from_array(self.global_variables.serialize());
 
-        assert_eq(fields.len(), CONSTANT_ROLLUP_DATA_LENGTH);
+        assert_eq(fields.len(), Self::N);
 
         fields.storage()
     }

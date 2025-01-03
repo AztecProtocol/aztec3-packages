@@ -32,9 +32,11 @@ impl Eq for PrivateToAvmAccumulatedData {
     }
 }
 
-impl Serialize<PRIVATE_TO_AVM_ACCUMULATED_DATA_LENGTH> for PrivateToAvmAccumulatedData {
-    fn serialize(self) -> [Field; PRIVATE_TO_AVM_ACCUMULATED_DATA_LENGTH] {
-        let mut fields: BoundedVec<Field, PRIVATE_TO_AVM_ACCUMULATED_DATA_LENGTH> =
+impl Serialize for PrivateToAvmAccumulatedData {
+    let N = PRIVATE_TO_AVM_ACCUMULATED_DATA_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
+        let mut fields: BoundedVec<Field, Self::N> =
             BoundedVec::new();
 
         fields.extend_from_array(self.note_hashes);
@@ -43,7 +45,7 @@ impl Serialize<PRIVATE_TO_AVM_ACCUMULATED_DATA_LENGTH> for PrivateToAvmAccumulat
             fields.extend_from_array(self.l2_to_l1_msgs[i].serialize());
         }
 
-        assert_eq(fields.len(), PRIVATE_TO_AVM_ACCUMULATED_DATA_LENGTH);
+        assert_eq(fields.len(), Self::N);
 
         fields.storage()
     }
@@ -98,9 +100,11 @@ impl Eq for PrivateToAvmAccumulatedDataArrayLengths {
     }
 }
 
-impl Serialize<NUM_PRIVATE_TO_AVM_ACCUMULATED_DATA_ARRAYS> for PrivateToAvmAccumulatedDataArrayLengths {
-    fn serialize(self) -> [Field; NUM_PRIVATE_TO_AVM_ACCUMULATED_DATA_ARRAYS] {
-        let mut fields: BoundedVec<Field, NUM_PRIVATE_TO_AVM_ACCUMULATED_DATA_ARRAYS> =
+impl Serialize for PrivateToAvmAccumulatedDataArrayLengths {
+    let N = NUM_PRIVATE_TO_AVM_ACCUMULATED_DATA_ARRAYS;
+
+    fn serialize(self) -> [Field; Self::N] {
+        let mut fields: BoundedVec<Field, Self::N> =
             BoundedVec::new();
 
         fields.push(self.note_hashes as Field);

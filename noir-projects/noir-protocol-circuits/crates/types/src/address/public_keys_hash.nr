@@ -11,8 +11,10 @@ impl ToField for PublicKeysHash {
     }
 }
 
-impl Serialize<1> for PublicKeysHash {
-    fn serialize(self: Self) -> [Field; 1] {
+impl Serialize for PublicKeysHash {
+    let N = 1;
+
+    fn serialize(self: Self) -> [Field; Self::N] {
         [self.to_field()]
     }
 }

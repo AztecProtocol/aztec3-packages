@@ -23,8 +23,10 @@ impl Eq for ContractInstance {
     }
 }
 
-impl Serialize<CONTRACT_INSTANCE_LENGTH> for ContractInstance {
-    fn serialize(self) -> [Field; CONTRACT_INSTANCE_LENGTH] {
+impl Serialize for ContractInstance {
+    let N = CONTRACT_INSTANCE_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
         let public_keys_serialized = self.public_keys.serialize();
         [
             self.salt,

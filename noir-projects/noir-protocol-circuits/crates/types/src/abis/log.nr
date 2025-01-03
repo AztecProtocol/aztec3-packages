@@ -22,8 +22,10 @@ impl<let N: u32> Empty for Log<N> {
     }
 }
 
-impl<let N: u32> Serialize<N> for Log<N> {
-    fn serialize(self) -> [Field; N] {
+impl<let M: u32> Serialize for Log<M> {
+    let N = M;
+
+    fn serialize(self) -> [Field; Self::N] {
         self.fields
     }
 }

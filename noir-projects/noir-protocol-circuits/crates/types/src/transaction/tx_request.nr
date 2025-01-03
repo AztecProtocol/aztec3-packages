@@ -41,17 +41,19 @@ impl Hash for TxRequest {
     }
 }
 
-impl Serialize<TX_REQUEST_LENGTH> for TxRequest {
-    fn serialize(self) -> [Field; TX_REQUEST_LENGTH] {
+impl Serialize for TxRequest {
+    let N = TX_REQUEST_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
         // TODO(#4390): This should accept a reader ^ to avoid copying data.
-        let mut fields: BoundedVec<Field, TX_REQUEST_LENGTH> = BoundedVec::new();
+        let mut fields: BoundedVec<Field, Self::N> = BoundedVec::new();
 
         fields.push(self.origin.to_field());
         fields.extend_from_array(self.function_data.serialize());
         fields.push(self.args_hash);
         fields.extend_from_array(self.tx_context.serialize());
 
-        assert_eq(fields.len(), TX_REQUEST_LENGTH);
+        assert_eq(fields.len(), Self::N);
 
         fields.storage()
     }

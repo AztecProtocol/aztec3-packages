@@ -4,8 +4,10 @@ pub struct AvmProof {
     pub fields: [Field; AVM_PROOF_LENGTH_IN_FIELDS],
 }
 
-impl Serialize<AVM_PROOF_LENGTH_IN_FIELDS> for AvmProof {
-    fn serialize(self) -> [Field; AVM_PROOF_LENGTH_IN_FIELDS] {
+impl Serialize for AvmProof {
+    let N = AVM_PROOF_LENGTH_IN_FIELDS;
+
+    fn serialize(self) -> [Field; Self::N] {
         self.fields
     }
 }

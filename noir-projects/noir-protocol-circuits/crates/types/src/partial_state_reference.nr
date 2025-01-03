@@ -18,8 +18,10 @@ impl Eq for PartialStateReference {
     }
 }
 
-impl Serialize<PARTIAL_STATE_REFERENCE_LENGTH> for PartialStateReference {
-    fn serialize(self) -> [Field; PARTIAL_STATE_REFERENCE_LENGTH] {
+impl Serialize for PartialStateReference {
+    let N = PARTIAL_STATE_REFERENCE_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
         let serialized_note_hash_tree = self.note_hash_tree.serialize();
         let serialized_nullifier_tree = self.nullifier_tree.serialize();
         let serialized_public_data_tree = self.public_data_tree.serialize();

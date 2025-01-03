@@ -18,8 +18,10 @@ impl Empty for KeyValidationRequest {
     }
 }
 
-impl Serialize<KEY_VALIDATION_REQUEST_LENGTH> for KeyValidationRequest {
-    fn serialize(self) -> [Field; KEY_VALIDATION_REQUEST_LENGTH] {
+impl Serialize for KeyValidationRequest {
+    let N = KEY_VALIDATION_REQUEST_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
         [self.pk_m.x, self.pk_m.y, self.pk_m.is_infinite as Field, self.sk_app]
     }
 }

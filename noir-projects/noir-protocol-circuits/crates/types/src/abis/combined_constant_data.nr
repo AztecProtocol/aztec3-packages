@@ -46,9 +46,11 @@ impl Empty for CombinedConstantData {
     }
 }
 
-impl Serialize<COMBINED_CONSTANT_DATA_LENGTH> for CombinedConstantData {
-    fn serialize(self) -> [Field; COMBINED_CONSTANT_DATA_LENGTH] {
-        let mut fields: BoundedVec<Field, COMBINED_CONSTANT_DATA_LENGTH> = BoundedVec::new();
+impl Serialize for CombinedConstantData {
+    let N = COMBINED_CONSTANT_DATA_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
+        let mut fields: BoundedVec<Field, Self::N> = BoundedVec::new();
 
         fields.extend_from_array(self.historical_header.serialize());
         fields.extend_from_array(self.tx_context.serialize());
@@ -56,7 +58,7 @@ impl Serialize<COMBINED_CONSTANT_DATA_LENGTH> for CombinedConstantData {
         fields.push(self.protocol_contract_tree_root);
         fields.extend_from_array(self.global_variables.serialize());
 
-        assert_eq(fields.len(), COMBINED_CONSTANT_DATA_LENGTH);
+        assert_eq(fields.len(), Self::N);
 
         fields.storage()
     }

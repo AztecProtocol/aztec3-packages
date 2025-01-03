@@ -44,8 +44,10 @@ impl Sub for Gas {
     }
 }
 
-impl Serialize<GAS_LENGTH> for Gas {
-    fn serialize(self) -> [Field; GAS_LENGTH] {
+impl Serialize for Gas {
+    let N = GAS_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
         [self.da_gas as Field, self.l2_gas as Field]
     }
 }

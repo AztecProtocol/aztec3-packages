@@ -1,0 +1,4 @@
+main/target/*
+!main/target/main.json
+recursion/target/*
+!recursion/target/recursion.json

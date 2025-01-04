@@ -14,6 +14,9 @@ export NARGO=${NARGO:-../../noir/noir-repo/target/release/nargo}
 export BB_HASH=$(cache_content_hash ../../barretenberg/cpp/.rebuild_patterns)
 export NARGO_HASH=$(cache_content_hash ../../noir/.rebuild_patterns)
 
+echo "Printing out nargo"
+echo $NARGO
+
 tmp_dir=./target/tmp
 key_dir=./target/keys
 

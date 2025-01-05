@@ -72,7 +72,7 @@ You may also need to modify the [Dockerfile](yarn-project/yarn-project-base/Dock
 `deploy-npm` script handles the releases of npm packages within yarn-project. But the initial release is a manual process:
 
 1. Ensure relevant folders are copied in by docker in `yarn-project/yarn-project-base/Dockerfile` and `yarn-project/Dockerfile`
-2. SSH into the CI
+2. SSH into the CI.
 3. Run the following:
 ```sh
 cd project

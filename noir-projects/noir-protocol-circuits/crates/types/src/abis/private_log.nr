@@ -35,8 +35,10 @@ impl Empty for PrivateLogData {
     }
 }
 
-impl Serialize<PRIVATE_LOG_DATA_LENGTH> for PrivateLogData {
-    fn serialize(self) -> [Field; PRIVATE_LOG_DATA_LENGTH] {
+impl Serialize for PrivateLogData {
+    let N = PRIVATE_LOG_DATA_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
         array_concat(
             self.log.serialize(),
             [self.note_hash_counter as Field, self.counter as Field],

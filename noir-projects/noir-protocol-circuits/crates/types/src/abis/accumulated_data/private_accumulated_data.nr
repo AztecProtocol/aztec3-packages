@@ -30,9 +30,11 @@ pub struct PrivateAccumulatedData {
     pub private_call_stack: [PrivateCallRequest; MAX_PRIVATE_CALL_STACK_LENGTH_PER_TX],
 }
 
-impl Serialize<PRIVATE_ACCUMULATED_DATA_LENGTH> for PrivateAccumulatedData {
-    fn serialize(self) -> [Field; PRIVATE_ACCUMULATED_DATA_LENGTH] {
-        let mut fields: BoundedVec<Field, PRIVATE_ACCUMULATED_DATA_LENGTH> = BoundedVec::new();
+impl Serialize for PrivateAccumulatedData {
+    let N = PRIVATE_ACCUMULATED_DATA_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
+        let mut fields: BoundedVec<Field, Self::N> = BoundedVec::new();
 
         for i in 0..MAX_NOTE_HASHES_PER_TX {
             fields.extend_from_array(self.note_hashes[i].serialize());
@@ -62,7 +64,7 @@ impl Serialize<PRIVATE_ACCUMULATED_DATA_LENGTH> for PrivateAccumulatedData {
             fields.extend_from_array(self.private_call_stack[i].serialize());
         }
 
-        assert_eq(fields.len(), PRIVATE_ACCUMULATED_DATA_LENGTH);
+        assert_eq(fields.len(), Self::N);
 
         fields.storage()
     }

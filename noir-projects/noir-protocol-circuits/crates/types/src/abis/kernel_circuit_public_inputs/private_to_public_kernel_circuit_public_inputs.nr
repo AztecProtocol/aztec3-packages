@@ -46,10 +46,11 @@ impl Eq for PrivateToPublicKernelCircuitPublicInputs {
     }
 }
 
-impl Serialize<PRIVATE_TO_PUBLIC_KERNEL_CIRCUIT_PUBLIC_INPUTS_LENGTH> for PrivateToPublicKernelCircuitPublicInputs {
-    fn serialize(self) -> [Field; PRIVATE_TO_PUBLIC_KERNEL_CIRCUIT_PUBLIC_INPUTS_LENGTH] {
-        let mut fields: BoundedVec<Field, PRIVATE_TO_PUBLIC_KERNEL_CIRCUIT_PUBLIC_INPUTS_LENGTH> =
-            BoundedVec::new();
+impl Serialize for PrivateToPublicKernelCircuitPublicInputs {
+    let N = PRIVATE_TO_PUBLIC_KERNEL_CIRCUIT_PUBLIC_INPUTS_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
+        let mut fields: BoundedVec<Field, Self::N> = BoundedVec::new();
 
         fields.extend_from_array(self.constants.serialize());
         fields.extend_from_array(self.rollup_validation_requests.serialize());
@@ -59,7 +60,7 @@ impl Serialize<PRIVATE_TO_PUBLIC_KERNEL_CIRCUIT_PUBLIC_INPUTS_LENGTH> for Privat
         fields.extend_from_array(self.gas_used.serialize());
         fields.extend_from_array(self.fee_payer.serialize());
 
-        assert_eq(fields.len(), PRIVATE_TO_PUBLIC_KERNEL_CIRCUIT_PUBLIC_INPUTS_LENGTH);
+        assert_eq(fields.len(), Self::N);
 
         fields.storage()
     }

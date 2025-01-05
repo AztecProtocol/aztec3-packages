@@ -33,15 +33,17 @@ impl Empty for TxContext {
     }
 }
 
-impl Serialize<TX_CONTEXT_LENGTH> for TxContext {
-    fn serialize(self) -> [Field; TX_CONTEXT_LENGTH] {
-        let mut fields: BoundedVec<Field, TX_CONTEXT_LENGTH> = BoundedVec::new();
+impl Serialize for TxContext {
+    let N = TX_CONTEXT_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
+        let mut fields: BoundedVec<Field, Self::N> = BoundedVec::new();
 
         fields.push(self.chain_id);
         fields.push(self.version);
         fields.extend_from_array(self.gas_settings.serialize());
 
-        assert_eq(fields.len(), TX_CONTEXT_LENGTH);
+        assert_eq(fields.len(), Self::N);
 
         fields.storage()
     }

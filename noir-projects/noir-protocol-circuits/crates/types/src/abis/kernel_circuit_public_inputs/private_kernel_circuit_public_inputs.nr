@@ -88,10 +88,11 @@ pub struct PrivateKernelCircuitPublicInputs {
     pub is_private_only: bool,
 }
 
-impl Serialize<PRIVATE_KERNEL_CIRCUIT_PUBLIC_INPUTS_LENGTH> for PrivateKernelCircuitPublicInputs {
-    fn serialize(self) -> [Field; PRIVATE_KERNEL_CIRCUIT_PUBLIC_INPUTS_LENGTH] {
-        let mut fields: BoundedVec<Field, PRIVATE_KERNEL_CIRCUIT_PUBLIC_INPUTS_LENGTH> =
-            BoundedVec::new();
+impl Serialize for PrivateKernelCircuitPublicInputs {
+    let N = PRIVATE_KERNEL_CIRCUIT_PUBLIC_INPUTS_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
+        let mut fields: BoundedVec<Field, Self::N> = BoundedVec::new();
 
         fields.extend_from_array(self.constants.serialize());
         fields.push(self.min_revertible_side_effect_counter as Field);
@@ -101,7 +102,7 @@ impl Serialize<PRIVATE_KERNEL_CIRCUIT_PUBLIC_INPUTS_LENGTH> for PrivateKernelCir
         fields.extend_from_array(self.fee_payer.serialize());
         fields.push(self.is_private_only as Field);
 
-        assert_eq(fields.len(), PRIVATE_KERNEL_CIRCUIT_PUBLIC_INPUTS_LENGTH);
+        assert_eq(fields.len(), Self::N);
 
         fields.storage()
     }

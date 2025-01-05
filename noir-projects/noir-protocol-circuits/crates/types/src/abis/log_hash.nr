@@ -41,8 +41,10 @@ impl Empty for LogHash {
     }
 }
 
-impl Serialize<LOG_HASH_LENGTH> for LogHash {
-    fn serialize(self) -> [Field; LOG_HASH_LENGTH] {
+impl Serialize for LogHash {
+    let N = LOG_HASH_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
         [self.value, self.counter as Field, self.length]
     }
 }
@@ -100,8 +102,10 @@ impl Empty for ScopedLogHash {
     }
 }
 
-impl Serialize<SCOPED_LOG_HASH_LENGTH> for ScopedLogHash {
-    fn serialize(self) -> [Field; SCOPED_LOG_HASH_LENGTH] {
+impl Serialize for ScopedLogHash {
+    let N = SCOPED_LOG_HASH_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
         array_concat(
             self.log_hash.serialize(),
             [self.contract_address.to_field()],

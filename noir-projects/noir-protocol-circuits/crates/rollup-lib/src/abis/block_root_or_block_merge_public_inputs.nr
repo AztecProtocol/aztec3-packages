@@ -22,8 +22,10 @@ impl Empty for FeeRecipient {
     }
 }
 
-impl Serialize<FEE_RECIPIENT_LENGTH> for FeeRecipient {
-    fn serialize(self) -> [Field; FEE_RECIPIENT_LENGTH] {
+impl Serialize for FeeRecipient {
+    let N = FEE_RECIPIENT_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
         [self.recipient.to_field(), self.value]
     }
 }
@@ -99,10 +101,11 @@ impl Eq for BlockRootOrBlockMergePublicInputs {
     }
 }
 
-impl Serialize<BLOCK_ROOT_OR_BLOCK_MERGE_PUBLIC_INPUTS_LENGTH> for BlockRootOrBlockMergePublicInputs {
-    fn serialize(self) -> [Field; BLOCK_ROOT_OR_BLOCK_MERGE_PUBLIC_INPUTS_LENGTH] {
-        let mut fields: BoundedVec<Field, BLOCK_ROOT_OR_BLOCK_MERGE_PUBLIC_INPUTS_LENGTH> =
-            BoundedVec::new();
+impl Serialize for BlockRootOrBlockMergePublicInputs {
+    let N = BLOCK_ROOT_OR_BLOCK_MERGE_PUBLIC_INPUTS_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
+        let mut fields: BoundedVec<Field, Self::N> = BoundedVec::new();
 
         fields.extend_from_array(self.previous_archive.serialize());
         fields.extend_from_array(self.new_archive.serialize());
@@ -120,7 +123,7 @@ impl Serialize<BLOCK_ROOT_OR_BLOCK_MERGE_PUBLIC_INPUTS_LENGTH> for BlockRootOrBl
         for i in 0..AZTEC_MAX_EPOCH_DURATION {
             fields.extend_from_array(self.blob_public_inputs[i].serialize());
         }
-        assert_eq(fields.len(), BLOCK_ROOT_OR_BLOCK_MERGE_PUBLIC_INPUTS_LENGTH);
+        assert_eq(fields.len(), Self::N);
 
         fields.storage()
     }

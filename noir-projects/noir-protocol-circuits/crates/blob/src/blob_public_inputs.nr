@@ -54,8 +54,10 @@ impl Empty for BlobPublicInputs {
     }
 }
 
-impl Serialize<BLOB_PUBLIC_INPUTS> for BlobPublicInputs {
-    fn serialize(self) -> [Field; BLOB_PUBLIC_INPUTS] {
+impl Serialize for BlobPublicInputs {
+    let N = BLOB_PUBLIC_INPUTS;
+
+    fn serialize(self) -> [Field; Self::N] {
         [
             self.z,
             self.y.limbs[0],
@@ -95,9 +97,11 @@ impl Empty for BlockBlobPublicInputs {
     }
 }
 
-impl Serialize<BLOB_PUBLIC_INPUTS * BLOBS_PER_BLOCK> for BlockBlobPublicInputs {
-    fn serialize(self) -> [Field; BLOB_PUBLIC_INPUTS * BLOBS_PER_BLOCK] {
-        let mut fields: BoundedVec<Field, BLOB_PUBLIC_INPUTS * BLOBS_PER_BLOCK> = BoundedVec::new();
+impl Serialize for BlockBlobPublicInputs {
+    let N = BLOB_PUBLIC_INPUTS * BLOBS_PER_BLOCK;
+
+    fn serialize(self) -> [Field; Self::N] {
+        let mut fields: BoundedVec<Field, Self::N> = BoundedVec::new();
         for i in 0..BLOBS_PER_BLOCK {
             fields.extend_from_array(self.inner[i].serialize());
         }

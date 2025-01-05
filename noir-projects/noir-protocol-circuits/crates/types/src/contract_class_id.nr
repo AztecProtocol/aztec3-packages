@@ -23,8 +23,10 @@ impl FromField for ContractClassId {
     }
 }
 
-impl Serialize<1> for ContractClassId {
-    fn serialize(self: Self) -> [Field; 1] {
+impl Serialize for ContractClassId {
+    let N = 1;
+
+    fn serialize(self: Self) -> [Field; Self::N] {
         [self.inner]
     }
 }

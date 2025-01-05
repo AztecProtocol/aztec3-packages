@@ -70,9 +70,11 @@ impl Eq for SpongeBlob {
     }
 }
 
-impl Serialize<SPONGE_BLOB_LENGTH> for SpongeBlob {
-    fn serialize(self) -> [Field; SPONGE_BLOB_LENGTH] {
-        let mut fields: BoundedVec<Field, SPONGE_BLOB_LENGTH> = BoundedVec::new();
+impl Serialize for SpongeBlob {
+    let N = SPONGE_BLOB_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
+        let mut fields: BoundedVec<Field, Self::N> = BoundedVec::new();
         fields.extend_from_array(self.sponge.cache);
         fields.extend_from_array(self.sponge.state);
         fields.push(self.sponge.cache_size as Field);

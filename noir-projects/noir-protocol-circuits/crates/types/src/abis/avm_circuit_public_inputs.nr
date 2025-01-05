@@ -107,9 +107,11 @@ impl Eq for AvmCircuitPublicInputs {
     }
 }
 
-impl Serialize<AVM_CIRCUIT_PUBLIC_INPUTS_LENGTH> for AvmCircuitPublicInputs {
-    fn serialize(self) -> [Field; AVM_CIRCUIT_PUBLIC_INPUTS_LENGTH] {
-        let mut fields: BoundedVec<Field, AVM_CIRCUIT_PUBLIC_INPUTS_LENGTH> = BoundedVec::new();
+impl Serialize for AvmCircuitPublicInputs {
+    let N = AVM_CIRCUIT_PUBLIC_INPUTS_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
+        let mut fields: BoundedVec<Field, Self::N> = BoundedVec::new();
 
         fields.extend_from_array(self.global_variables.serialize());
         fields.extend_from_array(self.start_tree_snapshots.serialize());
@@ -135,7 +137,7 @@ impl Serialize<AVM_CIRCUIT_PUBLIC_INPUTS_LENGTH> for AvmCircuitPublicInputs {
         fields.push(self.transaction_fee);
         fields.push(self.reverted as Field);
 
-        assert_eq(fields.len(), AVM_CIRCUIT_PUBLIC_INPUTS_LENGTH);
+        assert_eq(fields.len(), Self::N);
 
         fields.storage()
     }

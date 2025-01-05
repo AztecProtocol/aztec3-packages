@@ -35,8 +35,10 @@ impl ToPoint for NpkM {
     }
 }
 
-impl Serialize<POINT_LENGTH> for NpkM {
-    fn serialize(self) -> [Field; POINT_LENGTH] {
+impl Serialize for NpkM {
+    let N = POINT_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
         self.inner.serialize()
     }
 }
@@ -58,8 +60,10 @@ impl ToPoint for IvpkM {
     }
 }
 
-impl Serialize<POINT_LENGTH> for IvpkM {
-    fn serialize(self) -> [Field; POINT_LENGTH] {
+impl Serialize for IvpkM {
+    let N = POINT_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
         self.inner.serialize()
     }
 }
@@ -80,8 +84,10 @@ impl ToPoint for OvpkM {
     }
 }
 
-impl Serialize<POINT_LENGTH> for OvpkM {
-    fn serialize(self) -> [Field; POINT_LENGTH] {
+impl Serialize for OvpkM {
+    let N = POINT_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
         self.inner.serialize()
     }
 }
@@ -96,8 +102,10 @@ impl ToPoint for TpkM {
     }
 }
 
-impl Serialize<POINT_LENGTH> for TpkM {
-    fn serialize(self) -> [Field; POINT_LENGTH] {
+impl Serialize for TpkM {
+    let N = POINT_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
         self.inner.serialize()
     }
 }
@@ -139,8 +147,10 @@ impl PublicKeys {
     }
 }
 
-impl Serialize<PUBLIC_KEYS_LENGTH> for PublicKeys {
-    fn serialize(self) -> [Field; PUBLIC_KEYS_LENGTH] {
+impl Serialize for PublicKeys {
+    let N = PUBLIC_KEYS_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
         [
             self.npk_m.inner.x,
             self.npk_m.inner.y,

@@ -195,6 +195,7 @@ export class ProvingBroker implements ProvingJobProducer, ProvingJobConsumer, Tr
       this.jobsCache.set(job.id, job);
       await this.database.addProvingJob(job);
       this.enqueueJobInternal(job);
+      this.instrumentation.incTotalJobs(job.type);
     } catch (err) {
       this.logger.error(`Failed to save proving job id=${job.id}: ${err}`, err, { provingJobId: job.id });
       this.jobsCache.delete(job.id);

@@ -20,6 +20,7 @@ export class ProvingBrokerInstrumentation {
   private rejectedJobs: UpDownCounter;
   private timedOutJobs: UpDownCounter;
   private cachedJobs: UpDownCounter;
+  private totalJobs: UpDownCounter;
   private jobWait: Histogram;
   private jobDuration: Histogram;
   private retriedJobs: UpDownCounter;
@@ -52,6 +53,10 @@ export class ProvingBrokerInstrumentation {
     });
 
     this.cachedJobs = meter.createUpDownCounter(Metrics.PROVING_QUEUE_CACHED_JOBS, {
+      valueType: ValueType.INT,
+    });
+
+    this.totalJobs = meter.createUpDownCounter(Metrics.PROVING_QUEUE_TOTAL_JOBS, {
       valueType: ValueType.INT,
     });
 
@@ -102,6 +107,12 @@ export class ProvingBrokerInstrumentation {
 
   incCachedJobs(proofType: ProvingRequestType) {
     this.cachedJobs.add(1, {
+      [Attributes.PROVING_JOB_TYPE]: ProvingRequestType[proofType],
+    });
+  }
+
+  incTotalJobs(proofType: ProvingRequestType) {
+    this.totalJobs.add(1, {
       [Attributes.PROVING_JOB_TYPE]: ProvingRequestType[proofType],
     });
   }

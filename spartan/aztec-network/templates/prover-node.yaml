@@ -115,6 +115,8 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+            - name: OTEL_SERVICE_NAME
+              value: prover-node
             - name: POD_IP
               valueFrom:
                 fieldRef:

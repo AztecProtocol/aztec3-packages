@@ -91,6 +91,7 @@ export class OpenTelemetryClient implements TelemetryClient {
 
     this.eventLoopMonitor = new EventLoopMonitor(
       this.meterProvider.getMeter(this.resource.attributes[ATTR_SERVICE_NAME] as string),
+      this.traceProvider.getTracer(this.resource.attributes[ATTR_SERVICE_NAME] as string),
     );
 
     // See these two links for more information on providing target information:

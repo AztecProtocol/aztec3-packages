@@ -1,6 +1,6 @@
-// eslint-disable no-restricted-imports
 import { type Logger, getTimestampRangeForEpoch, retryUntil, sleep } from '@aztec/aztec.js';
 import { ChainMonitor } from '@aztec/aztec.js/utils';
+// eslint-disable-next-line no-restricted-imports
 import { type L1RollupConstants } from '@aztec/circuit-types';
 import { Proof } from '@aztec/circuits.js';
 import { RootRollupPublicInputs } from '@aztec/circuits.js/rollup';

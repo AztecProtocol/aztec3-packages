@@ -19,9 +19,10 @@ impl PackedReturns {
     }
 
     pub fn unpack<let N: u32>(self) -> [Field; N] {
-        // We verify that the value returned by `unpack_returns` is the preimage of `packed_returns`, fully constraining
-        // it.
-        let unpacked: [Field; N] = unsafe { unpack_returns(self.packed_returns) };
+        let unpacked: [Field; N] = unsafe {
+            //@safety We check `unpacked` against the hash below.
+            unpack_returns(self.packed_returns)
+        };
         assert_eq(self.packed_returns, hash_args_array(unpacked));
         unpacked
     }

@@ -33,7 +33,11 @@ impl VariableMerkleTree {
     //
     pub fn new_sha<let N: u32>(leaves: [Field; N], num_non_empty_leaves: u32) -> Self {
         // Find size of tree required
-        let height = unsafe { get_height(num_non_empty_leaves, 0) };
+        let height = unsafe {
+            //@safety This is safe because we derive next and previous powers of 2 below based on the value
+            // and the powers are then checked against the num non empty leaves.
+            get_height(num_non_empty_leaves, 0)
+        };
         let next_power_2 = 2 << height;
         let prev_power_2 = next_power_2 / 2;
         assert(

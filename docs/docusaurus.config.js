@@ -131,7 +131,7 @@ const config = {
         entryPoints: ["../yarn-project/circuit-types/src/interfaces/pxe.ts"],
         tsconfig: "../yarn-project/circuit-types/tsconfig.json",
         entryPointStrategy: "expand",
-        out: "reference/developer_references/aztecjs/pxe",
+        out: "developers/reference/aztecjs/pxe",
         readme: "none",
         sidebar: {
           categoryLabel: "Private Execution Environment (PXE)",
@@ -149,7 +149,7 @@ const config = {
         ],
         tsconfig: "../yarn-project/aztec.js/tsconfig.json",
         entryPointStrategy: "resolve",
-        out: "reference/developer_references/aztecjs/aztec-js",
+        out: "developers/reference/aztecjs/aztec-js",
         readme: "none",
         sidebar: {
           categoryLabel: "Aztec.js",
@@ -170,7 +170,7 @@ const config = {
         ],
         tsconfig: "../yarn-project/accounts/tsconfig.json",
         entryPointStrategy: "resolve",
-        out: "reference/developer_references/aztecjs/accounts",
+        out: "developers/reference/aztecjs/accounts",
         readme: "none",
         sidebar: {
           categoryLabel: "Accounts",
@@ -231,18 +231,23 @@ const config = {
             type: "docSidebar",
             sidebarId: "guidesSidebar",
             position: "left",
-            label: "Guides",
+            label: "Build",
           },
           {
             type: "docSidebar",
-            sidebarId: "referenceSidebar",
+            sidebarId: "nodesSidebar",
             position: "left",
-            label: "Reference",
+            label: "Run a node",
+          },
+          {
+            to: "/developers/getting_started",
+            label: "Install Sandbox",
+            position: "right",
           },
           {
             type: "dropdown",
             label: "Resources",
-            position: "left",
+            position: "right",
             items: [
               {
                 type: "html",
@@ -324,6 +329,12 @@ const config = {
               },
             ],
           },
+
+          // {
+          //   to: "/developers/guides/sandbox_to_testnet",
+          //   label: "Migrating to Testnet",
+          //   position: "right",
+          // },
         ],
       },
       footer: {
@@ -338,7 +349,7 @@ const config = {
               },
               {
                 label: "Developer Getting Started Guide",
-                to: "/guides/getting_started",
+                to: "/developers/getting_started",
               },
               {
                 label: "Aztec.nr",

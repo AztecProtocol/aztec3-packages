@@ -5,7 +5,7 @@ mod test;
 
 // This data structure is used by SharedMutable to store the minimum delay with which a ScheduledValueChange object can
 // schedule a change.
-// This delay is initally equal to INITIAL_DELAY, and can be safely mutated to any other value over time. This mutation
+// This delay is initially equal to INITIAL_DELAY, and can be safely mutated to any other value over time. This mutation
 // is performed via `schedule_change` in order to satisfy ScheduleValueChange constraints: if e.g. we allowed for the
 // delay to be decreased immediately then it'd be possible for the state variable to schedule a value change with a
 // reduced delay, invalidating prior private reads.
@@ -58,7 +58,7 @@ impl<let INITIAL_DELAY: u32> ScheduledDelayChange<INITIAL_DELAY> {
         // When changing the delay value we must ensure that it is not possible to produce a value change with a delay
         // shorter than the current one.
         let blocks_until_change = if new > current {
-            // Increasing the delay value can therefore be done immediately: this does not invalidate prior contraints
+            // Increasing the delay value can therefore be done immediately: this does not invalidate prior constraints
             // about how quickly a value might be changed (indeed it strengthens them).
             0
         } else {
@@ -127,17 +127,13 @@ impl<let INITIAL_DELAY: u32> ScheduledDelayChange<INITIAL_DELAY> {
 
 impl<let INITIAL_DELAY: u32> Serialize<1> for ScheduledDelayChange<INITIAL_DELAY> {
     fn serialize(self) -> [Field; 1] {
-        // We pack all three u32 values into a single U128, which is made up of two u64 limbs.
-        // Low limb: [ pre_inner: u32 | post_inner: u32 ]
-        // High limb: [ empty | pre_is_some: u8 |  post_is_some: u8 | block_of_change: u32 ]
-        let lo = ((self.pre.unwrap_unchecked() as u64) * (1 << 32))
-            + (self.post.unwrap_unchecked() as u64);
-
-        let hi = (self.pre.is_some() as u64) * (1 << 33)
-            + (self.post.is_some() as u64 * (1 << 32))
-            + self.block_of_change as u64;
-
-        let packed = U128::from_u64s_le(lo, hi);
+        // Pack all values directly into a single Field:
+        // [pre_inner: 32 bits | post_inner: 32 bits | block_of_change: 32 bits | post_is_some: 1 bit | pre_is_some: 1 bit]
+        let packed = U128::from_integer(self.pre.unwrap_unchecked())
+            + (U128::from_integer(self.post.unwrap_unchecked()) << 32)
+            + (U128::from_integer(self.block_of_change) << 64)
+            + (U128::from_integer(self.post.is_some()) << 96)
+            + (U128::from_integer(self.pre.is_some()) << 97);
 
         [packed.to_integer()]
     }
@@ -145,16 +141,14 @@ impl<let INITIAL_DELAY: u32> Serialize<1> for ScheduledDelayChange<INITIAL_DELAY
 
 impl<let INITIAL_DELAY: u32> Deserialize<1> for ScheduledDelayChange<INITIAL_DELAY> {
     fn deserialize(input: [Field; 1]) -> Self {
-        let packed = U128::from_integer(input[0]);
+        let packed = U128::from_field(input[0]);
 
-        // We use division and modulo to clear the bits that correspond to other values when unpacking.
-        let pre_is_some = ((packed.hi as u64) / (1 << 33)) as bool;
-        let pre_inner = ((packed.lo as u64) / (1 << 32)) as u32;
-
-        let post_is_some = (((packed.hi as u64) / (1 << 32)) % (1 << 1)) as bool;
-        let post_inner = ((packed.lo as u64) % (1 << 32)) as u32;
-
-        let block_of_change = ((packed.hi as u64) % (1 << 32)) as u32;
+        // We unpack the values from the Field
+        let pre_inner = packed.to_integer() as u32;
+        let post_inner = (packed >> 32).to_integer() as u32;
+        let block_of_change = (packed >> 64).to_integer() as u32;
+        let post_is_some = (packed >> 96).to_integer() & 1 == 1;
+        let pre_is_some = (packed >> 97).to_integer() & 1 == 1;
 
         Self {
             pre: if pre_is_some {

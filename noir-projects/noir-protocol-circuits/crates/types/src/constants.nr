@@ -754,6 +754,10 @@ pub global PROOF_TYPE_AVM: u32 = 4;
 pub global PROOF_TYPE_ROLLUP_HONK: u32 = 5;
 pub global PROOF_TYPE_ROOT_ROLLUP_HONK: u32 = 6;
 
+// TODO: Compute 2^64 here:
+// Currently unsupported https://github.com/noir-lang/noir/issues/6991
+pub global POW64: Field = 18446744073709551616; //2^64;
+
 mod test {
     use crate::constants::{
         MAX_PUBLIC_DATA_UPDATE_REQUESTS_PER_CALL, MAX_PUBLIC_DATA_UPDATE_REQUESTS_PER_TX,

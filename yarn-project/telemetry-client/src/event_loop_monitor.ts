@@ -11,6 +11,7 @@ type AsyncOpMeta = {
   type: string;
   startAtNs: bigint;
   startAtEpoch: number;
+  stack?: string;
 };
 
 /**
@@ -88,7 +89,7 @@ export class EventLoopMonitor {
   };
 
   private init: HookCallbacks['init'] = (asyncId, type) => {
-    this.runningAsyncOps.set(asyncId, { type, startAtNs: 0n, startAtEpoch: 0 });
+    this.runningAsyncOps.set(asyncId, { type, startAtNs: 0n, startAtEpoch: 0, stack: new Error().stack });
   };
 
   private destroy: HookCallbacks['destroy'] = asyncId => {
@@ -114,6 +115,9 @@ export class EventLoopMonitor {
     if (duration > this.loopBlockedThresholdNS) {
       const span = this.tracer.startSpan('EventLoopBlocked', {
         startTime: meta.startAtEpoch, // can't use startAtNs because its origin is unknown
+        attributes: {
+          stack: meta.stack,
+        } as any,
       });
       span.end();
     }

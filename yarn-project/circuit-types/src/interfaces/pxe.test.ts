@@ -33,7 +33,13 @@ import { resolve } from 'path';
 import { AuthWitness } from '../auth_witness.js';
 import { type InBlock } from '../in_block.js';
 import { L2Block } from '../l2_block.js';
-import { ExtendedUnencryptedL2Log, type GetUnencryptedLogsResponse, type LogFilter } from '../logs/index.js';
+import {
+  ExtendedPublicLog,
+  ExtendedUnencryptedL2Log,
+  type GetContractClassLogsResponse,
+  type GetPublicLogsResponse,
+  type LogFilter,
+} from '../logs/index.js';
 import { ExtendedNote, UniqueNote } from '../notes/index.js';
 import { type NotesFilter } from '../notes/notes_filter.js';
 import { PrivateExecutionResult } from '../private_execution_result.js';
@@ -223,9 +229,9 @@ describe('PXESchema', () => {
     expect(result).toEqual(10n);
   });
 
-  it('getUnencryptedLogs', async () => {
-    const result = await context.client.getUnencryptedLogs({ contractAddress: address });
-    expect(result).toEqual({ logs: [expect.any(ExtendedUnencryptedL2Log)], maxLogsHit: true });
+  it('getPublicLogs', async () => {
+    const result = await context.client.getPublicLogs({ contractAddress: address });
+    expect(result).toEqual({ logs: [expect.any(ExtendedPublicLog)], maxLogsHit: true });
   });
 
   it('getContractClassLogs', async () => {
@@ -450,11 +456,11 @@ class MockPXE implements PXE {
     expect(scopes).toEqual([this.address]);
     return Promise.resolve(10n);
   }
-  getUnencryptedLogs(filter: LogFilter): Promise<GetUnencryptedLogsResponse> {
+  getPublicLogs(filter: LogFilter): Promise<GetPublicLogsResponse> {
     expect(filter.contractAddress).toEqual(this.address);
-    return Promise.resolve({ logs: [ExtendedUnencryptedL2Log.random()], maxLogsHit: true });
+    return Promise.resolve({ logs: [ExtendedPublicLog.random()], maxLogsHit: true });
   }
-  getContractClassLogs(filter: LogFilter): Promise<GetUnencryptedLogsResponse> {
+  getContractClassLogs(filter: LogFilter): Promise<GetContractClassLogsResponse> {
     expect(filter.contractAddress).toEqual(this.address);
     return Promise.resolve({ logs: [ExtendedUnencryptedL2Log.random()], maxLogsHit: true });
   }

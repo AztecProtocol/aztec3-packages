@@ -31,8 +31,10 @@ import { AuthWitness } from '../auth_witness.js';
 import { type InBlock, inBlockSchemaFor } from '../in_block.js';
 import { L2Block } from '../l2_block.js';
 import {
-  type GetUnencryptedLogsResponse,
-  GetUnencryptedLogsResponseSchema,
+  type GetContractClassLogsResponse,
+  GetContractClassLogsResponseSchema,
+  type GetPublicLogsResponse,
+  GetPublicLogsResponseSchema,
   type LogFilter,
   LogFilterSchema,
 } from '../logs/index.js';
@@ -305,18 +307,18 @@ export interface PXE {
   ): Promise<AbiDecoded>;
 
   /**
-   * Gets unencrypted logs based on the provided filter.
+   * Gets public logs based on the provided filter.
    * @param filter - The filter to apply to the logs.
    * @returns The requested logs.
    */
-  getUnencryptedLogs(filter: LogFilter): Promise<GetUnencryptedLogsResponse>;
+  getPublicLogs(filter: LogFilter): Promise<GetPublicLogsResponse>;
 
   /**
    * Gets contract class logs based on the provided filter.
    * @param filter - The filter to apply to the logs.
    * @returns The requested logs.
    */
-  getContractClassLogs(filter: LogFilter): Promise<GetUnencryptedLogsResponse>;
+  getContractClassLogs(filter: LogFilter): Promise<GetContractClassLogsResponse>;
 
   /**
    * Fetches the current block number.
@@ -506,8 +508,8 @@ export const PXESchema: ApiSchemaFor<PXE> = {
       optional(z.array(schemas.AztecAddress)),
     )
     .returns(AbiDecodedSchema),
-  getUnencryptedLogs: z.function().args(LogFilterSchema).returns(GetUnencryptedLogsResponseSchema),
-  getContractClassLogs: z.function().args(LogFilterSchema).returns(GetUnencryptedLogsResponseSchema),
+  getPublicLogs: z.function().args(LogFilterSchema).returns(GetPublicLogsResponseSchema),
+  getContractClassLogs: z.function().args(LogFilterSchema).returns(GetContractClassLogsResponseSchema),
   getBlockNumber: z.function().returns(z.number()),
   getProvenBlockNumber: z.function().returns(z.number()),
   getNodeInfo: z.function().returns(NodeInfoSchema),

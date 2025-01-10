@@ -2,7 +2,9 @@
 # Look at noir-contracts bootstrap.sh for some tips r.e. bash.
 source $(git rev-parse --show-toplevel)/ci3/source_bootstrap
 
-CMD=${1:-}
+cmd=${1:-}
+project_name=$(basename "$PWD")
+test_flag=$project_name-tests-$(cache_content_hash ../../noir/.rebuild_patterns "^noir-projects/$project_name")
 
 export RAYON_NUM_THREADS=${RAYON_NUM_THREADS:-16}
 export HARDWARE_CONCURRENCY=${HARDWARE_CONCURRENCY:-16}
@@ -23,6 +25,11 @@ fi
 tmp_dir=./target/tmp
 key_dir=./target/keys
 
+# Hash of the entire protocol circuits.
+# Needed for test hash, as we presently don't have a program hash for each individual test.
+# Means if anything within the dir changes, the tests will rerun.
+circuits_hash=$(cache_content_hash "^noir-projects/$project_name/crates/" ../../noir/.rebuild_patterns)
+
 # Circuits matching these patterns we have clientivc keys computed, rather than ultrahonk.
 ivc_patterns=(
   "private_kernel_init"
@@ -41,7 +48,6 @@ rollup_honk_patterns=(
   "rollup_merge"
 )
 
-
 ivc_regex=$(IFS="|"; echo "${ivc_patterns[*]}")
 rollup_honk_regex=$(IFS="|"; echo "${rollup_honk_patterns[*]}")
 
@@ -55,7 +61,7 @@ mkdir -p $tmp_dir
 mkdir -p $key_dir
 
 # Export vars needed inside compile.
-export tmp_dir key_dir ci3 ivc_regex rollup_honk_regex
+export tmp_dir key_dir ci3 ivc_regex project_name rollup_honk_regex
 
 function compile {
   set -euo pipefail
@@ -64,11 +70,13 @@ function compile {
   local filename="$name.json"
   local json_path="./target/$filename"
   local program_hash hash bytecode_hash vk vk_fields
+
+  # We get the monomorphized program hash from nargo. If this changes, we have to recompile.
   local program_hash_cmd="$NARGO check --package $name --silence-warnings --show-program-hash | cut -d' ' -f2"
-  # echo_stderr $program_hash_cmd
   program_hash=$(dump_fail "$program_hash_cmd")
   echo_stderr "Hash preimage: $NARGO_HASH-$program_hash"
   hash=$(hash_str "$NARGO_HASH-$program_hash")
+
   if ! cache_download circuit-$hash.tar.gz 1>&2; then
     SECONDS=0
     rm -f $json_path
@@ -77,10 +85,15 @@ function compile {
     echo_stderr "$compile_cmd"
     dump_fail "$compile_cmd"
     echo_stderr "Compilation complete for: $name (${SECONDS}s)"
+    bytecode_size=$(jq -r .bytecode $json_path | base64 -d | gunzip | wc -c)
+    # TODO: Yes, you're reading that right. 850MB. That's why I'm adding this here, so we can't keep going up.
+    if [ "$bytecode_size" -gt $((850 * 1024 * 1024)) ]; then
+      echo "Error: $json_path bytecode size of $bytecode_size exceeds 850MB"
+      exit 1
+    fi
     cache_upload circuit-$hash.tar.gz $json_path &> /dev/null
   fi
 
-  echo "$name"
   if echo "$name" | grep -qE "${ivc_regex}"; then
     local proto="client_ivc"
     local write_vk_cmd="write_vk_for_ivc"
@@ -94,12 +107,11 @@ function compile {
     local write_vk_cmd="write_vk_ultra_honk -h 1"
     local vk_as_fields_cmd="vk_as_fields_ultra_honk"
   fi
-  echo "$proto$"
 
   # No vks needed for simulated circuits.
   [[ "$name" == *"simulated"* ]] && return
 
-  # Change this to add verification_key to original json, like contracts does.
+  # TODO: Change this to add verification_key to original json, like contracts does.
   # Will require changing TS code downstream.
   bytecode_hash=$(jq -r '.bytecode' $json_path | sha256sum | tr -d ' -')
   hash=$(hash_str "$BB_HASH-$bytecode_hash-$proto")
@@ -118,6 +130,7 @@ function compile {
     cache_upload vk-$hash.tar.gz $key_path &> /dev/null
   fi
 }
+export -f compile
 
 function build {
   set +e
@@ -138,24 +151,26 @@ function build {
   return $code
 }
 
-function test {
-  set -eu
-  name=$(basename "$PWD")
-  CIRCUITS_HASH=$(cache_content_hash ../../noir/.rebuild_patterns "^noir-projects/$name")
-  test_should_run $name-tests-$CIRCUITS_HASH || return 0
-
-  RAYON_NUM_THREADS= $NARGO test --skip-brillig-constraints-check
-  cache_upload_flag $name-tests-$CIRCUITS_HASH
+function test_cmds {
+  $NARGO test --list-tests --silence-warnings | sort | while read -r package test; do
+    echo "$circuits_hash noir-projects/scripts/run_test.sh noir-protocol-circuits $package $test"
+  done
 }
 
-export -f compile test build
+function test {
+  test_cmds | parallelise
+}
 
-case "$CMD" in
+case "$cmd" in
   "clean")
     git clean -fdx
     ;;
   "clean-keys")
     rm -rf target/keys
+    ;;
+  "ci")
+    build
+    test
     ;;
   ""|"fast"|"full")
     build
@@ -168,14 +183,9 @@ case "$CMD" in
     test
     ;;
   "test-cmds")
-    $NARGO test --list-tests --silence-warnings | while read -r package test; do
-      echo "noir-projects/scripts/run_test.sh noir-protocol-circuits $package $test"
-    done
-    ;;
-  "ci")
-    parallel --tag --line-buffered {} ::: build test
+    test_cmds
     ;;
   *)
-    echo_stderr "Unknown command: $CMD"
+    echo_stderr "Unknown command: $cmd"
     exit 1
 esac

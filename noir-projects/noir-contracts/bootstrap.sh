@@ -2,11 +2,13 @@
 # Some notes if you have to work on this script.
 # - First of all, I'm sorry. It's a beautiful script but it's no fun to debug. I got carried away.
 # - You can enable BUILD_SYSTEM_DEBUG=1 but the output is quite verbose that it's not much use by default.
-# - You can call ./bootstrap.sh build <package name> to compile and process a single contract.
-# - You can disable further parallelism by setting PARALLELISM=1.
+# - This flag however, isn't carried into exported functions. You need to do "set -x" in those functions manually.
+# - You can call ./bootstrap.sh compile <package name> to compile and process a single contract.
+# - You can disable further parallelism by setting passing 1 as arg to 'parallelise'.
 # - The exported functions called by parallel must enable their own flags at the start e.g. set -euo pipefail
 # - The exported functions are using stdin/stdout, so be very careful about what's printed where.
 # - The exported functions need to have external variables they require, to have been exported first.
+# - You can't export bash arrays or maps to be used by external functions, only strings.
 # - If you want to echo something, send it to stderr e.g. echo_stderr "My debug"
 # - If you call another script, be sure it also doesn't output something you don't want.
 # - Note calls to cache scripts swallow everything with &> /dev/null.
@@ -17,6 +19,7 @@
 source $(git rev-parse --show-toplevel)/ci3/source_bootstrap
 
 cmd=${1:-}
+test_flag=noir-contracts-test-$(cache_content_hash "^noir-projects/noir-contracts")
 
 export RAYON_NUM_THREADS=${RAYON_NUM_THREADS:-16}
 export HARDWARE_CONCURRENCY=${HARDWARE_CONCURRENCY:-16}
@@ -40,9 +43,7 @@ mkdir -p $tmp_dir
 # Set flags for parallel
 export PARALLELISM=${PARALLELISM:-16}
 export PARALLEL_FLAGS="-j$PARALLELISM --halt now,fail=1"
-if [[ -n "${MEMSUSPEND-}" ]]; then
-  export PARALLEL_FLAGS="$PARALLEL_FLAGS --memsuspend $MEMSUSPEND"
-fi
+[ -n "${MEMSUSPEND-}" ] && export PARALLEL_FLAGS+=" --memsuspend $MEMSUSPEND"
 
 # This computes a vk and adds it to the input function json if it's private, else returns same input.
 # stdin has the function json.
@@ -92,6 +93,16 @@ function process_function() {
 }
 export -f process_function
 
+# Compute hash for a given contract.
+function get_contract_hash {
+  cache_content_hash \
+    ../../noir/.rebuild_patterns \
+    ../../avm-transpiler/.rebuild_patterns \
+    "^noir-projects/noir-contracts/contracts/$1/" \
+    "^noir-projects/aztec-nr/"
+}
+export -f get_contract_hash
+
 # This compiles a noir contract, transpile's public functions, and generates vk's for private functions.
 # $1 is the input package name, and on exit it's fully processed json artifact is in the target dir.
 # The function is exported and called by a sub-shell in parallel, so we must "set -eu" etc..
@@ -104,14 +115,10 @@ function compile {
   contract_name=$(cat contracts/$1/src/main.nr | awk '/^contract / { print $2 }')
   local filename="$contract-$contract_name.json"
   local json_path="./target/$filename"
-  contract_hash="$(cache_content_hash \
-    ../../noir/.rebuild_patterns \
-    ../../avm-transpiler/.rebuild_patterns \
-    "^noir-projects/noir-contracts/contracts/$contract/" \
-    "^noir-projects/aztec-nr/" \
-  )"
+  contract_hash=$(get_contract_hash $contract)
   if ! cache_download contract-$contract_hash.tar.gz &> /dev/null; then
-    $NARGO compile --package $contract --inliner-aggressiveness 0
+    [ "${CI:-0}" -eq 1 ] && local args="--silence-warnings"
+    $NARGO compile ${args:-} --package $contract --inliner-aggressiveness 0
     $TRANSPILER $json_path $json_path
     cache_upload contract-$contract_hash.tar.gz $json_path &> /dev/null
   fi
@@ -149,28 +156,29 @@ function build {
 }
 
 function test_cmds {
+  local -A cache
   i=0
-  $NARGO test --list-tests | while read -r package test; do
-    # We assume there are 8 txe's running.
+  $NARGO test --list-tests --silence-warnings | sort | while read -r package test; do
     port=$((45730 + (i++ % ${NUM_TXES:-1})))
-    echo "noir-projects/scripts/run_test.sh noir-contracts $package $test $port"
+    [ -z "${cache[$package]:-}" ] && cache[$package]=$(get_contract_hash $package)
+    echo "${cache[$package]} noir-projects/scripts/run_test.sh noir-contracts $package $test $port"
   done
 }
 
 function test {
   # Starting txe servers with incrementing port numbers.
   NUM_TXES=8
-  trap 'kill $(jobs -p)' EXIT
+  trap 'kill $(jobs -p) &>/dev/null || true' EXIT
   for i in $(seq 0 $((NUM_TXES-1))); do
-    (cd $root/yarn-project/txe && LOG_LEVEL=silent TXE_PORT=$((45730 + i)) yarn start) &
+    (cd $root/yarn-project/txe && LOG_LEVEL=silent TXE_PORT=$((45730 + i)) yarn start) &>/dev/null &
   done
   echo "Waiting for TXE's to start..."
   for i in $(seq 0 $((NUM_TXES-1))); do
       while ! nc -z 127.0.0.1 $((45730 + i)) &>/dev/null; do sleep 1; done
   done
 
-  echo "Starting test run..."
-  test_cmds | (cd $root; NARGO_FOREIGN_CALL_TIMEOUT=300000 parallel --bar $PARALLEL_FLAGS 'dump_fail {} >/dev/null')
+  export NARGO_FOREIGN_CALL_TIMEOUT=300000
+  test_cmds | parallelise
 }
 
 case "$cmd" in
@@ -189,6 +197,7 @@ case "$cmd" in
     ;;
   "ci")
     build
+    test
     ;;
   "compile")
     shift

@@ -9,8 +9,6 @@ source $(git rev-parse --show-toplevel)/ci3/source_bootstrap
 
 # Enable abbreviated output.
 export DENOISE=1
-# We always want color.
-export FORCE_COLOR=true
 
 cmd=${1:-}
 [ -n "$cmd" ] && shift
@@ -91,36 +89,35 @@ function check_toolchains {
       exit 1
     fi
   done
-  # Check for yarn availability
-  if ! command -v yarn > /dev/null; then
-    encourage_dev_container
-    echo "yarn not found."
-    echo "Installation: corepack enable"
-    exit 1
-  fi
-  # Check for yarn version
-  local yarn_min_version="4.5.2"
-  local yarn_installed_version=$(yarn --version)
-  if [[ "$(printf '%s\n' "$yarn_min_version" "$yarn_installed_version" | sort -V | head -n1)" != "$yarn_min_version" ]]; then
-    encourage_dev_container
-    echo "Minimum yarn version $yarn_min_version not found (got $yarn_installed_version)."
-    echo "Installation: yarn set version $yarn_min_version; yarn install"
-    exit 1
-  fi
 }
 
-function test_all {
-  # Rust is very annoying.
-  # You sneeze and everything needs recompiling and you can't avoid recompiling when running tests.
-  # Ensure tests are up-to-date first so parallel doesn't complain about slow startup.
-  echo "Building tests..."
-  ./noir/bootstrap.sh build-tests
+# Install pre-commit git hooks.
+function install_hooks {
+  hooks_dir=$(git rev-parse --git-path hooks)
+  echo "(cd barretenberg/cpp && ./format.sh staged)" >$hooks_dir/pre-commit
+  echo "./yarn-project/precommit.sh" >>$hooks_dir/pre-commit
+  chmod +x $hooks_dir/pre-commit
+}
+
+function test_cmds {
+  if [ "$#" -eq 0 ]; then
+    # Ordered with longest running first, to ensure they get scheduled earliest.
+    set -- yarn-project/end-to-end yarn-project noir-projects boxes barretenberg l1-contracts noir
+  fi
+  parallel -k --line-buffer './{}/bootstrap.sh test-cmds 2>/dev/null' ::: $@ | filter_test_cmds
+}
+
+function test {
+  echo_header "test all"
 
   # Starting txe servers with incrementing port numbers.
   export NUM_TXES=8
-  trap 'kill $(jobs -p)' EXIT
+  trap 'kill $(jobs -p) &>/dev/null || true' EXIT
   for i in $(seq 0 $((NUM_TXES-1))); do
-    (cd $root/yarn-project/txe && LOG_LEVEL=silent TXE_PORT=$((45730 + i)) yarn start) &
+    existing_pid=$(lsof -ti :$((45730 + i)) || true)
+    [ -n "$existing_pid" ] && kill -9 $existing_pid
+    # TODO: I'd like to use dump_fail here, but TXE needs to exit 0 on receiving a SIGTERM.
+    (cd $root/yarn-project/txe && LOG_LEVEL=silent TXE_PORT=$((45730 + i)) yarn start) &>/dev/null &
   done
   echo "Waiting for TXE's to start..."
   for i in $(seq 0 $((NUM_TXES-1))); do
@@ -128,31 +125,29 @@ function test_all {
   done
 
   echo "Gathering tests to run..."
-  {
-    set -euo pipefail
+  test_cmds $@ | parallelise 64
+}
 
-    if [ "$#" -gt 0 ]; then
-      for arg in "$@"; do
-        "$arg/bootstrap.sh" test-cmds
-      done
-    else
-      # Ordered with longest running first, to ensure they get scheduled earliest.
-      ./yarn-project/bootstrap.sh test-cmds
-      ./noir-projects/bootstrap.sh test-cmds
-      ./boxes/bootstrap.sh test-cmds
-      ./barretenberg/bootstrap.sh test-cmds
-      ./l1-contracts/bootstrap.sh test-cmds
-      ./noir/bootstrap.sh test-cmds
-    fi
-  } | parallel -j96 --bar --joblog joblog.txt --halt now,fail=1 'dump_fail {} >/dev/null'
+function build {
+  echo_header "pull submodules"
+  denoise "git submodule update --init --recursive"
 
-  slow_jobs=$(cat joblog.txt | \
-    awk 'NR>1 && $4 > 300 {print | "sort -k4,4"}' | \
-    awk '{print $4 ": " substr($0, index($0, $9))}' | sed -E "s/^(.*: ).*'([^']+)'.*$/\1\2/")
-  if [ -n "$slow_jobs" ]; then
-    echo -e "${yellow}WARNING: The following tests exceed 5 minute runtimes. Break them up.${reset}"
-    echo "$slow_jobs"
-  fi
+  check_toolchains
+
+  projects=(
+    noir
+    barretenberg
+    l1-contracts
+    avm-transpiler
+    noir-projects
+    yarn-project
+    boxes
+  )
+
+  # Build projects.
+  for project in "${projects[@]}"; do
+    $project/bootstrap.sh ${1:-}
+  done
 }
 
 case "$cmd" in
@@ -174,30 +169,10 @@ case "$cmd" in
 
     # Remove all untracked files, directories, nested repos, and .gitignore files.
     git clean -ffdx
-
-    echo "Cleaning complete"
-    exit 0
   ;;
   "check")
     check_toolchains
     echo "Toolchains look good! 🎉"
-    exit 0
-  ;;
-  "test-e2e")
-    ./bootstrap.sh image-e2e
-    shift 1
-    yarn-project/end-to-end/scripts/e2e_test.sh $@
-    exit
-  ;;
-  "test-cache")
-    # Test cache by running minio with full and fast bootstraps
-    scripts/tests/bootstrap/test-cache
-    exit
-    ;;
-  "test-boxes")
-    github_group "test-boxes"
-    bootstrap_local_noninteractive "CI=1 SKIP_BB_CRS=1 ./bootstrap.sh fast && ./boxes/bootstrap.sh test";
-    exit
   ;;
   "image-aztec")
     image=aztecprotocol/aztec:$(git rev-parse HEAD)
@@ -230,7 +205,7 @@ case "$cmd" in
     else
       echo "Image $image does not exist, building..."
     fi
-    github_group "image-aztec"
+    echo_header "image-aztec"
     source $ci3/source_tmp
     echo "earthly artifact build:"
     scripts/earthly-ci --artifact +bootstrap-aztec/usr/src $TMP/usr/src
@@ -241,8 +216,6 @@ case "$cmd" in
     if [ "${CI:-0}" = 1 ]; then
       docker push $image
     fi
-    github_endgroup
-    exit
   ;;
   "_image-e2e")
     image=aztecprotocol/end-to-end:$(git rev-parse HEAD)
@@ -250,7 +223,7 @@ case "$cmd" in
     if docker_has_image $image; then
       echo "Image $image already exists." && exit
     fi
-    github_group "image-e2e"
+    echo_header "image-e2e"
     source $ci3/source_tmp
     echo "earthly artifact build:"
     scripts/earthly-ci --artifact +bootstrap-end-to-end/usr/src $TMP/usr/src
@@ -262,19 +235,16 @@ case "$cmd" in
     if [ "${CI:-0}" = 1 ]; then
       docker push $image
     fi
-    github_endgroup
-    exit
   ;;
   "image-e2e")
     parallel --line-buffer ./bootstrap.sh ::: image-aztec _image-e2e
-    exit
   ;;
   "image-faucet")
     image=aztecprotocol/aztec-faucet:$(git rev-parse HEAD)
     if docker_has_image $image; then
       echo "Image $image already exists." && exit
     fi
-    github_group "image-faucet"
+    echo_header "image-faucet"
     source $ci3/source_tmp
     mkdir -p $TMP/usr
     echo "earthly artifact build:"
@@ -284,45 +254,23 @@ case "$cmd" in
     if [ "${CI:-0}" = 1 ]; then
       docker push $image
     fi
-    github_endgroup
-    exit
   ;;
-  "test-all")
-    test_all
-    exit
+  ""|"fast"|"full")
+    build $cmd
   ;;
-  ""|"fast"|"full"|"test"|"ci")
-    # Drop through. source_bootstrap on script entry has set flags.
+  "test-cmds")
+    test_cmds $@
   ;;
+  "test")
+    test $@
+  ;;
+  "ci")
+    build
+    test
+    ;;
   *)
+    echo "Unknown command: $cmd"
     echo "usage: $0 <clean|full|fast|test|check|test-e2e|test-cache|test-boxes|test-kind-network|image-aztec|image-e2e|image-faucet>"
     exit 1
   ;;
 esac
-
-# Install pre-commit git hooks.
-hooks_dir=$(git rev-parse --git-path hooks)
-echo "(cd barretenberg/cpp && ./format.sh staged)" >$hooks_dir/pre-commit
-echo "./yarn-project/precommit.sh" >>$hooks_dir/pre-commit
-chmod +x $hooks_dir/pre-commit
-
-github_group "pull submodules"
-denoise git submodule update --init --recursive
-github_endgroup
-
-check_toolchains
-
-projects=(
-  noir
-  barretenberg
-  l1-contracts
-  avm-transpiler
-  noir-projects
-  yarn-project
-  boxes
-)
-
-# Build projects.
-for project in "${projects[@]}"; do
-  $project/bootstrap.sh $cmd
-done

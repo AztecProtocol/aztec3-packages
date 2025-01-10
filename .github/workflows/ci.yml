@@ -132,7 +132,7 @@ jobs:
             sudo apt install unzip
             curl "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o "awscliv2.zip" && unzip awscliv2.zip && sudo ./aws/install --bin-dir /usr/local/bin --install-dir /usr/local/aws-cli --update && rm -rf aws awscliv2.zip
             echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u aztecprotocolci --password-stdin
-            ./build-images/bootstrap.sh ci
+            ./build-images/bootstrap-earthly.sh ci
 
   # CI for noir and bb.
   ci-noir-bb:

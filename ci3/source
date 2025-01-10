@@ -1,9 +1,15 @@
-# Usage 'source ci3/source'
+# Usage: source $(git rev-parse --show-toplevel)/ci3/source
 # This is a basis for shell scripts that use the ci3 framework.
-# Set BASH best practices for early error exit and undefined variables.
+
+# Conditionally print all statements ran in CI scripts.
+# Useful for debugging commands that weren't expected to error out.
+[ -n "${BUILD_SYSTEM_DEBUG:-}" ] && set -x || true
+
+# Set best practices for early error exit and undefined variables.
 set -euo pipefail
 # Enable extended bash globs.
 shopt -s extglob
+shopt -s globstar
 
 # Enter our script directory, allowing usage of scripts from any directory.
 [ -z "${NO_CD:-}" ] && cd "$(dirname $0)"
@@ -13,9 +19,18 @@ export root="$(git rev-parse --show-toplevel)"
 export ci3="$root/ci3"
 [[ "$PATH" != *"$ci3:" ]] && export PATH=$ci3:$PATH
 
-# Conditionally print all statements ran in CI scripts.
-# Useful for debugging commands that weren't expected to error out.
-[ -n "${BUILD_SYSTEM_DEBUG:-}" ] && set -x || true
+# Our redis cache for e.g. test run tracking, denoise, etc.
+# If not set and redis running on localhost, use it.
+export CI_REDIS=${CI_REDIS:-}
+if [ -z "$CI_REDIS" ] && nc -z localhost 6379 &>/dev/null; then
+  CI_REDIS=localhost
+fi
+
+export DEVBOX_IMAGE=aztecprotocol/devbox:3.0
+export ISOLATION_IMAGE=aztecprotocol/build:3.0
+
+# We always want color.
+export FORCE_COLOR=true
 
 function hash_str {
   set -eu
@@ -26,6 +41,29 @@ function echo_stderr {
   echo $@ >&2
 }
 
-export -f hash_str echo_stderr
+function uuid {
+  dd if=/dev/urandom count=8 bs=1 status=none | xxd -p
+}
+
+export -f hash_str echo_stderr uuid
+
+function get_num_cpus {
+  if [ -f /sys/fs/cgroup/cpu.max ]; then
+    read cpu_quota cpu_period < /sys/fs/cgroup/cpu.max
+    if [[ "$cpu_quota" == "max" ]]; then
+      nproc
+    else
+      echo $((cpu_quota / cpu_period))
+    fi
+  else
+    nproc
+  fi
+}
+
+function get_num_cpus_max {
+  local jobs=$(get_num_cpus)
+  [ -n "${1:-}" ] && [ "$1" -lt $jobs ] && jobs=$1
+  echo $jobs
+}
 
 source $ci3/source_color

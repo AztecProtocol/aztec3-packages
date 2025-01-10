@@ -16,27 +16,24 @@ hash=$(cache_content_hash \
   ../barretenberg/*/.rebuild_patterns)
 
 function build {
+  echo_header "boxes build"
+  denoise yarn
+
   if ! cache_download boxes-$hash.tar.gz; then
-    denoise 'yarn && echo "Building... " && yarn build'
-    cache_upload boxes-$hash.tar.gz boxes/*/{artifacts,dist}
-  else
-    denoise yarn && yarn build
+    denoise 'yarn build'
+    cache_upload boxes-$hash.tar.gz boxes/*/{artifacts,dist,src/contracts/target}
   fi
 }
 
 function test {
-  test_should_run "boxes-test-$hash" || return 0
-
-  github_group "boxes"
-  test_cmds | (cd $root; parallel --tag --line-buffered --timeout 5m --halt now,fail=1)
-  cache_upload_flag boxes-test-$hash
-  github_endgroup
+  echo_header "boxes test"
+  test_cmds | parallelise
 }
 
 function test_cmds {
   for browser in chromium webkit; do
     for box in vanilla react; do
-      echo "boxes/scripts/run_test.sh $box $browser"
+      echo "$hash boxes/scripts/run_test.sh $box $browser"
     done
   done
 }
@@ -44,6 +41,10 @@ function test_cmds {
 case "$cmd" in
   "clean")
     git clean -fdx
+    ;;
+  "ci")
+    build
+    test
     ;;
   ""|"fast"|"full")
     build
@@ -56,10 +57,6 @@ case "$cmd" in
     ;;
   "hash")
     echo $hash
-    ;;
-  "ci")
-    build
-    test
     ;;
   *)
     echo "Unknown command: $cmd"

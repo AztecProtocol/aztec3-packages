@@ -3,12 +3,12 @@ source $(git rev-parse --show-toplevel)/ci3/source_bootstrap
 
 cmd=${1:-}
 
-# hash=$(cache_content_hash ../noir/.rebuild_patterns \
-#   ../{avm-transpiler,noir-projects,l1-contracts,yarn-project}/.rebuild_patterns \
-#   ../barretenberg/*/.rebuild_patterns)
+hash=$(../bootstrap.sh hash)
 
 function test_cmds {
-  local run_test="yarn-project/end-to-end/scripts/test.sh"
+  local run_test="$hash yarn-project/end-to-end/scripts/test.sh"
+
+  echo "$run_test simple setup_l1_contracts"
   echo "$run_test simple e2e_2_pxes"
   echo "$run_test simple e2e_account_contracts"
   echo "$run_test simple e2e_authwit"
@@ -20,7 +20,7 @@ function test_cmds {
   echo "$run_test simple e2e_blacklist_token_contract/transfer_private"
   echo "$run_test simple e2e_blacklist_token_contract/transfer_public"
   echo "$run_test simple e2e_blacklist_token_contract/unshielding"
-  # echo "$run_test simple-flake e2e_block_building"
+  echo "$run_test simple e2e_block_building"
   echo "$run_test simple e2e_bot"
   echo "$run_test simple e2e_card_game"
   echo "$run_test simple e2e_cheat_codes"
@@ -40,7 +40,7 @@ function test_cmds {
   echo "$run_test simple e2e_fees/failures"
   echo "$run_test simple e2e_fees/fee_juice_payments"
   echo "$run_test simple e2e_fees/gas_estimation"
-  # echo "$run_test simple e2e_fees/private_payments"
+  echo "$run_test simple e2e_fees/private_payments"
   echo "$run_test simple e2e_keys"
   echo "$run_test simple e2e_l1_with_wall_time"
   echo "$run_test simple e2e_lending_contract"
@@ -56,11 +56,11 @@ function test_cmds {
   echo "$run_test simple e2e_ordering"
   echo "$run_test simple e2e_outbox"
   echo "$run_test simple e2e_p2p/gossip_network"
-  # echo "$run_test simple e2e_p2p/rediscovery"
-  # echo "$run_test simple-flake e2e_p2p/reqresp"
-  # echo "$run_test simple-flake e2e_p2p/upgrade_governance_proposer"
+  echo "$run_test simple e2e_p2p/rediscovery"
+  echo "$run_test simple e2e_p2p/reqresp"
+  echo "$run_test simple e2e_p2p/upgrade_governance_proposer"
   echo "$run_test simple e2e_private_voting_contract"
-  # echo "FAKE_PROOFS=1 $run_test simple-flake e2e_prover/full"
+  echo "FAKE_PROOFS=1 $run_test simple e2e_prover/full"
   echo "$run_test simple e2e_prover_coordination"
   echo "$run_test simple e2e_public_testnet_transfer"
   echo "$run_test simple e2e_state_vars"
@@ -76,7 +76,7 @@ function test_cmds {
   echo "$run_test simple e2e_token_contract/transfer_to_private"
   echo "$run_test simple e2e_token_contract/transfer_to_public"
   echo "$run_test simple e2e_token_contract/transfer.test"
-  # echo "$run_test simple-flake flakey_e2e_inclusion_proofs_contract"
+  echo "$run_test simple flakey_e2e_inclusion_proofs_contract"
 
   echo "$run_test compose composed/docs_examples"
   echo "$run_test compose composed/e2e_aztec_js_browser"

@@ -110,7 +110,7 @@ mod tests {
         builder.check_and_execute();
     }
 
-    #[test(should_fail_with = "hinted item in the commbined array does not match")]
+    #[test(should_fail_with = "hinted item in the combined array does not match")]
     fn assert_combined_array_extra_item_fails() {
         let mut builder = TestBuilder::new();
 
@@ -120,7 +120,7 @@ mod tests {
         builder.execute();
     }
 
-    #[test(should_fail_with = "hinted item in the commbined array does not match")]
+    #[test(should_fail_with = "hinted item in the combined array does not match")]
     fn assert_combined_array_missing_item_fails() {
         let mut builder = TestBuilder::new();
 
@@ -130,7 +130,7 @@ mod tests {
         builder.execute();
     }
 
-    #[test(should_fail_with = "hinted item in the commbined array does not match")]
+    #[test(should_fail_with = "hinted item in the combined array does not match")]
     fn assert_combined_array_unordered_fails() {
         let mut builder = TestBuilder::new();
 

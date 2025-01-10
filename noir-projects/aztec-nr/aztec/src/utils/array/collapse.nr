@@ -9,7 +9,7 @@ pub fn collapse<T, let N: u32>(input: [Option<T>; N]) -> BoundedVec<T, N>
 where
     T: Eq,
 {
-    // Computing the collpased BoundedVec would result in a very large number of constraints, since we'd need to loop
+    // Computing the collapsed BoundedVec would result in a very large number of constraints, since we'd need to loop
     // over the input array and conditionally write to a dynamic vec index, which is a very unfriendly pattern to the
     // proving backend.
     // Instead, we use an unconstrained function to produce the final collapsed array, along with some hints, and then

@@ -95,7 +95,7 @@ impl U128 {
         U128 { lo: lo as Field, hi: hi as Field }
     }
 
-    unconstrained fn uconstrained_check_is_upper_ascii(ascii: u8) -> bool {
+    unconstrained fn unconstrained_check_is_upper_ascii(ascii: u8) -> bool {
         ((ascii >= 65) & (ascii <= 90)) // Between 'A' and 'Z'
     }
 
@@ -111,7 +111,7 @@ impl U128 {
                                 /*@safety : optionally adds 32 and then check (below) the result is in 'a..f' range
                                     This enforces that the input is in either 'A..F' or 'a..f' range
                                 */
-                                U128::uconstrained_check_is_upper_ascii(ascii) as u8
+                                U128::unconstrained_check_is_upper_ascii(ascii) as u8
                             }
                         );
                 assert(ascii >= 97); // enforce >= 'a'

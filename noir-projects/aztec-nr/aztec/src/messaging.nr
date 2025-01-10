@@ -37,7 +37,7 @@ pub fn process_l1_to_l2_message(
     };
 
     let root = root_from_sibling_path(message_hash, leaf_index, sibling_path);
-    assert(root == l1_to_l2_root, "Message not in state");
+    assert_eq(root, l1_to_l2_root, "Message not in state");
 
     compute_l1_to_l2_message_nullifier(message_hash, secret)
 }

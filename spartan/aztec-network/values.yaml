@@ -18,6 +18,7 @@ storage:
 
 telemetry:
   enabled: false
+  gcloud:
   otelCollectorEndpoint:
 
 images:

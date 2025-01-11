@@ -1,7 +1,6 @@
-// TODO(#9982): Replace unconstrained_config with config and import ROOTS - calculating ROOTS in unconstrained is insecure.
 use crate::{
     blob_public_inputs::{BlobCommitment, BlobPublicInputs, BlockBlobPublicInputs},
-    unconstrained_config::{compute_roots_of_unity, D_INV, F, LOG_FIELDS_PER_BLOB},
+    config::{D_INV, F, LOG_FIELDS_PER_BLOB, ROOTS},
 };
 
 use bigint::BigNum;
@@ -184,9 +183,6 @@ pub fn evaluate_blobs(
  * @return y = p(z)
  */
 fn barycentric_evaluate_blob_at_z(z: F, ys: [F; FIELDS_PER_BLOB]) -> F {
-    // TODO(#9982): Delete below and go back to using config.nr - calculating ROOTS in unconstrained is insecure.
-    let ROOTS = unsafe { compute_roots_of_unity() };
-
     // Note: it's more efficient (saving 30k constraints) to compute:
     //    ___d-1
     //    \     /    y_i    \
@@ -205,7 +201,7 @@ fn barycentric_evaluate_blob_at_z(z: F, ys: [F; FIELDS_PER_BLOB]) -> F {
     //    i=0
     //
     // perhaps because all the omega^i terms are constant witnesses?
-    let fracs = compute_fracs(z, ys, ROOTS);
+    let fracs = compute_fracs(z, ys);
 
     // OK so...we can add multiple product terms into a sum...but I am not sure how many!
     // we are computing 254 * 254 bit products and we need to ensure each product limb doesn't overflow
@@ -224,7 +220,7 @@ fn barycentric_evaluate_blob_at_z(z: F, ys: [F; FIELDS_PER_BLOB]) -> F {
     let NUM_PARTIAL_SUMS = FIELDS_PER_BLOB / 8;
     let partial_sums: [F; FIELDS_PER_BLOB / 8] = unsafe {
         // Safety: This sum is checked by the following `BigNum::evaluate_quadratic_expression` calls.
-        __compute_partial_sums(fracs, ROOTS)
+        __compute_partial_sums(fracs)
     };
 
     if !std::runtime::is_unconstrained() {
@@ -271,20 +267,30 @@ fn barycentric_evaluate_blob_at_z(z: F, ys: [F; FIELDS_PER_BLOB]) -> F {
 
             //    partial_sums[i] <- partial_sums[i-1] + (lhs[8*i] * rhs[8*i] + ... + lhs[8*i + 7] * rhs[8*i + 7])
             // => (lhs[8*i] * rhs[8*i] + ... + lhs[8*i + 7] * rhs[8*i + 7]) + partial_sums[i-1] - partial_sums[i] == 0
-            let mut lhs: [[F; 1]; 8] = [std::mem::zeroed(); 8];
-            let mut rhs: [[F; 1]; 8] = [std::mem::zeroed(); 8];
-            for j in 0..8 {
-                let k = i * 8 + j;
-                lhs[j] = [ROOTS[k]]; // omega^k
-                rhs[j] = [fracs[k]]; // y_k / (z - omega^k)
-            }
-
             let linear_terms = [partial_sums[i - 1], partial_sums[i]];
 
             BigNum::evaluate_quadratic_expression(
-                lhs,
+                [
+                    [ROOTS[i * 8 + 0]],
+                    [ROOTS[i * 8 + 1]],
+                    [ROOTS[i * 8 + 2]],
+                    [ROOTS[i * 8 + 3]],
+                    [ROOTS[i * 8 + 4]],
+                    [ROOTS[i * 8 + 5]],
+                    [ROOTS[i * 8 + 6]],
+                    [ROOTS[i * 8 + 7]],
+                ],
                 [[false], [false], [false], [false], [false], [false], [false], [false]],
-                rhs,
+                [
+                    [fracs[i * 8 + 0]],
+                    [fracs[i * 8 + 1]],
+                    [fracs[i * 8 + 2]],
+                    [fracs[i * 8 + 3]],
+                    [fracs[i * 8 + 4]],
+                    [fracs[i * 8 + 5]],
+                    [fracs[i * 8 + 6]],
+                    [fracs[i * 8 + 7]],
+                ],
                 [[false], [false], [false], [false], [false], [false], [false], [false]],
                 linear_terms,
                 [false, true],
@@ -343,11 +349,7 @@ fn compute_factor(z: F) -> F {
     factor
 }
 
-unconstrained fn __compute_fracs(
-    z: F,
-    ys: [F; FIELDS_PER_BLOB],
-    ROOTS: [F; FIELDS_PER_BLOB],
-) -> [F; FIELDS_PER_BLOB] {
+unconstrained fn __compute_fracs(z: F, ys: [F; FIELDS_PER_BLOB]) -> [F; FIELDS_PER_BLOB] {
     let mut denoms = [BigNum::new(); FIELDS_PER_BLOB];
     for i in 0..FIELDS_PER_BLOB {
         denoms[i] = z.__sub(ROOTS[i]); // (z - omega^i)
@@ -365,14 +367,10 @@ unconstrained fn __compute_fracs(
     fracs
 }
 
-fn compute_fracs(
-    z: F,
-    ys: [F; FIELDS_PER_BLOB],
-    ROOTS: [F; FIELDS_PER_BLOB],
-) -> [F; FIELDS_PER_BLOB] {
+fn compute_fracs(z: F, ys: [F; FIELDS_PER_BLOB]) -> [F; FIELDS_PER_BLOB] {
     let mut fracs: [F; FIELDS_PER_BLOB] = unsafe {
         // Safety: We immediately constrain these `fracs` to be correct in the following call to `BigNum::evaluate_quadratic_expression`.
-        __compute_fracs(z, ys, ROOTS)
+        __compute_fracs(z, ys)
     };
 
     if !std::runtime::is_unconstrained() {
@@ -396,7 +394,6 @@ fn compute_fracs(
 // TODO: Clean me
 unconstrained fn __compute_partial_sums(
     fracs: [F; FIELDS_PER_BLOB],
-    ROOTS: [F; FIELDS_PER_BLOB],
 ) -> [F; FIELDS_PER_BLOB / 8] {
     let mut partial_sums: [F; FIELDS_PER_BLOB / 8] = std::mem::zeroed();
 
@@ -440,6 +437,7 @@ unconstrained fn __compute_partial_sums(
     partial_sums
 }
 
+
 mod tests {
     // TODO(#9982): Replace unconstrained_config with config and import ROOTS - calculating ROOTS in unconstrained is insecure.
     use crate::{
@@ -448,7 +446,7 @@ mod tests {
             field_to_bignum,
         },
         blob_public_inputs::BlobCommitment,
-        unconstrained_config::{D, D_INV, F},
+        config::{D, D_INV, F},
     };
     use bigint::{BigNum, fields::bls12_381Fr::BLS12_381_Fr_Params};
     use types::{

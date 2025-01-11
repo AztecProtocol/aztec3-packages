@@ -3,7 +3,8 @@ source $(git rev-parse --show-toplevel)/ci3/source_bootstrap
 
 cmd=${1:-}
 
-export hash=$(cache_content_hash .rebuild_patterns)
+# WORKTODO(ci3) remove this -2
+export hash=$(cache_content_hash .rebuild_patterns)-2
 export test_hash=$(cache_content_hash .rebuild_patterns .rebuild_patterns_tests)
 
 export js_projects="
@@ -16,8 +17,7 @@ export js_projects="
 export js_include=$(printf " --include %s" $js_projects)
 
 # Fake this so artifacts have a consistent hash in the cache and not git hash dependent.
-# export GIT_COMMIT="$(echo "$hash" | sed 's/-.*//g')"
-export GIT_COMMIT="0000000000000000000000000000000000000000"
+export COMMIT_HASH="0000000000000000000000000000000000000000"
 export SOURCE_DATE_EPOCH=0
 export GIT_DIRTY=false
 export RUSTFLAGS="-Dwarnings"

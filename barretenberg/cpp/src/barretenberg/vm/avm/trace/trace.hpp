@@ -269,7 +269,9 @@ class AvmTraceBuilder {
                                                    .start_da_gas_left = 0,
                                                    .l2_gas_left = 0,
                                                    .da_gas_left = 0,
-                                                   .internal_return_ptr_stack = {} });
+                                                   .internal_return_ptr_stack = {},
+                                                   .tree_snapshot = {},
+                                                   .public_data_unique_writes = {} });
         current_ext_call_ctx = ext_call_ctx;
         return *this;
     }

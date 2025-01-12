@@ -577,7 +577,7 @@ namespace main(256);
     #[PERM_MAIN_SHA256]
     sel_op_sha256 {clk, ia, ib, ic}
     is
-    sha256.sel_sha256_compression {sha256.clk, sha256.state, sha256.input, sha256.output};
+    sha256.start {sha256.clk, sha256.state_offset, sha256.input_offset, sha256.output_offset};
 
     // Mem_addr_a points to the start of the input array of length 4
     // Mem_addr_b points to the start of the output array of length 4

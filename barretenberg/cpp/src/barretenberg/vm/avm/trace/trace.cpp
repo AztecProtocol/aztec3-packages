@@ -31,6 +31,7 @@
 #include "barretenberg/vm/avm/trace/fixed_gas.hpp"
 #include "barretenberg/vm/avm/trace/fixed_powers.hpp"
 #include "barretenberg/vm/avm/trace/gadgets/cmp.hpp"
+#include "barretenberg/vm/avm/trace/gadgets/fixed_sha256_constants.hpp"
 #include "barretenberg/vm/avm/trace/gadgets/keccak.hpp"
 #include "barretenberg/vm/avm/trace/gadgets/merkle_tree.hpp"
 #include "barretenberg/vm/avm/trace/gadgets/poseidon2.hpp"
@@ -610,19 +611,22 @@ AvmTraceBuilder::AvmTraceBuilder(AvmPublicInputs public_inputs,
     , bytecode_trace_builder(execution_hints.all_contract_bytecode)
     , merkle_tree_trace_builder(public_inputs.start_tree_snapshots)
 {
-    AvmTraceBuilder::ExtCallCtx ext_call_ctx({ .context_id = 0,
-                                               .parent_id = 0,
-                                               .is_top_level = true,
-                                               .contract_address = FF(0),
-                                               .calldata = {},
-                                               .nested_returndata = {},
-                                               .last_pc = 0,
-                                               .success_offset = 0,
-                                               .start_l2_gas_left = 0,
-                                               .start_da_gas_left = 0,
-                                               .l2_gas_left = 0,
-                                               .da_gas_left = 0,
-                                               .internal_return_ptr_stack = {} });
+    AvmTraceBuilder::ExtCallCtx ext_call_ctx{ .context_id = 0,
+                                              .parent_id = 0,
+                                              .is_top_level = true,
+                                              .is_static_call = false,
+                                              .contract_address = FF(0),
+                                              .calldata = {},
+                                              .nested_returndata = {},
+                                              .last_pc = 0,
+                                              .success_offset = 0,
+                                              .start_l2_gas_left = 0,
+                                              .start_da_gas_left = 0,
+                                              .l2_gas_left = 0,
+                                              .da_gas_left = 0,
+                                              .internal_return_ptr_stack = {},
+                                              .tree_snapshot = {},
+                                              .public_data_unique_writes = {} };
     current_ext_call_ctx = ext_call_ctx;
 
     // Only allocate up to the maximum L2 gas for execution
@@ -3485,8 +3489,9 @@ AvmError AvmTraceBuilder::op_get_contract_instance(
                 ASSERT(instance.exists);
             } else {
                 // This was a non-membership proof!
-                // Enforce that the tree access membership checked a low-leaf that skips the contract address nullifier.
-                // Show that the contract address nullifier meets the non membership conditions (sandwich or max)
+                // Enforce that the tree access membership checked a low-leaf that skips the contract address
+                // nullifier. Show that the contract address nullifier meets the non membership conditions (sandwich
+                // or max)
                 ASSERT(contract_address_nullifier < nullifier_read_hint.low_leaf_preimage.nullifier &&
                        (nullifier_read_hint.low_leaf_preimage.next_nullifier == FF::zero() ||
                         contract_address_nullifier > nullifier_read_hint.low_leaf_preimage.next_nullifier));
@@ -3950,7 +3955,6 @@ AvmError AvmTraceBuilder::op_static_call(uint16_t indirect,
  */
 ReturnDataError AvmTraceBuilder::op_return(uint8_t indirect, uint32_t ret_offset, uint32_t ret_size_offset)
 {
-
     // We keep the first encountered error
     AvmError error = AvmError::NO_ERROR;
     auto clk = static_cast<uint32_t>(main_trace.size()) + 1;
@@ -4476,12 +4480,6 @@ AvmError AvmTraceBuilder::op_sha256_compression(uint8_t indirect,
     auto [resolved_output_offset, resolved_state_offset, resolved_inputs_offset] = resolved_addrs;
     error = res_error;
 
-    auto read_a = constrained_read_from_memory(
-        call_ptr, clk, resolved_state_offset, AvmMemoryTag::U32, AvmMemoryTag::FF, IntermRegister::IA);
-    auto read_b = constrained_read_from_memory(
-        call_ptr, clk, resolved_inputs_offset, AvmMemoryTag::U32, AvmMemoryTag::FF, IntermRegister::IB);
-    bool tag_match = read_a.tag_match && read_b.tag_match;
-
     if (is_ok(error) && !(check_slice_mem_range(resolved_inputs_offset, INPUTS_SIZE)) &&
         check_slice_mem_range(resolved_state_offset, STATE_SIZE)) {
         error = AvmError::MEM_SLICE_OUT_OF_RANGE;
@@ -4508,22 +4506,14 @@ AvmError AvmTraceBuilder::op_sha256_compression(uint8_t indirect,
     // did not lay down constraints), but this is a simplification
     main_trace.push_back(Row{
         .main_clk = clk,
-        .main_ia = read_a.val, // First element of state
-        .main_ib = read_b.val, // First element of input
-        .main_ind_addr_a = FF(read_a.indirect_address),
-        .main_ind_addr_b = FF(read_b.indirect_address),
+        .main_ia = resolved_state_offset,
+        .main_ib = resolved_inputs_offset,
+        .main_ic = resolved_output_offset,
         .main_internal_return_ptr = FF(internal_return_ptr),
-        .main_mem_addr_a = FF(read_a.direct_address),
-        .main_mem_addr_b = FF(read_b.direct_address),
         .main_op_err = FF(static_cast<uint32_t>(!is_ok(error))),
         .main_pc = FF(pc),
         .main_r_in_tag = FF(static_cast<uint32_t>(AvmMemoryTag::U32)),
-        .main_sel_mem_op_a = FF(1),
-        .main_sel_mem_op_b = FF(1),
         .main_sel_op_sha256 = FF(1),
-        .main_sel_resolve_ind_addr_a = FF(static_cast<uint32_t>(read_a.is_indirect)),
-        .main_sel_resolve_ind_addr_b = FF(static_cast<uint32_t>(read_b.is_indirect)),
-        .main_tag_err = FF(static_cast<uint32_t>(!tag_match)),
     });
 
     if (!is_ok(error)) {
@@ -4557,7 +4547,8 @@ AvmError AvmTraceBuilder::op_sha256_compression(uint8_t indirect,
     std::array<uint32_t, STATE_SIZE> h_init = vec_to_arr<uint32_t, STATE_SIZE>(h_init_vec);
     std::array<uint32_t, INPUTS_SIZE> input = vec_to_arr<uint32_t, INPUTS_SIZE>(input_vec);
 
-    std::array<uint32_t, STATE_SIZE> result = sha256_trace_builder.sha256_compression(h_init, input, sha_op_clk);
+    std::array<uint32_t, STATE_SIZE> result = sha256_trace_builder.sha256_compression(
+        h_init, input, resolved_output_offset, resolved_state_offset, resolved_inputs_offset, sha_op_clk);
     // We convert the results to field elements here
     std::vector<FF> ff_result;
     for (uint32_t i = 0; i < STATE_SIZE; i++) {
@@ -5064,7 +5055,6 @@ std::vector<Row> AvmTraceBuilder::finalize(bool apply_end_gas_assertions)
 
     auto mem_trace = mem_trace_builder.finalize();
     auto conv_trace = conversion_trace_builder.finalize();
-    auto sha256_trace = sha256_trace_builder.finalize();
     auto poseidon2_trace = poseidon2_trace_builder.finalize();
     auto keccak_trace = keccak_trace_builder.finalize();
     auto slice_trace = slice_trace_builder.finalize();
@@ -5073,7 +5063,6 @@ std::vector<Row> AvmTraceBuilder::finalize(bool apply_end_gas_assertions)
     size_t main_trace_size = main_trace.size();
     size_t alu_trace_size = alu_trace_builder.size();
     size_t conv_trace_size = conv_trace.size();
-    size_t sha256_trace_size = sha256_trace.size();
     size_t poseidon2_trace_size = poseidon2_trace.size();
     size_t keccak_trace_size = keccak_trace.size();
     size_t bin_trace_size = bin_trace_builder.size();
@@ -5088,7 +5077,6 @@ std::vector<Row> AvmTraceBuilder::finalize(bool apply_end_gas_assertions)
                                         alu_trace_size,
                                         range_check_size,
                                         conv_trace_size,
-                                        sha256_trace_size,
                                         poseidon2_trace_size,
                                         gas_trace_size + 1,
                                         KERNEL_INPUTS_LENGTH,
@@ -5272,15 +5260,11 @@ std::vector<Row> AvmTraceBuilder::finalize(bool apply_end_gas_assertions)
     }
 
     // Add SHA256 Gadget table
-    for (size_t i = 0; i < sha256_trace_size; i++) {
-        auto const& src = sha256_trace.at(i);
-        auto& dest = main_trace.at(i);
-        dest.sha256_clk = FF(src.clk);
-        dest.sha256_input = src.input[0];
-        // TODO: This will need to be enabled later
-        // dest.sha256_output = src.output[0];
-        dest.sha256_sel_sha256_compression = FF(1);
-        dest.sha256_state = src.state[0];
+    uint32_t num_sha256_events = static_cast<uint32_t>(sha256_trace_builder.size());
+    sha256_trace_builder.finalize(main_trace);
+    const auto& fixed_sha_constants_table = FixedSha256ConstantsTable::get();
+    for (size_t i = 0; i < fixed_sha_constants_table.size(); i++) {
+        merge_into(main_trace.at(i), fixed_sha_constants_table.at(i), num_sha256_events);
     }
 
     // Add Poseidon2 Gadget table
@@ -5362,7 +5346,8 @@ std::vector<Row> AvmTraceBuilder::finalize(bool apply_end_gas_assertions)
      * ONLY FIXED TABLES FROM HERE ON
      **********************************************************************************************/
 
-    main_trace.insert(main_trace.begin(), Row{ .main_sel_first = FF(1), .mem_lastAccess = FF(1) });
+    main_trace.insert(main_trace.begin(),
+                      Row{ .main_sel_first = FF(1), .mem_lastAccess = FF(1), .sha256_latch = FF(1) });
 
     /**********************************************************************************************
      * BYTES TRACE INCLUSION
@@ -5524,8 +5509,8 @@ std::vector<Row> AvmTraceBuilder::finalize(bool apply_end_gas_assertions)
           conv_trace_size,
           "\n\tbin_trace_size: ",
           bin_trace_size,
-          "\n\tsha256_trace_size: ",
-          sha256_trace_size,
+          // "\n\tsha256_trace_size: ",
+          // sha256_trace_size,
           "\n\tposeidon2_trace_size: ",
           poseidon2_trace_size,
           "\n\tgas_trace_size: ",

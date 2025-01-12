@@ -586,6 +586,7 @@ export async function generateAvmProof(
   workingDirectory: string,
   input: AvmCircuitInputs,
   logger: Logger,
+  checkCircuitOnly: boolean = false,
 ): Promise<BBFailure | BBSuccess> {
   // Check that the working directory exists
   try {
@@ -633,6 +634,7 @@ export async function generateAvmProof(
       '-o',
       outputPath,
       logger.level === 'debug' || logger.level === 'trace' ? '-d' : logger.level === 'verbose' ? '-v' : '',
+      checkCircuitOnly ? '--check-circuit-only' : '',
     ];
     const timer = new Timer();
     const logFunction = (message: string) => {

@@ -3,7 +3,7 @@
 use dep::aztec::macros::aztec;
 
 #[aztec]
-contract EcdsaKAccount {
+pub contract EcdsaKAccount {
     use dep::aztec::{
         encrypted_logs::encrypted_note_emission::encode_and_encrypt_note,
         macros::{functions::{initializer, noinitcheck, private, view}, storage::storage},

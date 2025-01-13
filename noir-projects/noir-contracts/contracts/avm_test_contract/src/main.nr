@@ -20,7 +20,7 @@ impl Deserialize<2> for Note {
 use dep::aztec::macros::aztec;
 
 #[aztec]
-contract AvmTest {
+pub contract AvmTest {
     use crate::Note;
 
     global big_field_128_bits: Field = 0x001234567890abcdef1234567890abcdef;

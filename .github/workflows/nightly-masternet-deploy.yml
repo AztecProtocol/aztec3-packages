@@ -9,12 +9,25 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy-network:
+  deploy-network-rc:
     uses: ./.github/workflows/network-deploy.yml
     with:
       ref: master
-      namespace: masternet
+      namespace: master-rc
       values_file: rc-1.yaml
+      aztec_docker_image: aztecprotocol/aztec:master
+      deployment_mnemonic_secret_name: testnet-deployment-mnemonic
+      respect_tf_lock: "false"
+      run_terraform_destroy: "true"
+    secrets:
+      GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+
+  deploy-network-exp:
+    uses: ./.github/workflows/network-deploy.yml
+    with:
+      ref: master
+      namespace: master-exp
+      values_file: exp-1.yaml
       aztec_docker_image: aztecprotocol/aztec:master
       deployment_mnemonic_secret_name: testnet-deployment-mnemonic
       respect_tf_lock: "false"

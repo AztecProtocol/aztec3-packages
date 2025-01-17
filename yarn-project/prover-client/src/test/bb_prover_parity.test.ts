@@ -13,18 +13,17 @@ import {
 } from '@aztec/circuits.js';
 import { makeTuple } from '@aztec/foundation/array';
 import { randomBytes } from '@aztec/foundation/crypto';
-import { createDebugLogger } from '@aztec/foundation/log';
+import { createLogger } from '@aztec/foundation/log';
 import {
   ProtocolCircuitVkIndexes,
   ServerCircuitVks,
   getVKSiblingPath,
   getVKTreeRoot,
-} from '@aztec/noir-protocol-circuits-types';
-import { NoopTelemetryClient } from '@aztec/telemetry-client/noop';
+} from '@aztec/noir-protocol-circuits-types/vks';
 
 import { TestContext } from '../mocks/test_context.js';
 
-const logger = createDebugLogger('aztec:bb-prover-parity');
+const logger = createLogger('prover-client:test:bb-prover-parity');
 
 describe('prover/bb_prover/parity', () => {
   let context: TestContext;
@@ -33,10 +32,10 @@ describe('prover/bb_prover/parity', () => {
   beforeAll(async () => {
     const buildProver = async (bbConfig: BBProverConfig) => {
       bbConfig.circuitFilter = ['BaseParityArtifact', 'RootParityArtifact'];
-      bbProver = await BBNativeRollupProver.new(bbConfig, new NoopTelemetryClient());
+      bbProver = await BBNativeRollupProver.new(bbConfig);
       return bbProver;
     };
-    context = await TestContext.new(logger, 'native', 1, buildProver);
+    context = await TestContext.new(logger, 1, buildProver);
   });
 
   afterAll(async () => {

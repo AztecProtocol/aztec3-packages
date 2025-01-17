@@ -7,19 +7,13 @@ import {
   type PrivateKernelProverProfileResult,
   PrivateKernelProverProfileResultSchema,
 } from '../interfaces/private_kernel_prover.js';
+import { ContractClassTxL2Logs, UnencryptedTxL2Logs } from '../logs/tx_l2_logs.js';
 import {
-  ContractClassTxL2Logs,
-  EncryptedNoteTxL2Logs,
-  EncryptedTxL2Logs,
-  UnencryptedTxL2Logs,
-} from '../logs/tx_l2_logs.js';
-import {
+  type PrivateCallExecutionResult,
   PrivateExecutionResult,
   collectEnqueuedPublicFunctionCalls,
   collectPublicTeardownFunctionCall,
   collectSortedContractClassLogs,
-  collectSortedEncryptedLogs,
-  collectSortedNoteEncryptedLogs,
 } from '../private_execution_result.js';
 import { type GasUsed } from './gas_used.js';
 import { NestedProcessReturnValues, PublicSimulationOutput } from './public_simulation_output.js';
@@ -36,9 +30,7 @@ export class PrivateSimulationResult {
   }
 
   toSimulatedTx(): Tx {
-    const noteEncryptedLogs = new EncryptedNoteTxL2Logs([collectSortedNoteEncryptedLogs(this.privateExecutionResult)]);
     const contractClassLogs = new ContractClassTxL2Logs([collectSortedContractClassLogs(this.privateExecutionResult)]);
-    const encryptedLogs = new EncryptedTxL2Logs([collectSortedEncryptedLogs(this.privateExecutionResult)]);
     const enqueuedPublicFunctions = collectEnqueuedPublicFunctionCalls(this.privateExecutionResult);
     const teardownPublicFunction = collectPublicTeardownFunctionCall(this.privateExecutionResult);
 
@@ -46,8 +38,6 @@ export class PrivateSimulationResult {
     const tx = new Tx(
       this.publicInputs,
       ClientIvcProof.empty(),
-      noteEncryptedLogs,
-      encryptedLogs,
       UnencryptedTxL2Logs.empty(), // *unencrypted logs
       contractClassLogs,
       enqueuedPublicFunctions,
@@ -72,6 +62,7 @@ export class TxSimulationResult extends PrivateSimulationResult {
       this.publicOutput?.gasUsed ?? {
         totalGas: this.publicInputs.gasUsed,
         teardownGas: Gas.empty(),
+        publicGas: Gas.empty(),
       }
     );
   }
@@ -130,9 +121,7 @@ export class TxProvingResult {
   ) {}
 
   toTx(): Tx {
-    const noteEncryptedLogs = new EncryptedNoteTxL2Logs([collectSortedNoteEncryptedLogs(this.privateExecutionResult)]);
     const contractClassLogs = new ContractClassTxL2Logs([collectSortedContractClassLogs(this.privateExecutionResult)]);
-    const encryptedLogs = new EncryptedTxL2Logs([collectSortedEncryptedLogs(this.privateExecutionResult)]);
     const enqueuedPublicFunctions = collectEnqueuedPublicFunctionCalls(this.privateExecutionResult);
     const teardownPublicFunction = collectPublicTeardownFunctionCall(this.privateExecutionResult);
 
@@ -140,8 +129,6 @@ export class TxProvingResult {
     const tx = new Tx(
       this.publicInputs,
       this.clientIvcProof,
-      noteEncryptedLogs,
-      encryptedLogs,
       UnencryptedTxL2Logs.empty(), // *unencrypted logs
       contractClassLogs,
       enqueuedPublicFunctions,
@@ -180,7 +167,14 @@ export class TxProvingResult {
  * @returns
  */
 export function accumulatePrivateReturnValues(executionResult: PrivateExecutionResult): NestedProcessReturnValues {
-  const acc = new NestedProcessReturnValues(executionResult.returnValues);
-  acc.nested = executionResult.nestedExecutions.map(nestedExecution => accumulatePrivateReturnValues(nestedExecution));
-  return acc;
+  const collectPrivateReturnValuesRecursive = (
+    executionResult: PrivateCallExecutionResult,
+  ): NestedProcessReturnValues => {
+    const acc = new NestedProcessReturnValues(executionResult.returnValues);
+    acc.nested = executionResult.nestedExecutions.map(nestedExecution =>
+      collectPrivateReturnValuesRecursive(nestedExecution),
+    );
+    return acc;
+  };
+  return collectPrivateReturnValuesRecursive(executionResult.entrypoint);
 }

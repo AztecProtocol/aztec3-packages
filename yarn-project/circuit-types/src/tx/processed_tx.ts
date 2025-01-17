@@ -1,11 +1,10 @@
 import {
-  ClientIvcProof,
+  type ClientIvcProof,
   CombinedConstantData,
   Fr,
   Gas,
   type GlobalVariables,
-  type Header,
-  PrivateKernelTailCircuitPublicInputs,
+  type PrivateKernelTailCircuitPublicInputs,
   type PublicDataWrite,
   RevertCode,
 } from '@aztec/circuits.js';
@@ -16,7 +15,7 @@ import { type SimulationError } from '../simulation_error.js';
 import { TxEffect } from '../tx_effect.js';
 import { type GasUsed } from './gas_used.js';
 import { type Tx } from './tx.js';
-import { TxHash } from './tx_hash.js';
+import { type TxHash } from './tx_hash.js';
 
 export enum TxExecutionPhase {
   SETUP,
@@ -61,10 +60,6 @@ export type ProcessedTx = {
    * Reason the tx was reverted.
    */
   revertReason: SimulationError | undefined;
-  /**
-   * Flag indicating the tx is 'empty' meaning it's a padding tx to take us to a power of 2.
-   */
-  isEmpty: boolean;
 };
 
 /**
@@ -81,43 +76,6 @@ export type FailedTx = {
   error: Error;
 };
 
-/**
- * Makes an empty tx from an empty kernel circuit public inputs.
- * @returns A processed empty tx.
- */
-export function makeEmptyProcessedTx(
-  header: Header,
-  chainId: Fr,
-  version: Fr,
-  vkTreeRoot: Fr,
-  protocolContractTreeRoot: Fr,
-): ProcessedTx {
-  const constants = CombinedConstantData.empty();
-  constants.historicalHeader = header;
-  constants.txContext.chainId = chainId;
-  constants.txContext.version = version;
-  constants.vkTreeRoot = vkTreeRoot;
-  constants.protocolContractTreeRoot = protocolContractTreeRoot;
-
-  const clientProofOutput = PrivateKernelTailCircuitPublicInputs.empty();
-  clientProofOutput.constants = constants;
-
-  return {
-    hash: new TxHash(Fr.ZERO.toBuffer()),
-    data: clientProofOutput,
-    clientIvcProof: ClientIvcProof.empty(),
-    avmProvingRequest: undefined,
-    constants,
-    txEffect: TxEffect.empty(),
-    gasUsed: {
-      totalGas: Gas.empty(),
-      teardownGas: Gas.empty(),
-    },
-    revertReason: undefined,
-    isEmpty: true,
-  };
-}
-
 export function makeProcessedTxFromPrivateOnlyTx(
   tx: Tx,
   transactionFee: Fr,
@@ -131,6 +89,7 @@ export function makeProcessedTxFromPrivateOnlyTx(
   const data = tx.data.forRollup!;
   const txEffect = new TxEffect(
     RevertCode.OK,
+    tx.getTxHash(),
     transactionFee,
     data.end.noteHashes.filter(h => !h.isZero()),
     data.end.nullifiers.filter(h => !h.isZero()),
@@ -138,12 +97,9 @@ export function makeProcessedTxFromPrivateOnlyTx(
       .map(message => siloL2ToL1Message(message, constants.txContext.version, constants.txContext.chainId))
       .filter(h => !h.isZero()),
     publicDataWrites,
-    data.end.noteEncryptedLogPreimagesLength,
-    data.end.encryptedLogPreimagesLength,
-    data.end.unencryptedLogPreimagesLength,
+    data.end.privateLogs.filter(l => !l.isEmpty()),
+    Fr.ZERO,
     data.end.contractClassLogPreimagesLength,
-    tx.noteEncryptedLogs,
-    tx.encryptedLogs,
     tx.unencryptedLogs,
     tx.contractClassLogs,
   );
@@ -151,10 +107,11 @@ export function makeProcessedTxFromPrivateOnlyTx(
   const gasUsed = {
     totalGas: tx.data.gasUsed,
     teardownGas: Gas.empty(),
-  };
+    publicGas: Gas.empty(),
+  } satisfies GasUsed;
 
   return {
-    hash: tx.getTxHash(),
+    hash: txEffect.txHash,
     data: tx.data,
     clientIvcProof: tx.clientIvcProof,
     avmProvingRequest: undefined,
@@ -162,14 +119,18 @@ export function makeProcessedTxFromPrivateOnlyTx(
     txEffect,
     gasUsed,
     revertReason: undefined,
-    isEmpty: false,
   };
+}
+
+export function toNumBlobFields(txs: ProcessedTx[]): number {
+  return txs.reduce((acc, tx) => {
+    return acc + tx.txEffect.toBlobFields().length;
+  }, 0);
 }
 
 export function makeProcessedTxFromTxWithPublicCalls(
   tx: Tx,
   avmProvingRequest: AvmProvingRequest,
-  feePaymentPublicDataWrite: PublicDataWrite | undefined,
   gasUsed: GasUsed,
   revertCode: RevertCode,
   revertReason: SimulationError | undefined,
@@ -179,23 +140,19 @@ export function makeProcessedTxFromTxWithPublicCalls(
   const constants = CombinedConstantData.combine(tx.data.constants, avmOutput.globalVariables);
 
   const publicDataWrites = avmOutput.accumulatedData.publicDataWrites.filter(w => !w.isEmpty());
-  if (feePaymentPublicDataWrite) {
-    const existingIndex = publicDataWrites.findIndex(w => w.leafSlot.equals(feePaymentPublicDataWrite.leafSlot));
-    if (existingIndex >= 0) {
-      publicDataWrites[existingIndex] = feePaymentPublicDataWrite;
-    } else {
-      publicDataWrites.push(feePaymentPublicDataWrite);
-    }
-  }
 
-  const noteEncryptedLogPreimagesLength = tx.noteEncryptedLogs.getKernelLength();
-  const encryptedLogPreimagesLength = tx.encryptedLogs.getKernelLength();
+  const privateLogs = [
+    ...tx.data.forPublic!.nonRevertibleAccumulatedData.privateLogs,
+    ...(revertCode.isOK() ? tx.data.forPublic!.revertibleAccumulatedData.privateLogs : []),
+  ].filter(l => !l.isEmpty());
+
   // Unencrypted logs emitted from public functions are inserted to tx.unencryptedLogs directly :(
   const unencryptedLogPreimagesLength = tx.unencryptedLogs.getKernelLength();
   const contractClassLogPreimagesLength = tx.contractClassLogs.getKernelLength();
 
   const txEffect = new TxEffect(
     revertCode,
+    tx.getTxHash(),
     avmOutput.transactionFee,
     avmOutput.accumulatedData.noteHashes.filter(h => !h.isZero()),
     avmOutput.accumulatedData.nullifiers.filter(h => !h.isZero()),
@@ -203,18 +160,15 @@ export function makeProcessedTxFromTxWithPublicCalls(
       .map(message => siloL2ToL1Message(message, constants.txContext.version, constants.txContext.chainId))
       .filter(h => !h.isZero()),
     publicDataWrites,
-    new Fr(noteEncryptedLogPreimagesLength),
-    new Fr(encryptedLogPreimagesLength),
+    privateLogs,
     new Fr(unencryptedLogPreimagesLength),
     new Fr(contractClassLogPreimagesLength),
-    tx.noteEncryptedLogs,
-    tx.encryptedLogs,
     tx.unencryptedLogs,
     tx.contractClassLogs,
   );
 
   return {
-    hash: tx.getTxHash(),
+    hash: txEffect.txHash,
     data: tx.data,
     clientIvcProof: tx.clientIvcProof,
     avmProvingRequest,
@@ -222,6 +176,5 @@ export function makeProcessedTxFromTxWithPublicCalls(
     txEffect,
     gasUsed,
     revertReason,
-    isEmpty: false,
   };
 }

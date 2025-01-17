@@ -1,4 +1,4 @@
-use dep::protocol_types::header::Header;
+use dep::protocol_types::block_header::BlockHeader;
 use dep::protocol_types::merkle_tree::root::root_from_sibling_path;
 
 use crate::{
@@ -8,12 +8,13 @@ use crate::{
 };
 
 trait ProveNullifierInclusion {
-    fn prove_nullifier_inclusion(header: Header, nullifier: Field);
+    fn prove_nullifier_inclusion(header: BlockHeader, nullifier: Field);
 }
 
-impl ProveNullifierInclusion for Header {
+impl ProveNullifierInclusion for BlockHeader {
     fn prove_nullifier_inclusion(self, nullifier: Field) {
         // 1) Get the membership witness of the nullifier
+        /// Safety: The witness is only used as a "magical value" that makes the proof below pass. Hence it's safe.
         let witness = unsafe {
             get_nullifier_membership_witness(self.global_variables.block_number as u32, nullifier)
         };
@@ -39,7 +40,7 @@ impl ProveNullifierInclusion for Header {
 
 trait ProveNoteIsNullified {
     fn prove_note_is_nullified<Note, let N: u32>(
-        header: Header,
+        header: BlockHeader,
         note: Note,
         context: &mut PrivateContext,
     )
@@ -47,7 +48,7 @@ trait ProveNoteIsNullified {
         Note: NoteInterface<N> + NullifiableNote;
 }
 
-impl ProveNoteIsNullified for Header {
+impl ProveNoteIsNullified for BlockHeader {
     // docs:start:prove_note_is_nullified
     fn prove_note_is_nullified<Note, let N: u32>(self, note: Note, context: &mut PrivateContext)
     where

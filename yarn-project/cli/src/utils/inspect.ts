@@ -39,10 +39,10 @@ export async function inspectTx(
   log: LogFn,
   opts: { includeBlockInfo?: boolean; artifactMap?: ArtifactMap } = {},
 ) {
-  const [receipt, effectsInBlock, notes] = await Promise.all([
+  const [receipt, effectsInBlock, getNotes] = await Promise.all([
     pxe.getTxReceipt(txHash),
     pxe.getTxEffect(txHash),
-    pxe.getIncomingNotes({ txHash, status: NoteStatus.ACTIVE_OR_NULLIFIED }),
+    pxe.getNotes({ txHash, status: NoteStatus.ACTIVE_OR_NULLIFIED }),
   ]);
   // Base tx data
   log(`Tx ${txHash.toString()}`);
@@ -85,15 +85,15 @@ export async function inspectTx(
   }
 
   // Created notes
-  const noteEncryptedLogsCount = effects.noteEncryptedLogs.unrollLogs().length;
-  if (noteEncryptedLogsCount > 0) {
+  const notes = effects.noteHashes;
+  if (notes.length > 0) {
     log(' Created notes:');
-    const notVisibleNotes = noteEncryptedLogsCount - notes.length;
-    if (notVisibleNotes > 0) {
-      log(`  ${notVisibleNotes} notes not visible in the PXE`);
-    }
-    for (const note of notes) {
-      inspectNote(note, artifactMap, log);
+    log(`  Total: ${notes.length}. Found: ${getNotes.length}.`);
+    if (getNotes.length) {
+      log('  Found notes:');
+      for (const note of getNotes) {
+        inspectNote(note, artifactMap, log);
+      }
     }
   }
 
@@ -103,7 +103,7 @@ export async function inspectTx(
   if (nullifierCount > 0) {
     log(' Nullifiers:');
     for (const nullifier of effects.nullifiers) {
-      const [note] = await pxe.getIncomingNotes({ siloedNullifier: nullifier });
+      const [note] = await pxe.getNotes({ siloedNullifier: nullifier });
       const deployed = deployNullifiers[nullifier.toString()];
       const initialized = initNullifiers[nullifier.toString()];
       const registered = classNullifiers[nullifier.toString()];

@@ -10,9 +10,8 @@ use crate::{
     contract_class_id::ContractClassId,
     hash::{poseidon2_hash_with_separator, private_functions_root_from_siblings},
     merkle_tree::membership::MembershipWitness,
-    public_keys::{IvpkM, NpkM, OvpkM, PublicKeys, TpkM},
+    public_keys::{IvpkM, NpkM, OvpkM, PublicKeys, ToPoint, TpkM},
     traits::{Deserialize, Empty, FromField, Serialize, ToField},
-    utils,
 };
 
 // We do below because `use crate::point::Point;` does not work
@@ -20,7 +19,10 @@ use dep::std::embedded_curve_ops::EmbeddedCurvePoint as Point;
 
 use crate::public_keys::AddressPoint;
 use ec::{pow, sqrt};
-use std::embedded_curve_ops::{EmbeddedCurveScalar, fixed_base_scalar_mul as derive_public_key};
+use std::{
+    embedded_curve_ops::{EmbeddedCurveScalar, fixed_base_scalar_mul as derive_public_key},
+    ops::Add,
+};
 
 // Aztec address
 pub struct AztecAddress {
@@ -147,11 +149,6 @@ impl AztecAddress {
 
     pub fn assert_is_zero(self) {
         assert(self.to_field() == 0);
-    }
-
-    pub fn conditional_assign(predicate: bool, lhs: Self, rhs: Self) -> Self {
-        let result = utils::conditional_assign(predicate, rhs.to_field(), lhs.to_field());
-        Self { inner: result }
     }
 }
 

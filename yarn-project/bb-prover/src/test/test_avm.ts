@@ -1,10 +1,10 @@
 import {
   AztecAddress,
+  BlockHeader,
   ContractStorageRead,
   ContractStorageUpdateRequest,
   Gas,
   GlobalVariables,
-  Header,
   L2ToL1Message,
   LogHash,
   MAX_ENQUEUED_CALLS_PER_CALL,
@@ -28,7 +28,7 @@ import {
 } from '@aztec/circuits.js';
 import { computeVarArgsHash } from '@aztec/circuits.js/hash';
 import { padArrayEnd } from '@aztec/foundation/collection';
-import { type PublicFunctionCallResult } from '@aztec/simulator';
+import { type PublicFunctionCallResult } from '@aztec/simulator/server';
 
 // TODO: pub somewhere more usable - copied from abstract phase manager
 export function getPublicInputs(result: PublicFunctionCallResult): PublicCircuitPublicInputs {
@@ -74,7 +74,7 @@ export function getPublicInputs(result: PublicFunctionCallResult): PublicCircuit
     ),
     publicCallRequests: padArrayEnd([], PublicInnerCallRequest.empty(), MAX_ENQUEUED_CALLS_PER_CALL),
     unencryptedLogsHashes: padArrayEnd(result.unencryptedLogsHashes, LogHash.empty(), MAX_UNENCRYPTED_LOGS_PER_CALL),
-    historicalHeader: Header.empty(),
+    historicalHeader: BlockHeader.empty(),
     globalVariables: GlobalVariables.empty(),
     startGasLeft: Gas.from(result.startGasLeft),
     endGasLeft: Gas.from(result.endGasLeft),

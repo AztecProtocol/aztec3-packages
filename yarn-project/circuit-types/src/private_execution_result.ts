@@ -8,15 +8,7 @@ import { type FieldsOf } from '@aztec/foundation/types';
 
 import { z } from 'zod';
 
-import {
-  EncryptedFunctionL2Logs,
-  EncryptedL2Log,
-  EncryptedL2NoteLog,
-  EncryptedNoteFunctionL2Logs,
-  Note,
-  UnencryptedFunctionL2Logs,
-  UnencryptedL2Log,
-} from './logs/index.js';
+import { Note, UnencryptedFunctionL2Logs, UnencryptedL2Log } from './logs/index.js';
 import { PublicExecutionRequest } from './public_execution_request.js';
 
 /**
@@ -51,56 +43,24 @@ export class NoteAndSlot {
   }
 }
 
-export class CountedLog<TLog extends UnencryptedL2Log | EncryptedL2NoteLog | EncryptedL2Log> implements IsEmpty {
-  constructor(public log: TLog, public counter: number) {}
+export class CountedContractClassLog implements IsEmpty {
+  constructor(public log: UnencryptedL2Log, public counter: number) {}
 
-  static get schema(): ZodFor<CountedLog<UnencryptedL2Log | EncryptedL2NoteLog | EncryptedL2Log>> {
+  static get schema() {
     return z
       .object({
-        log: z.union([EncryptedL2Log.schema, EncryptedL2NoteLog.schema, UnencryptedL2Log.schema]),
+        log: UnencryptedL2Log.schema,
         counter: schemas.Integer,
       })
-      .transform(CountedLog.from);
+      .transform(CountedContractClassLog.from);
   }
 
-  static schemaFor<TLog extends UnencryptedL2Log | EncryptedL2NoteLog | EncryptedL2Log>(log: { schema: ZodFor<TLog> }) {
-    return z
-      .object({
-        log: log.schema,
-        counter: schemas.Integer,
-      })
-      .transform(({ log, counter }) => new CountedLog(log!, counter) as CountedLog<TLog>) as ZodFor<CountedLog<TLog>>;
-  }
-
-  static from<TLog extends UnencryptedL2Log | EncryptedL2NoteLog | EncryptedL2Log>(fields: {
-    log: TLog;
-    counter: number;
-  }): CountedLog<TLog> {
-    return new CountedLog(fields.log, fields.counter);
+  static from(fields: { log: UnencryptedL2Log; counter: number }) {
+    return new CountedContractClassLog(fields.log, fields.counter);
   }
 
   isEmpty(): boolean {
     return !this.log.data.length && !this.counter;
-  }
-}
-
-export class CountedNoteLog extends CountedLog<EncryptedL2NoteLog> {
-  constructor(log: EncryptedL2NoteLog, counter: number, public noteHashCounter: number) {
-    super(log, counter);
-  }
-
-  static override get schema(): ZodFor<CountedNoteLog> {
-    return z
-      .object({
-        log: EncryptedL2NoteLog.schema,
-        counter: schemas.Integer,
-        noteHashCounter: schemas.Integer,
-      })
-      .transform(({ log, counter, noteHashCounter }) => new CountedNoteLog(log, counter, noteHashCounter));
-  }
-
-  static random() {
-    return new CountedNoteLog(EncryptedL2NoteLog.random(), randomInt(10), randomInt(10));
   }
 }
 
@@ -129,10 +89,35 @@ export class CountedPublicExecutionRequest {
   }
 }
 
-/**
- * The result of executing a private function.
- */
 export class PrivateExecutionResult {
+  constructor(
+    public entrypoint: PrivateCallExecutionResult,
+    /** The first non revertible nullifier, or zero if there was none. */
+    public firstNullifier: Fr,
+  ) {}
+
+  static get schema(): ZodFor<PrivateExecutionResult> {
+    return z
+      .object({
+        entrypoint: PrivateCallExecutionResult.schema,
+        firstNullifier: Fr.schema,
+      })
+      .transform(PrivateExecutionResult.from);
+  }
+
+  static from(fields: FieldsOf<PrivateExecutionResult>) {
+    return new PrivateExecutionResult(fields.entrypoint, fields.firstNullifier);
+  }
+
+  static random(nested = 1): PrivateExecutionResult {
+    return new PrivateExecutionResult(PrivateCallExecutionResult.random(nested), Fr.random());
+  }
+}
+
+/**
+ * The result of executing a call to a private function.
+ */
+export class PrivateCallExecutionResult {
   constructor(
     // Needed for prover
     /** The ACIR bytecode. */
@@ -153,29 +138,19 @@ export class PrivateExecutionResult {
     /** The raw return values of the executed function. */
     public returnValues: Fr[],
     /** The nested executions. */
-    public nestedExecutions: PrivateExecutionResult[],
+    public nestedExecutions: PrivateCallExecutionResult[],
     /** Enqueued public function execution requests to be picked up by the sequencer. */
     public enqueuedPublicFunctionCalls: CountedPublicExecutionRequest[],
     /** Public function execution requested for teardown */
     public publicTeardownFunctionCall: PublicExecutionRequest,
     /**
-     * Encrypted note logs emitted during execution of this function call.
-     * Note: These are preimages to `noteEncryptedLogsHashes`.
-     */
-    public noteEncryptedLogs: CountedNoteLog[],
-    /**
-     * Encrypted logs emitted during execution of this function call.
-     * Note: These are preimages to `encryptedLogsHashes`.
-     */
-    public encryptedLogs: CountedLog<EncryptedL2Log>[],
-    /**
      * Contract class logs emitted during execution of this function call.
      * Note: These are preimages to `contractClassLogsHashes`.
      */
-    public contractClassLogs: CountedLog<UnencryptedL2Log>[],
+    public contractClassLogs: CountedContractClassLog[],
   ) {}
 
-  static get schema(): ZodFor<PrivateExecutionResult> {
+  static get schema(): ZodFor<PrivateCallExecutionResult> {
     return z
       .object({
         acir: schemas.Buffer,
@@ -186,18 +161,16 @@ export class PrivateExecutionResult {
         newNotes: z.array(NoteAndSlot.schema),
         noteHashNullifierCounterMap: mapSchema(z.coerce.number(), z.number()),
         returnValues: z.array(schemas.Fr),
-        nestedExecutions: z.array(z.lazy(() => PrivateExecutionResult.schema)),
+        nestedExecutions: z.array(z.lazy(() => PrivateCallExecutionResult.schema)),
         enqueuedPublicFunctionCalls: z.array(CountedPublicExecutionRequest.schema),
         publicTeardownFunctionCall: PublicExecutionRequest.schema,
-        noteEncryptedLogs: z.array(CountedNoteLog.schema),
-        encryptedLogs: z.array(CountedLog.schemaFor(EncryptedL2Log)),
-        contractClassLogs: z.array(CountedLog.schemaFor(UnencryptedL2Log)),
+        contractClassLogs: z.array(CountedContractClassLog.schema),
       })
-      .transform(PrivateExecutionResult.from);
+      .transform(PrivateCallExecutionResult.from);
   }
 
-  static from(fields: FieldsOf<PrivateExecutionResult>) {
-    return new PrivateExecutionResult(
+  static from(fields: FieldsOf<PrivateCallExecutionResult>) {
+    return new PrivateCallExecutionResult(
       fields.acir,
       fields.vk,
       fields.partialWitness,
@@ -209,14 +182,12 @@ export class PrivateExecutionResult {
       fields.nestedExecutions,
       fields.enqueuedPublicFunctionCalls,
       fields.publicTeardownFunctionCall,
-      fields.noteEncryptedLogs,
-      fields.encryptedLogs,
       fields.contractClassLogs,
     );
   }
 
-  static random(nested = 1): PrivateExecutionResult {
-    return new PrivateExecutionResult(
+  static random(nested = 1): PrivateCallExecutionResult {
+    return new PrivateCallExecutionResult(
       randomBytes(4),
       randomBytes(4),
       new Map([[1, 'one']]),
@@ -225,88 +196,35 @@ export class PrivateExecutionResult {
       [NoteAndSlot.random()],
       new Map([[0, 0]]),
       [Fr.random()],
-      times(nested, () => PrivateExecutionResult.random(0)),
+      times(nested, () => PrivateCallExecutionResult.random(0)),
       [CountedPublicExecutionRequest.random()],
       PublicExecutionRequest.random(),
-      [CountedNoteLog.random()],
-      [new CountedLog(EncryptedL2Log.random(), randomInt(10))],
-      [new CountedLog(UnencryptedL2Log.random(), randomInt(10))],
+      [new CountedContractClassLog(UnencryptedL2Log.random(), randomInt(10))],
     );
   }
 }
 
-export function collectNoteHashLeafIndexMap(
-  execResult: PrivateExecutionResult,
-  accum: Map<bigint, bigint> = new Map(),
-) {
-  execResult.noteHashLeafIndexMap.forEach((value, key) => accum.set(key, value));
-  execResult.nestedExecutions.forEach(nested => collectNoteHashLeafIndexMap(nested, accum));
+export function collectNoteHashLeafIndexMap(execResult: PrivateExecutionResult) {
+  const accum: Map<bigint, bigint> = new Map();
+  const collectNoteHashLeafIndexMapRecursive = (callResult: PrivateCallExecutionResult, accum: Map<bigint, bigint>) => {
+    callResult.noteHashLeafIndexMap.forEach((value, key) => accum.set(key, value));
+    callResult.nestedExecutions.forEach(nested => collectNoteHashLeafIndexMapRecursive(nested, accum));
+  };
+  collectNoteHashLeafIndexMapRecursive(execResult.entrypoint, accum);
   return accum;
 }
 
-export function collectNoteHashNullifierCounterMap(
-  execResult: PrivateExecutionResult,
-  accum: Map<number, number> = new Map(),
-) {
-  execResult.noteHashNullifierCounterMap.forEach((value, key) => accum.set(key, value));
-  execResult.nestedExecutions.forEach(nested => collectNoteHashNullifierCounterMap(nested, accum));
+export function collectNoteHashNullifierCounterMap(execResult: PrivateExecutionResult) {
+  const accum: Map<number, number> = new Map();
+  const collectNoteHashNullifierCounterMapRecursive = (
+    callResult: PrivateCallExecutionResult,
+    accum: Map<number, number>,
+  ) => {
+    callResult.noteHashNullifierCounterMap.forEach((value, key) => accum.set(key, value));
+    callResult.nestedExecutions.forEach(nested => collectNoteHashNullifierCounterMapRecursive(nested, accum));
+  };
+  collectNoteHashNullifierCounterMapRecursive(execResult.entrypoint, accum);
   return accum;
-}
-
-/**
- * Collect all encrypted logs across all nested executions.
- * @param execResult - The topmost execution result.
- * @returns All encrypted logs.
- */
-function collectNoteEncryptedLogs(
-  execResult: PrivateExecutionResult,
-  noteHashNullifierCounterMap: Map<number, number>,
-  minRevertibleSideEffectCounter: number,
-): CountedLog<EncryptedL2NoteLog>[] {
-  return [
-    execResult.noteEncryptedLogs.filter(noteLog => {
-      const nullifierCounter = noteHashNullifierCounterMap.get(noteLog.noteHashCounter);
-      return (
-        nullifierCounter === undefined ||
-        (noteLog.noteHashCounter < minRevertibleSideEffectCounter && nullifierCounter >= minRevertibleSideEffectCounter)
-      );
-    }),
-    ...execResult.nestedExecutions.flatMap(res =>
-      collectNoteEncryptedLogs(res, noteHashNullifierCounterMap, minRevertibleSideEffectCounter),
-    ),
-  ].flat();
-}
-
-/**
- * Collect all encrypted logs across all nested executions and sorts by counter.
- * @param execResult - The topmost execution result.
- * @returns All encrypted logs.
- */
-export function collectSortedNoteEncryptedLogs(execResult: PrivateExecutionResult): EncryptedNoteFunctionL2Logs {
-  const noteHashNullifierCounterMap = collectNoteHashNullifierCounterMap(execResult);
-  const minRevertibleSideEffectCounter = getFinalMinRevertibleSideEffectCounter(execResult);
-  const allLogs = collectNoteEncryptedLogs(execResult, noteHashNullifierCounterMap, minRevertibleSideEffectCounter);
-  const sortedLogs = sortByCounter(allLogs);
-  return new EncryptedNoteFunctionL2Logs(sortedLogs.map(l => l.log));
-}
-/**
- * Collect all encrypted logs across all nested executions.
- * @param execResult - The topmost execution result.
- * @returns All encrypted logs.
- */
-function collectEncryptedLogs(execResult: PrivateExecutionResult): CountedLog<EncryptedL2Log>[] {
-  return [execResult.encryptedLogs, ...execResult.nestedExecutions.flatMap(collectEncryptedLogs)].flat();
-}
-
-/**
- * Collect all encrypted logs across all nested executions and sorts by counter.
- * @param execResult - The topmost execution result.
- * @returns All encrypted logs.
- */
-export function collectSortedEncryptedLogs(execResult: PrivateExecutionResult): EncryptedFunctionL2Logs {
-  const allLogs = collectEncryptedLogs(execResult);
-  const sortedLogs = sortByCounter(allLogs);
-  return new EncryptedFunctionL2Logs(sortedLogs.map(l => l.log));
 }
 
 /**
@@ -314,7 +232,7 @@ export function collectSortedEncryptedLogs(execResult: PrivateExecutionResult): 
  * @param execResult - The topmost execution result.
  * @returns All contract class logs.
  */
-function collectContractClassLogs(execResult: PrivateExecutionResult): CountedLog<UnencryptedL2Log>[] {
+function collectContractClassLogs(execResult: PrivateCallExecutionResult): CountedContractClassLog[] {
   return [execResult.contractClassLogs, ...execResult.nestedExecutions.flatMap(collectContractClassLogs)].flat();
 }
 
@@ -324,13 +242,13 @@ function collectContractClassLogs(execResult: PrivateExecutionResult): CountedLo
  * @returns All contract class logs.
  */
 export function collectSortedContractClassLogs(execResult: PrivateExecutionResult): UnencryptedFunctionL2Logs {
-  const allLogs = collectContractClassLogs(execResult);
+  const allLogs = collectContractClassLogs(execResult.entrypoint);
   const sortedLogs = sortByCounter(allLogs);
   return new UnencryptedFunctionL2Logs(sortedLogs.map(l => l.log));
 }
 
 function collectEnqueuedCountedPublicExecutionRequests(
-  execResult: PrivateExecutionResult,
+  execResult: PrivateCallExecutionResult,
 ): CountedPublicExecutionRequest[] {
   return [
     ...execResult.enqueuedPublicFunctionCalls,
@@ -344,17 +262,22 @@ function collectEnqueuedCountedPublicExecutionRequests(
  * @returns All enqueued public function calls.
  */
 export function collectEnqueuedPublicFunctionCalls(execResult: PrivateExecutionResult): PublicExecutionRequest[] {
-  const countedRequests = collectEnqueuedCountedPublicExecutionRequests(execResult);
+  const countedRequests = collectEnqueuedCountedPublicExecutionRequests(execResult.entrypoint);
   // without the reverse sort, the logs will be in a queue like fashion which is wrong
   // as the kernel processes it like a stack, popping items off and pushing them to output
   return sortByCounter(countedRequests, false).map(r => r.request);
 }
 
 export function collectPublicTeardownFunctionCall(execResult: PrivateExecutionResult): PublicExecutionRequest {
-  const teardownCalls = [
-    execResult.publicTeardownFunctionCall,
-    ...execResult.nestedExecutions.flatMap(collectPublicTeardownFunctionCall),
-  ].filter(call => !call.isEmpty());
+  const collectPublicTeardownFunctionCallRecursive = (
+    callResult: PrivateCallExecutionResult,
+  ): PublicExecutionRequest[] => {
+    return [
+      callResult.publicTeardownFunctionCall,
+      ...callResult.nestedExecutions.flatMap(collectPublicTeardownFunctionCallRecursive),
+    ].filter(call => !call.isEmpty());
+  };
+  const teardownCalls = collectPublicTeardownFunctionCallRecursive(execResult.entrypoint);
 
   if (teardownCalls.length === 1) {
     return teardownCalls[0];
@@ -368,15 +291,18 @@ export function collectPublicTeardownFunctionCall(execResult: PrivateExecutionRe
 }
 
 export function getFinalMinRevertibleSideEffectCounter(execResult: PrivateExecutionResult): number {
-  return execResult.nestedExecutions.reduce((counter, exec) => {
-    const nestedCounter = getFinalMinRevertibleSideEffectCounter(exec);
-    return nestedCounter ? nestedCounter : counter;
-  }, execResult.publicInputs.minRevertibleSideEffectCounter.toNumber());
+  const collectFinalMinRevertibleSideEffectCounterRecursive = (callResult: PrivateCallExecutionResult): number => {
+    return callResult.nestedExecutions.reduce((counter, exec) => {
+      const nestedCounter = collectFinalMinRevertibleSideEffectCounterRecursive(exec);
+      return nestedCounter ? nestedCounter : counter;
+    }, callResult.publicInputs.minRevertibleSideEffectCounter.toNumber());
+  };
+  return collectFinalMinRevertibleSideEffectCounterRecursive(execResult.entrypoint);
 }
 
 export function collectNested<T>(
-  executionStack: PrivateExecutionResult[],
-  extractExecutionItems: (execution: PrivateExecutionResult) => T[],
+  executionStack: PrivateCallExecutionResult[],
+  extractExecutionItems: (execution: PrivateCallExecutionResult) => T[],
 ): T[] {
   const thisExecutionReads = executionStack.flatMap(extractExecutionItems);
 

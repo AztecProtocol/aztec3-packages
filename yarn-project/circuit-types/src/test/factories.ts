@@ -2,6 +2,7 @@ import {
   AvmCircuitInputs,
   AvmCircuitPublicInputs,
   AvmExecutionHints,
+  type BlockHeader,
   FIXED_DA_GAS,
   FIXED_L2_GAS,
   Fr,
@@ -9,23 +10,23 @@ import {
   GasFees,
   GasSettings,
   GlobalVariables,
-  type Header,
-  LogHash,
   MAX_NULLIFIERS_PER_TX,
-  MAX_PUBLIC_DATA_UPDATE_REQUESTS_PER_TX,
+  MAX_TOTAL_PUBLIC_DATA_UPDATE_REQUESTS_PER_TX,
   PublicCircuitPublicInputs,
   PublicDataWrite,
   RevertCode,
   ScopedLogHash,
   TxConstantData,
+  mergeAccumulatedData,
 } from '@aztec/circuits.js';
-import { makeCombinedAccumulatedData, makePrivateToPublicAccumulatedData } from '@aztec/circuits.js/testing';
+import { makePrivateToPublicAccumulatedData, makePrivateToRollupAccumulatedData } from '@aztec/circuits.js/testing';
 import { makeTuple } from '@aztec/foundation/array';
 
 import { type MerkleTreeReadOperations } from '../interfaces/merkle_tree_operations.js';
 import { ProvingRequestType } from '../interfaces/proving-job.js';
 import { makeHeader } from '../l2_block_code_to_purge.js';
 import { mockTx } from '../mocks.js';
+import { type GasUsed } from '../tx/gas_used.js';
 import { makeProcessedTxFromPrivateOnlyTx, makeProcessedTxFromTxWithPublicCalls } from '../tx/processed_tx.js';
 
 /** Makes a bloated processed tx for testing purposes. */
@@ -42,7 +43,7 @@ export function makeBloatedProcessedTx({
   privateOnly = false,
 }: {
   seed?: number;
-  header?: Header;
+  header?: BlockHeader;
   db?: MerkleTreeReadOperations;
   chainId?: Fr;
   version?: Fr;
@@ -53,14 +54,7 @@ export function makeBloatedProcessedTx({
   privateOnly?: boolean;
 } = {}) {
   seed *= 0x1000; // Avoid clashing with the previous mock values if seed only increases by 1.
-
-  if (!header) {
-    if (db) {
-      header = db.getInitialHeader();
-    } else {
-      header = makeHeader(seed);
-    }
-  }
+  header ??= db?.getInitialHeader() ?? makeHeader(seed);
 
   const txConstantData = TxConstantData.empty();
   txConstantData.historicalHeader = header;
@@ -79,10 +73,7 @@ export function makeBloatedProcessedTx({
   tx.data.gasUsed = Gas.from({ daGas: FIXED_DA_GAS, l2Gas: FIXED_L2_GAS });
 
   if (privateOnly) {
-    const data = makeCombinedAccumulatedData(seed + 0x1000);
-
-    // Private-only tx has no public data writes.
-    data.publicDataWrites.forEach((_, i) => (data.publicDataWrites[i] = PublicDataWrite.empty()));
+    const data = makePrivateToRollupAccumulatedData(seed + 0x1000);
 
     const transactionFee = tx.data.gasUsed.computeFee(globalVariables.gasFees);
 
@@ -97,6 +88,7 @@ export function makeBloatedProcessedTx({
       globalVariables,
     );
   } else {
+    const nonRevertibleData = tx.data.forPublic!.nonRevertibleAccumulatedData;
     const revertibleData = makePrivateToPublicAccumulatedData(seed + 0x1000);
 
     revertibleData.nullifiers[MAX_NULLIFIERS_PER_TX - 1] = Fr.ZERO; // Leave one space for the tx hash nullifier in nonRevertibleAccumulatedData.
@@ -108,10 +100,14 @@ export function makeBloatedProcessedTx({
     const avmOutput = AvmCircuitPublicInputs.empty();
     avmOutput.globalVariables = globalVariables;
     avmOutput.accumulatedData.noteHashes = revertibleData.noteHashes;
-    avmOutput.accumulatedData.nullifiers = revertibleData.nullifiers;
+    avmOutput.accumulatedData.nullifiers = mergeAccumulatedData(
+      nonRevertibleData.nullifiers,
+      revertibleData.nullifiers,
+      MAX_NULLIFIERS_PER_TX,
+    );
     avmOutput.accumulatedData.l2ToL1Msgs = revertibleData.l2ToL1Msgs;
     avmOutput.accumulatedData.publicDataWrites = makeTuple(
-      MAX_PUBLIC_DATA_UPDATE_REQUESTS_PER_TX,
+      MAX_TOTAL_PUBLIC_DATA_UPDATE_REQUESTS_PER_TX,
       i => new PublicDataWrite(new Fr(i), new Fr(i + 10)),
       seed + 0x2000,
     );
@@ -127,7 +123,8 @@ export function makeBloatedProcessedTx({
     const gasUsed = {
       totalGas: Gas.empty(),
       teardownGas: Gas.empty(),
-    };
+      publicGas: Gas.empty(),
+    } satisfies GasUsed;
 
     return makeProcessedTxFromTxWithPublicCalls(
       tx,
@@ -135,7 +132,6 @@ export function makeBloatedProcessedTx({
         type: ProvingRequestType.PUBLIC_VM,
         inputs: avmCircuitInputs,
       },
-      undefined /* feePaymentPublicDataWrite */,
       gasUsed,
       RevertCode.OK,
       undefined /* revertReason */,
@@ -144,14 +140,7 @@ export function makeBloatedProcessedTx({
 }
 
 // Remove all logs as it's ugly to mock them at the moment and we are going to change it to have the preimages be part of the public inputs soon.
-function clearLogs(data: {
-  noteEncryptedLogsHashes: LogHash[];
-  encryptedLogsHashes: ScopedLogHash[];
-  unencryptedLogsHashes?: ScopedLogHash[];
-  contractClassLogsHashes: ScopedLogHash[];
-}) {
-  data.noteEncryptedLogsHashes.forEach((_, i) => (data.noteEncryptedLogsHashes[i] = LogHash.empty()));
-  data.encryptedLogsHashes.forEach((_, i) => (data.encryptedLogsHashes[i] = ScopedLogHash.empty()));
+function clearLogs(data: { unencryptedLogsHashes?: ScopedLogHash[]; contractClassLogsHashes: ScopedLogHash[] }) {
   data.unencryptedLogsHashes?.forEach((_, i) => (data.unencryptedLogsHashes![i] = ScopedLogHash.empty()));
   data.contractClassLogsHashes.forEach((_, i) => (data.contractClassLogsHashes[i] = ScopedLogHash.empty()));
 }

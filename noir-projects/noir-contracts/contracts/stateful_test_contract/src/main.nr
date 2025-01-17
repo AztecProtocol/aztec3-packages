@@ -2,7 +2,7 @@
 use dep::aztec::macros::aztec;
 
 #[aztec]
-contract StatefulTest {
+pub contract StatefulTest {
     use dep::aztec::{
         initializer::assert_is_initialized_private,
         macros::{functions::{initializer, noinitcheck, private, public, view}, storage::storage},

@@ -1,5 +1,5 @@
-use dep::aztec::note::note_interface::NoteInterface;
 use crate::{Test, test_note::TestNote};
+use dep::aztec::note::note_interface::NoteInterface;
 use dep::uint_note::uint_note::UintNote;
 use dep::value_note::value_note::ValueNote;
 

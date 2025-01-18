@@ -33,8 +33,10 @@ impl Eq for L2ToL1Message {
     }
 }
 
-impl Serialize<L2_TO_L1_MESSAGE_LENGTH> for L2ToL1Message {
-    fn serialize(self) -> [Field; L2_TO_L1_MESSAGE_LENGTH] {
+impl Serialize for L2ToL1Message {
+    let N = L2_TO_L1_MESSAGE_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
         [self.recipient.to_field(), self.content, self.counter as Field]
     }
 }
@@ -104,8 +106,10 @@ impl Empty for ScopedL2ToL1Message {
     }
 }
 
-impl Serialize<SCOPED_L2_TO_L1_MESSAGE_LENGTH> for ScopedL2ToL1Message {
-    fn serialize(self) -> [Field; SCOPED_L2_TO_L1_MESSAGE_LENGTH] {
+impl Serialize for ScopedL2ToL1Message {
+    let N = SCOPED_L2_TO_L1_MESSAGE_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
         array_concat(self.message.serialize(), [self.contract_address.to_field()])
     }
 }

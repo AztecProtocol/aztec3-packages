@@ -45,10 +45,11 @@ impl Eq for PrivateToPublicAccumulatedData {
     }
 }
 
-impl Serialize<PRIVATE_TO_PUBLIC_ACCUMULATED_DATA_LENGTH> for PrivateToPublicAccumulatedData {
-    fn serialize(self) -> [Field; PRIVATE_TO_PUBLIC_ACCUMULATED_DATA_LENGTH] {
-        let mut fields: BoundedVec<Field, PRIVATE_TO_PUBLIC_ACCUMULATED_DATA_LENGTH> =
-            BoundedVec::new();
+impl Serialize for PrivateToPublicAccumulatedData {
+    let N = PRIVATE_TO_PUBLIC_ACCUMULATED_DATA_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
+        let mut fields: BoundedVec<Field, Self::N> = BoundedVec::new();
 
         fields.extend_from_array(self.note_hashes);
         fields.extend_from_array(self.nullifiers);
@@ -65,7 +66,7 @@ impl Serialize<PRIVATE_TO_PUBLIC_ACCUMULATED_DATA_LENGTH> for PrivateToPublicAcc
             fields.extend_from_array(self.public_call_requests[i].serialize());
         }
 
-        assert_eq(fields.len(), PRIVATE_TO_PUBLIC_ACCUMULATED_DATA_LENGTH);
+        assert_eq(fields.len(), Self::N);
 
         fields.storage()
     }

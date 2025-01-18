@@ -50,9 +50,11 @@ impl Empty for PrivateCallRequest {
     }
 }
 
-impl Serialize<PRIVATE_CALL_REQUEST_LENGTH> for PrivateCallRequest {
-    fn serialize(self) -> [Field; PRIVATE_CALL_REQUEST_LENGTH] {
-        let mut fields: BoundedVec<Field, PRIVATE_CALL_REQUEST_LENGTH> = BoundedVec::new();
+impl Serialize for PrivateCallRequest {
+    let N = PRIVATE_CALL_REQUEST_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
+        let mut fields: BoundedVec<Field, Self::N> = BoundedVec::new();
 
         fields.extend_from_array(self.call_context.serialize());
         fields.push(self.args_hash);
@@ -60,7 +62,7 @@ impl Serialize<PRIVATE_CALL_REQUEST_LENGTH> for PrivateCallRequest {
         fields.push(self.start_side_effect_counter as Field);
         fields.push(self.end_side_effect_counter as Field);
 
-        assert_eq(fields.len(), PRIVATE_CALL_REQUEST_LENGTH);
+        assert_eq(fields.len(), Self::N);
 
         fields.storage()
     }

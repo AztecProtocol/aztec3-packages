@@ -32,9 +32,11 @@ impl GlobalVariables {
     }
 }
 
-impl Serialize<GLOBAL_VARIABLES_LENGTH> for GlobalVariables {
-    fn serialize(self) -> [Field; GLOBAL_VARIABLES_LENGTH] {
-        let mut serialized: BoundedVec<Field, GLOBAL_VARIABLES_LENGTH> = BoundedVec::new();
+impl Serialize for GlobalVariables {
+    let N = GLOBAL_VARIABLES_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
+        let mut serialized: BoundedVec<Field, Self::N> = BoundedVec::new();
 
         serialized.push(self.chain_id);
         serialized.push(self.version);

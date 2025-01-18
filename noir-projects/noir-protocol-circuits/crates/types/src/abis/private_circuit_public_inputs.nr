@@ -118,9 +118,11 @@ impl Eq for PrivateCircuitPublicInputs {
     }
 }
 
-impl Serialize<PRIVATE_CIRCUIT_PUBLIC_INPUTS_LENGTH> for PrivateCircuitPublicInputs {
-    fn serialize(self) -> [Field; PRIVATE_CIRCUIT_PUBLIC_INPUTS_LENGTH] {
-        let mut fields: BoundedVec<Field, PRIVATE_CIRCUIT_PUBLIC_INPUTS_LENGTH> = BoundedVec::new();
+impl Serialize for PrivateCircuitPublicInputs {
+    let N = PRIVATE_CIRCUIT_PUBLIC_INPUTS_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
+        let mut fields: BoundedVec<Field, Self::N> = BoundedVec::new();
         fields.extend_from_array(self.call_context.serialize());
         fields.push(self.args_hash);
         fields.push(self.returns_hash);
@@ -166,7 +168,7 @@ impl Serialize<PRIVATE_CIRCUIT_PUBLIC_INPUTS_LENGTH> for PrivateCircuitPublicInp
         fields.extend_from_array(self.historical_header.serialize());
         fields.extend_from_array(self.tx_context.serialize());
 
-        assert_eq(fields.len(), PRIVATE_CIRCUIT_PUBLIC_INPUTS_LENGTH);
+        assert_eq(fields.len(), Self::N);
 
         fields.storage()
     }

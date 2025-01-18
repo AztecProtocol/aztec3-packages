@@ -29,8 +29,10 @@ impl Empty for KeyValidationRequestAndGenerator {
     }
 }
 
-impl Serialize<KEY_VALIDATION_REQUEST_AND_GENERATOR_LENGTH> for KeyValidationRequestAndGenerator {
-    fn serialize(self) -> [Field; KEY_VALIDATION_REQUEST_AND_GENERATOR_LENGTH] {
+impl Serialize for KeyValidationRequestAndGenerator {
+    let N = KEY_VALIDATION_REQUEST_AND_GENERATOR_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
         array_concat(self.request.serialize(), [self.sk_app_generator])
     }
 }

@@ -11,8 +11,10 @@ impl Eq for EventSelector {
     }
 }
 
-impl Serialize<1> for EventSelector {
-    fn serialize(self: Self) -> [Field; 1] {
+impl Serialize for EventSelector {
+    let N = 1;
+
+    fn serialize(self: Self) -> [Field; Self::N] {
         [self.inner as Field]
     }
 }

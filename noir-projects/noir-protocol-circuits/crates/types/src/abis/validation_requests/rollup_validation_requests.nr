@@ -17,8 +17,10 @@ impl Empty for RollupValidationRequests {
     }
 }
 
-impl Serialize<ROLLUP_VALIDATION_REQUESTS_LENGTH> for RollupValidationRequests {
-    fn serialize(self) -> [Field; ROLLUP_VALIDATION_REQUESTS_LENGTH] {
+impl Serialize for RollupValidationRequests {
+    let N = ROLLUP_VALIDATION_REQUESTS_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
         MaxBlockNumber::serialize(self.max_block_number)
     }
 }

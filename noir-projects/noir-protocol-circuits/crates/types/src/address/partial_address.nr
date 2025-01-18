@@ -19,8 +19,10 @@ impl ToField for PartialAddress {
     }
 }
 
-impl Serialize<PARTIAL_ADDRESS_LENGTH> for PartialAddress {
-    fn serialize(self: Self) -> [Field; PARTIAL_ADDRESS_LENGTH] {
+impl Serialize for PartialAddress {
+    let N = PARTIAL_ADDRESS_LENGTH;
+
+    fn serialize(self: Self) -> [Field; Self::N] {
         [self.to_field()]
     }
 }

@@ -43,9 +43,11 @@ impl Empty for GasSettings {
     }
 }
 
-impl Serialize<GAS_SETTINGS_LENGTH> for GasSettings {
-    fn serialize(self) -> [Field; GAS_SETTINGS_LENGTH] {
-        let mut serialized: BoundedVec<Field, GAS_SETTINGS_LENGTH> = BoundedVec::new();
+impl Serialize for GasSettings {
+    let N = GAS_SETTINGS_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
+        let mut serialized: BoundedVec<Field, Self::N> = BoundedVec::new();
 
         serialized.extend_from_array(self.gas_limits.serialize());
         serialized.extend_from_array(self.teardown_gas_limits.serialize());

@@ -179,8 +179,10 @@ pub(crate) comptime fn derive_serialize(s: StructDefinition) -> Quoted {
     let field_serializations = fields.join(quote {,});
     let serialized_len = fields.len();
     quote {
-        impl Serialize<$serialized_len> for $typ {
-            fn serialize(self) -> [Field; $serialized_len] {
+        impl Serialize for $typ {
+            let N = $serialized_len;
+
+            fn serialize(self) -> [Field; Self::N] {
                 $aux_vars_for_serialization
                 [ $field_serializations ]
             }

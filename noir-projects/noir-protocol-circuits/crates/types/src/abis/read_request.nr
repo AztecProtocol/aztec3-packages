@@ -29,8 +29,10 @@ impl Empty for ReadRequest {
     }
 }
 
-impl Serialize<READ_REQUEST_LENGTH> for ReadRequest {
-    fn serialize(self) -> [Field; READ_REQUEST_LENGTH] {
+impl Serialize for ReadRequest {
+    let N = READ_REQUEST_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
         [self.value, self.counter as Field]
     }
 }
@@ -77,8 +79,10 @@ impl Empty for ScopedReadRequest {
     }
 }
 
-impl Serialize<SCOPED_READ_REQUEST_LEN> for ScopedReadRequest {
-    fn serialize(self) -> [Field; SCOPED_READ_REQUEST_LEN] {
+impl Serialize for ScopedReadRequest {
+    let N = SCOPED_READ_REQUEST_LEN;
+
+    fn serialize(self) -> [Field; Self::N] {
         array_concat(
             self.read_request.serialize(),
             [self.contract_address.to_field()],

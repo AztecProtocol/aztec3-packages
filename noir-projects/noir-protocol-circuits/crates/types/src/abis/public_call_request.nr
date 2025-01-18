@@ -40,9 +40,11 @@ impl Empty for PublicCallRequest {
     }
 }
 
-impl Serialize<PUBLIC_CALL_REQUEST_LENGTH> for PublicCallRequest {
-    fn serialize(self) -> [Field; PUBLIC_CALL_REQUEST_LENGTH] {
-        let mut fields: BoundedVec<Field, PUBLIC_CALL_REQUEST_LENGTH> = BoundedVec::new();
+impl Serialize for PublicCallRequest {
+    let N = PUBLIC_CALL_REQUEST_LENGTH;
+
+    fn serialize(self) -> [Field; Self::N] {
+        let mut fields: BoundedVec<Field, Self::N> = BoundedVec::new();
 
         fields.push(self.msg_sender.to_field());
         fields.push(self.contract_address.to_field());
@@ -50,7 +52,7 @@ impl Serialize<PUBLIC_CALL_REQUEST_LENGTH> for PublicCallRequest {
         fields.push(self.is_static_call as Field);
         fields.push(self.args_hash);
 
-        assert_eq(fields.len(), PUBLIC_CALL_REQUEST_LENGTH);
+        assert_eq(fields.len(), Self::N);
 
         fields.storage()
     }

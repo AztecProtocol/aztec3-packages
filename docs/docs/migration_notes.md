@@ -7,6 +7,17 @@ keywords: [sandbox, aztec, notes, migration, updating, upgrading]
 Aztec is in full-speed development. Literally every version breaks compatibility with the previous ones. This page attempts to target errors and difficulties you might encounter when upgrading, and how to resolve them.
 
 ## TBD
+
+### [aztec.nr] Improved storage slot allocation
+
+State variables are no longer assumed to be generic over a type that implements the `Serialize` trait: instead, they must implement the `Storage` trait with an `N` value equal to the number of slots they need to reserve.
+
+For the vast majority of state variables, this simply means binding the serialization length to this trait:
+
+```diff
++ impl<T, let N: u32> Storage<N> for MyStateVar<T> where T: Serialize<N> { };
+```
+
 ### [Aztec.nr] Removal of `getSiblingPath` oracle
 Use `getMembershipWitness` oracle instead that returns both the sibling path and index.
 

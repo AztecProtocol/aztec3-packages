@@ -1,7 +1,18 @@
 import bindings from 'bindings';
 
-import { type NativeModule, wrap } from './native_class_wrapper.js';
+import { MessageChannel, MessageReceiver } from './message_channel.js';
 
-const nativeModule: NativeModule = bindings('nodejs_module');
+export interface NativeClass {
+  new (...args: unknown[]): MessageReceiver;
+}
 
-export const NativeWorldState = wrap('NativeWorldState', nativeModule.WorldState);
+const nativeModule: Record<string, NativeClass> = bindings('nodejs_module');
+
+function instantiate(klassName: string, ...args: unknown[]): MessageChannel {
+  const inst = new nativeModule[klassName](...args);
+  return new MessageChannel(inst);
+}
+
+export { type MessageChannel };
+export const instantiateWorldState = instantiate.bind(null, 'WorldState');
+export const instantiateLmdb = instantiate.bind(null, 'Lmdb');

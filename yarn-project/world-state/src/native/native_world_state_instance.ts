@@ -1,7 +1,6 @@
 import { MerkleTreeId } from '@aztec/circuit-types';
 import {
   ARCHIVE_HEIGHT,
-  Fr,
   GeneratorIndex,
   L1_TO_L2_MSG_TREE_HEIGHT,
   MAX_NULLIFIERS_PER_TX,
@@ -11,31 +10,15 @@ import {
   PUBLIC_DATA_TREE_HEIGHT,
 } from '@aztec/circuits.js';
 import { createLogger } from '@aztec/foundation/log';
+import { MessageHeader, TypedMessage } from '@aztec/foundation/message';
 import { SerialQueue } from '@aztec/foundation/queue';
-import { NativeWorldState as BaseNativeWorldState } from '@aztec/native';
+import { type MessageChannel, instantiateWorldState } from '@aztec/native';
 
 import assert from 'assert';
-import { addExtension } from 'msgpackr';
 import { cpus } from 'os';
 
 import { type WorldStateInstrumentation } from '../instrumentation/instrumentation.js';
-import {
-  MessageHeader,
-  TypedMessage,
-  WorldStateMessageType,
-  type WorldStateRequest,
-  type WorldStateResponse,
-} from './message.js';
-
-// small extension to pack an NodeJS Fr instance to a representation that the C++ code can understand
-// this only works for writes. Unpacking from C++ can't create Fr instances because the data is passed
-// as raw, untagged, buffers. On the NodeJS side we don't know what the buffer represents
-// Adding a tag would be a solution, but it would have to be done on both sides and it's unclear where else
-// C++ fr instances are sent/received/stored.
-addExtension({
-  Class: Fr,
-  write: fr => fr.toBuffer(),
-});
+import { WorldStateMessageType, type WorldStateRequest, type WorldStateResponse } from './message.js';
 
 const MAX_WORLD_STATE_THREADS = +(process.env.HARDWARE_CONCURRENCY || '16');
 const THREADS = Math.min(cpus().length, MAX_WORLD_STATE_THREADS);
@@ -47,7 +30,7 @@ export interface NativeWorldStateInstance {
 /**
  * Strongly-typed interface to access the WorldState class in the native nodejs_module library.
  */
-export class NativeWorldState extends BaseNativeWorldState implements NativeWorldStateInstance {
+export class NativeWorldState implements NativeWorldStateInstance {
   private open = true;
 
   /** Each message needs a unique ID */
@@ -55,6 +38,8 @@ export class NativeWorldState extends BaseNativeWorldState implements NativeWorl
 
   /** Calls to the same instance are serialized */
   private queue = new SerialQueue();
+
+  private channel: MessageChannel;
 
   /** Creates a new native WorldState instance */
   constructor(
@@ -67,7 +52,7 @@ export class NativeWorldState extends BaseNativeWorldState implements NativeWorl
       `Creating world state data store at directory ${dataDir} with map size ${dbMapSizeKb} KB and ${THREADS} threads.`,
     );
 
-    super(
+    this.channel = instantiateWorldState(
       dataDir,
       {
         [MerkleTreeId.NULLIFIER_TREE]: NULLIFIER_TREE_HEIGHT,
@@ -183,7 +168,9 @@ export class NativeWorldState extends BaseNativeWorldState implements NativeWorl
 
     try {
       const request = new TypedMessage(messageType, new MessageHeader({ messageId }), body);
-      const { duration, response } = await this.sendMessage<T, WorldStateRequest[T], WorldStateResponse[T]>(request);
+      const { duration, response } = await this.channel.sendMessage<T, WorldStateRequest[T], WorldStateResponse[T]>(
+        request,
+      );
 
       this.log.trace(`Call messageId=${messageId} ${WorldStateMessageType[messageType]} took (ms)`, {
         totalDuration: duration.totalUs / 1e3,

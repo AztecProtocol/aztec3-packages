@@ -71,14 +71,6 @@ export class LmdbAztecMap<K extends Key, V> implements AztecMultiMap<K, V>, Azte
     await this.db.put(this.slot(key), [key, val]);
   }
 
-  swap(key: K, fn: (val: V | undefined) => V): Promise<void> {
-    return this.db.childTransaction(() => {
-      const slot = this.slot(key);
-      const entry = this.db.get(slot);
-      void this.db.put(slot, [key, fn(entry?.[1])]);
-    });
-  }
-
   setIfNotExists(key: K, val: V): Promise<boolean> {
     const slot = this.slot(key);
     return this.db.ifNoExists(slot, () => {

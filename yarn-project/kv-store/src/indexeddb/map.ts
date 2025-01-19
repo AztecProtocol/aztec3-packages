@@ -64,10 +64,6 @@ export class IndexedDBAztecMap<K extends Key, V> implements AztecAsyncMultiMap<K
     });
   }
 
-  swap(_key: K, _fn: (val: V | undefined) => V): Promise<void> {
-    throw new Error('Not implemented');
-  }
-
   async setIfNotExists(key: K, val: V): Promise<boolean> {
     if (!(await this.hasAsync(key))) {
       await this.set(key, val);

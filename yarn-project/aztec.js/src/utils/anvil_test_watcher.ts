@@ -48,7 +48,7 @@ export class AnvilTestWatcher {
     const isAutoMining = await this.cheatcodes.isAutoMining();
 
     if (isAutoMining) {
-      this.filledRunningPromise = new RunningPromise(() => this.mineIfSlotFilled(), this.logger, 1000);
+      this.filledRunningPromise = new RunningPromise(() => this.maybeAdvanceSlot(), this.logger, 1000);
       this.filledRunningPromise.start();
       this.logger.info(`Watcher started for rollup at ${this.rollup.address}`);
     } else {
@@ -60,26 +60,28 @@ export class AnvilTestWatcher {
     await this.filledRunningPromise?.stop();
   }
 
-  async mineIfSlotFilled() {
+  async maybeAdvanceSlot() {
     try {
       const currentSlot = await this.rollup.read.getCurrentSlot();
       const pendingBlockNumber = BigInt(await this.rollup.read.getPendingBlockNumber());
       const blockLog = await this.rollup.read.getBlock([pendingBlockNumber]);
+      const nextSlotTS = await this.rollup.read.getTimestampForSlot([currentSlot + 1n]);
 
       if (currentSlot === blockLog.slotNumber) {
         // We should jump to the next slot
-        const timestamp = await this.rollup.read.getTimestampForSlot([currentSlot + 1n]);
         try {
-          await this.cheatcodes.warp(Number(timestamp));
-          this.dateProvider?.setTime(Number(timestamp) * 1000);
+          await this.cheatcodes.warp(Number(nextSlotTS));
+          this.dateProvider?.setTime(Number(nextSlotTS) * 1000);
         } catch (e) {
-          this.logger.error(`Failed to warp to timestamp ${timestamp}: ${e}`);
+          this.logger.error(`Failed to warp to timestamp ${nextSlotTS}: ${e}`);
         }
-
         this.logger.info(`Slot ${currentSlot} was filled, jumped to next slot`);
+      } else if (Number(nextSlotTS) < Date.now() / 1000) {
+        await this.cheatcodes.mine();
+        this.logger.info(`Slots were missed. Update timestamp by mining an empty block`);
       }
     } catch (err) {
-      this.logger.error('mineIfSlotFilled failed');
+      this.logger.error('maybeAdvanceSlot failed');
     }
   }
 }

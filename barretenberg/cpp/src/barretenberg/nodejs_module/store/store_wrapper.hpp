@@ -45,6 +45,7 @@ class StoreWrapper : public Napi::ObjectWrap<StoreWrapper> {
     GetResponse get(const KeyRequest& req);
     BoolResponse remove(const KeyRequest& req);
     BoolResponse has(const KeyRequest& req);
+    BoolResponse batch(const BatchRequest& req);
 
     CursorStartResponse start_cursor(const CursorStartRequest& req);
     CursorAdvanceResponse advance_cursor(const CursorRequest& req);
@@ -56,6 +57,7 @@ class StoreWrapper : public Napi::ObjectWrap<StoreWrapper> {
     BoolResponse index_remove_key(const KeyRequest& req);
     BoolResponse index_has(const EntryRequest& req);
     BoolResponse index_has_key(const KeyRequest& req);
+    BoolResponse index_batch(const IndexBatchRequest& req);
 
     IndexCursorAdvanceResponse advance_index_cursor(const CursorRequest& req);
 };

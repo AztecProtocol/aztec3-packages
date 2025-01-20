@@ -31,7 +31,7 @@ describe.only('Database', () => {
     expect((await db.getIndex('foo'))!.map(x => x.toString('utf-8'))).to.deep.eq(['bar']);
   });
 
-  it('iterates over keys', async () => {
+  it('iterates over data', async () => {
     await db.set('1', Buffer.from('foo'));
     await db.set('2', Buffer.from('bar'));
     await db.set('3', Buffer.from('baz'));
@@ -45,6 +45,22 @@ describe.only('Database', () => {
       ['1', 'foo'],
       ['2', 'bar'],
       ['3', 'baz'],
+    ]);
+  });
+
+  it('iterates over data in reverse', async () => {
+    await db.set('1', Buffer.from('foo'));
+    await db.set('2', Buffer.from('bar'));
+    await db.set('3', Buffer.from('baz'));
+
+    const entries: any[] = [];
+    for await (const [key, value] of db.iterate('2', true)) {
+      entries.push([key, value.toString('utf-8')]);
+    }
+
+    expect(entries).to.deep.equal([
+      ['2', 'bar'],
+      ['1', 'foo'],
     ]);
   });
 
@@ -64,6 +80,24 @@ describe.only('Database', () => {
       ['1', 'baz'],
       ['1', 'foo'],
       ['2', 'quux'],
+    ]);
+  });
+
+  it('iterates over index in reverse', async () => {
+    await db.addToIndex('1', Buffer.from('foo'));
+    await db.addToIndex('1', Buffer.from('bar'));
+    await db.addToIndex('1', Buffer.from('baz'));
+    await db.addToIndex('2', Buffer.from('quux'));
+
+    const entries: any[] = [];
+    for await (const [key, value] of db.iterateIndex('1', true)) {
+      entries.push([key, value.toString('utf-8')]);
+    }
+
+    expect(entries).to.deep.equal([
+      ['1', 'foo'],
+      ['1', 'baz'],
+      ['1', 'bar'],
     ]);
   });
 });

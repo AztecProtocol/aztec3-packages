@@ -15,6 +15,7 @@ enum StoreMessageType {
     SET,
     HAS,
     REMOVE,
+    BATCH,
 
     INDEX_GET,
     INDEX_ADD,
@@ -22,6 +23,7 @@ enum StoreMessageType {
     INDEX_REMOVE_KEY,
     INDEX_HAS,
     INDEX_HAS_KEY,
+    INDEX_BATCH,
 
     CURSOR_START,
     CURSOR_ADVANCE,
@@ -44,6 +46,12 @@ struct EntryRequest {
     std::string key;
     std::vector<std::byte> value;
     MSGPACK_FIELDS(key, value);
+};
+
+struct BatchRequest {
+    std::map<std::string, std::vector<std::byte>> set;
+    std::vector<std::string> remove;
+    MSGPACK_FIELDS(set, remove);
 };
 
 struct CursorStartRequest {
@@ -72,6 +80,13 @@ struct CursorAdvanceResponse {
 struct IndexGetResponse {
     std::vector<std::vector<std::byte>> values;
     MSGPACK_FIELDS(values);
+};
+
+struct IndexBatchRequest {
+    std::map<std::string, std::vector<std::vector<std::byte>>> add;
+    std::map<std::string, std::vector<std::vector<std::byte>>> remove;
+    std::vector<std::string> removeKey;
+    MSGPACK_FIELDS(add, remove, removeKey);
 };
 
 struct IndexCursorAdvanceResponse {

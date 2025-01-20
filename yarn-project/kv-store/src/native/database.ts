@@ -35,6 +35,11 @@ export class Database {
     return response.value ?? undefined;
   }
 
+  public async has(key: string): Promise<boolean> {
+    const response = await this.channel.sendMessage(DatabaseMessageType.HAS, { key });
+    return response.ok;
+  }
+
   public async set(key: string, value: Buffer): Promise<void> {
     await this.channel.sendMessage(DatabaseMessageType.SET, { key, value });
   }
@@ -58,6 +63,16 @@ export class Database {
 
   public async removeKeyFromIndex(key: string): Promise<void> {
     await this.channel.sendMessage(DatabaseMessageType.INDEX_REMOVE_KEY, { key });
+  }
+
+  public async indexHasEntry(key: string, value: Buffer): Promise<boolean> {
+    const response = await this.channel.sendMessage(DatabaseMessageType.INDEX_HAS, { key, value });
+    return response.ok;
+  }
+
+  public async indexHasKey(key: string): Promise<boolean> {
+    const response = await this.channel.sendMessage(DatabaseMessageType.INDEX_HAS_KEY, { key });
+    return response.ok;
   }
 
   public iterate(key: string, reverse = false): AsyncIterable<[string, Buffer]> {
@@ -105,6 +120,11 @@ class IndexIterator implements AsyncIterable<[string, Buffer]> {
       do {
         const it = await this.channel.sendMessage(DatabaseMessageType.INDEX_CURSOR_ADVANCE, { cursor });
         done = it.done;
+
+        if (this.reverse) {
+          it.values.reverse();
+        }
+
         for (const value of it.values) {
           yield [it.key, value];
         }

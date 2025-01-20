@@ -10,6 +10,8 @@ import {
   retryUntil,
   sleep,
 } from '@aztec/aztec.js';
+// eslint-disable-next-line no-restricted-imports
+import { EpochProofQuoteHasher } from '@aztec/circuit-types';
 import { type AztecAddress, EthAddress } from '@aztec/circuits.js';
 import { Buffer32 } from '@aztec/foundation/buffer';
 import { times } from '@aztec/foundation/collection';
@@ -219,7 +221,7 @@ describe('e2e_prover_coordination', () => {
     await logState();
   };
 
-  const makeEpochProofQuote = async ({
+  const makeEpochProofQuote = ({
     epochToProve,
     validUntilSlot,
     bondAmount,
@@ -240,9 +242,11 @@ describe('e2e_prover_coordination', () => {
       signer.address,
       basisPointFee ?? randomInt(100),
     );
-    const digest = await rollupContract.read.quoteToDigest([quotePayload.toViemArgs()]);
 
-    return EpochProofQuote.new(Buffer32.fromString(digest), quotePayload, signer);
+    const { rollupAddress } = ctx.deployL1ContractsValues.l1ContractAddresses;
+    const { l1ChainId, rollupVersion } = ctx.aztecNodeConfig;
+    const hasher = new EpochProofQuoteHasher(rollupAddress, rollupVersion, l1ChainId);
+    return EpochProofQuote.new(hasher, quotePayload, signer);
   };
 
   it('Sequencer selects best valid proving quote for each block', async () => {
@@ -253,7 +257,7 @@ describe('e2e_prover_coordination', () => {
     await performEscrow(10000000n);
 
     // Here we are creating a proof quote for epoch 0
-    const quoteForEpoch0 = await makeEpochProofQuote({
+    const quoteForEpoch0 = makeEpochProofQuote({
       epochToProve: 0n,
       validUntilSlot: BigInt(ctx.aztecNodeConfig.aztecEpochDuration + 10),
       bondAmount: 10000n,
@@ -298,19 +302,17 @@ describe('e2e_prover_coordination', () => {
     const currentSlot = await getSlot();
 
     // Now create a number of quotes, some valid some invalid for epoch 1, the lowest priced valid quote should be chosen
-    const validQuotes = await Promise.all(
-      times(3, (i: number) =>
-        makeEpochProofQuote({
-          epochToProve: 1n,
-          validUntilSlot: currentSlot + 2n,
-          bondAmount: 10000n,
-          basisPointFee: 10 + i,
-          signer: proverSigner,
-        }),
-      ),
+    const validQuotes = times(3, (i: number) =>
+      makeEpochProofQuote({
+        epochToProve: 1n,
+        validUntilSlot: currentSlot + 2n,
+        bondAmount: 10000n,
+        basisPointFee: 10 + i,
+        signer: proverSigner,
+      }),
     );
 
-    const proofQuoteInvalidSlot = await makeEpochProofQuote({
+    const proofQuoteInvalidSlot = makeEpochProofQuote({
       epochToProve: 1n,
       validUntilSlot: 3n,
       bondAmount: 10000n,
@@ -318,7 +320,7 @@ describe('e2e_prover_coordination', () => {
       signer: proverSigner,
     });
 
-    const proofQuoteInvalidEpoch = await makeEpochProofQuote({
+    const proofQuoteInvalidEpoch = makeEpochProofQuote({
       epochToProve: 4n,
       validUntilSlot: currentSlot + 4n,
       bondAmount: 10000n,
@@ -326,7 +328,7 @@ describe('e2e_prover_coordination', () => {
       signer: proverSigner,
     });
 
-    const proofQuoteInsufficientBond = await makeEpochProofQuote({
+    const proofQuoteInsufficientBond = makeEpochProofQuote({
       epochToProve: 1n,
       validUntilSlot: currentSlot + 4n,
       bondAmount: 0n,
@@ -371,7 +373,7 @@ describe('e2e_prover_coordination', () => {
     let currentPending = tips.pending;
     let currentProven = tips.proven;
     // Here we are creating a proof quote for epoch 0
-    const quoteForEpoch0 = await makeEpochProofQuote({
+    const quoteForEpoch0 = makeEpochProofQuote({
       epochToProve: 0n,
       validUntilSlot: BigInt(ctx.aztecNodeConfig.aztecEpochDuration + 10),
       bondAmount: 10000n,
@@ -458,7 +460,7 @@ describe('e2e_prover_coordination', () => {
     await expectTips({ pending: currentPending, proven: currentProven });
 
     // Submit proof claim for the new epoch
-    const quoteForEpoch4 = await makeEpochProofQuote({
+    const quoteForEpoch4 = makeEpochProofQuote({
       epochToProve: 4n,
       validUntilSlot: BigInt(ctx.aztecNodeConfig.aztecEpochDuration * 4 + 10),
       bondAmount: 10000n,

@@ -23,6 +23,7 @@ StoreWrapper::StoreWrapper(const Napi::CallbackInfo& info)
     _msg_processor.register_handler(StoreMessageType::SET, this, &StoreWrapper::set);
     _msg_processor.register_handler(StoreMessageType::REMOVE, this, &StoreWrapper::remove);
     _msg_processor.register_handler(StoreMessageType::GET, this, &StoreWrapper::get);
+    _msg_processor.register_handler(StoreMessageType::HAS, this, &StoreWrapper::has);
 
     _msg_processor.register_handler(StoreMessageType::CURSOR_START, this, &StoreWrapper::start_cursor);
     _msg_processor.register_handler(StoreMessageType::CURSOR_ADVANCE, this, &StoreWrapper::advance_cursor);
@@ -32,6 +33,8 @@ StoreWrapper::StoreWrapper(const Napi::CallbackInfo& info)
     _msg_processor.register_handler(StoreMessageType::INDEX_REMOVE, this, &StoreWrapper::index_remove);
     _msg_processor.register_handler(StoreMessageType::INDEX_REMOVE_KEY, this, &StoreWrapper::index_remove_key);
     _msg_processor.register_handler(StoreMessageType::INDEX_GET, this, &StoreWrapper::index_get);
+    _msg_processor.register_handler(StoreMessageType::INDEX_HAS, this, &StoreWrapper::index_has);
+    _msg_processor.register_handler(StoreMessageType::INDEX_HAS_KEY, this, &StoreWrapper::index_has_key);
 
     _msg_processor.register_handler(StoreMessageType::INDEX_CURSOR_ADVANCE, this, &StoreWrapper::advance_index_cursor);
 }
@@ -50,21 +53,21 @@ Napi::Function StoreWrapper::get_class(Napi::Env env)
                        });
 }
 
-EmptyResponse StoreWrapper::set(const SetRequest& req)
+BoolResponse StoreWrapper::set(const EntryRequest& req)
 {
     std::lock_guard<std::mutex> lock(_mutex);
     _data[req.key] = req.value;
     return { true };
 }
 
-EmptyResponse StoreWrapper::remove(const RemoveRequest& req)
+BoolResponse StoreWrapper::remove(const KeyRequest& req)
 {
     std::lock_guard<std::mutex> lock(_mutex);
     _data.erase(req.key);
     return { true };
 }
 
-GetResponse StoreWrapper::get(const GetRequest& req)
+GetResponse StoreWrapper::get(const KeyRequest& req)
 {
     std::lock_guard<std::mutex> lock(_mutex);
     auto it = _data.find(req.key);
@@ -72,6 +75,12 @@ GetResponse StoreWrapper::get(const GetRequest& req)
         return { std::nullopt };
     }
     return { (*it).second };
+}
+
+BoolResponse StoreWrapper::has(const KeyRequest& req)
+{
+    auto key_it = _data.find(req.key);
+    return { key_it != _data.end() };
 }
 
 CursorStartResponse StoreWrapper::start_cursor(const CursorStartRequest& req)
@@ -82,14 +91,14 @@ CursorStartResponse StoreWrapper::start_cursor(const CursorStartRequest& req)
     return { cursor };
 }
 
-EmptyResponse StoreWrapper::close_cursor(const CursorCloseRequest& req)
+BoolResponse StoreWrapper::close_cursor(const CursorRequest& req)
 {
     std::lock_guard<std::mutex> lock(_mutex);
     _cursors.erase(req.cursor);
     return { true };
 }
 
-CursorAdvanceResponse StoreWrapper::advance_cursor(const CursorAdvanceRequest& req)
+CursorAdvanceResponse StoreWrapper::advance_cursor(const CursorRequest& req)
 {
     std::lock_guard<std::mutex> lock(_mutex);
     auto it = _cursors.find(req.cursor);
@@ -124,28 +133,28 @@ CursorAdvanceResponse StoreWrapper::advance_cursor(const CursorAdvanceRequest& r
     return { key, value, done };
 }
 
-EmptyResponse StoreWrapper::index_add(const IndexAddRequest& req)
+BoolResponse StoreWrapper::index_add(const EntryRequest& req)
 {
     std::lock_guard<std::mutex> lock(_mutex);
     _index_data[req.key].insert(req.value);
     return { true };
 }
 
-EmptyResponse StoreWrapper::index_remove(const IndexRemoveRequest& req)
+BoolResponse StoreWrapper::index_remove(const EntryRequest& req)
 {
     std::lock_guard<std::mutex> lock(_mutex);
     _index_data[req.key].erase(req.value);
     return { true };
 }
 
-EmptyResponse StoreWrapper::index_remove_key(const IndexRemoveKeyRequest& req)
+BoolResponse StoreWrapper::index_remove_key(const KeyRequest& req)
 {
     std::lock_guard<std::mutex> lock(_mutex);
     _index_data.erase(req.key);
     return { true };
 }
 
-IndexGetResponse StoreWrapper::index_get(const IndexGetRequest& req)
+IndexGetResponse StoreWrapper::index_get(const KeyRequest& req)
 {
     std::lock_guard<std::mutex> lock(_mutex);
     std::vector<std::vector<std::byte>> values;
@@ -153,7 +162,25 @@ IndexGetResponse StoreWrapper::index_get(const IndexGetRequest& req)
     return { values };
 }
 
-IndexCursorAdvanceResponse StoreWrapper::advance_index_cursor(const IndexCursorAdvanceRequest& req)
+BoolResponse StoreWrapper::index_has(const EntryRequest& req)
+{
+    auto key_it = _index_data.find(req.key);
+    if (key_it == _index_data.end()) {
+        return { false };
+    }
+
+    auto& values = (*key_it).second;
+    auto value_it = values.find(req.value);
+    return { value_it != values.end() };
+}
+
+BoolResponse StoreWrapper::index_has_key(const KeyRequest& req)
+{
+    auto key_it = _index_data.find(req.key);
+    return { key_it != _index_data.end() };
+}
+
+IndexCursorAdvanceResponse StoreWrapper::advance_index_cursor(const CursorRequest& req)
 {
     std::lock_guard<std::mutex> lock(_mutex);
     auto it = _cursors.find(req.cursor);

@@ -13,12 +13,15 @@ using namespace bb::messaging;
 enum StoreMessageType {
     GET = FIRST_APP_MSG_TYPE,
     SET,
+    HAS,
     REMOVE,
 
     INDEX_GET,
     INDEX_ADD,
     INDEX_REMOVE,
     INDEX_REMOVE_KEY,
+    INDEX_HAS,
+    INDEX_HAS_KEY,
 
     CURSOR_START,
     CURSOR_ADVANCE,
@@ -27,7 +30,7 @@ enum StoreMessageType {
     INDEX_CURSOR_ADVANCE,
 };
 
-struct GetRequest {
+struct KeyRequest {
     std::string key;
     MSGPACK_FIELDS(key);
 };
@@ -37,15 +40,10 @@ struct GetResponse {
     MSGPACK_FIELDS(value);
 };
 
-struct SetRequest {
+struct EntryRequest {
     std::string key;
     std::vector<std::byte> value;
     MSGPACK_FIELDS(key, value);
-};
-
-struct RemoveRequest {
-    std::string key;
-    MSGPACK_FIELDS(key);
 };
 
 struct CursorStartRequest {
@@ -59,7 +57,7 @@ struct CursorStartResponse {
     MSGPACK_FIELDS(cursor);
 };
 
-struct CursorAdvanceRequest {
+struct CursorRequest {
     uint64_t cursor;
     MSGPACK_FIELDS(cursor);
 };
@@ -71,41 +69,9 @@ struct CursorAdvanceResponse {
     MSGPACK_FIELDS(key, value, done);
 };
 
-struct CursorCloseRequest {
-    uint64_t cursor;
-    MSGPACK_FIELDS(cursor);
-};
-
-struct IndexGetRequest {
-    std::string key;
-    MSGPACK_FIELDS(key);
-};
-
 struct IndexGetResponse {
     std::vector<std::vector<std::byte>> values;
     MSGPACK_FIELDS(values);
-};
-
-struct IndexAddRequest {
-    std::string key;
-    std::vector<std::byte> value;
-    MSGPACK_FIELDS(key, value);
-};
-
-struct IndexRemoveRequest {
-    std::string key;
-    std::vector<std::byte> value;
-    MSGPACK_FIELDS(key, value);
-};
-
-struct IndexRemoveKeyRequest {
-    std::string key;
-    MSGPACK_FIELDS(key);
-};
-
-struct IndexCursorAdvanceRequest {
-    uint64_t cursor;
-    MSGPACK_FIELDS(cursor);
 };
 
 struct IndexCursorAdvanceResponse {
@@ -115,7 +81,7 @@ struct IndexCursorAdvanceResponse {
     MSGPACK_FIELDS(key, values, done);
 };
 
-struct EmptyResponse {
+struct BoolResponse {
     bool ok;
     MSGPACK_FIELDS(ok);
 };

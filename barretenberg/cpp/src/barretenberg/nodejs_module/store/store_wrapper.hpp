@@ -41,20 +41,23 @@ class StoreWrapper : public Napi::ObjectWrap<StoreWrapper> {
     uint64_t _next_cursor = 1;
     std::map<uint64_t, CursorData> _cursors;
 
-    EmptyResponse set(const SetRequest& req);
-    GetResponse get(const GetRequest& req);
-    EmptyResponse remove(const RemoveRequest& req);
+    BoolResponse set(const EntryRequest& req);
+    GetResponse get(const KeyRequest& req);
+    BoolResponse remove(const KeyRequest& req);
+    BoolResponse has(const KeyRequest& req);
 
     CursorStartResponse start_cursor(const CursorStartRequest& req);
-    CursorAdvanceResponse advance_cursor(const CursorAdvanceRequest& req);
-    EmptyResponse close_cursor(const CursorCloseRequest& req);
+    CursorAdvanceResponse advance_cursor(const CursorRequest& req);
+    BoolResponse close_cursor(const CursorRequest& req);
 
-    EmptyResponse index_add(const IndexAddRequest& req);
-    IndexGetResponse index_get(const IndexGetRequest& req);
-    EmptyResponse index_remove(const IndexRemoveRequest& req);
-    EmptyResponse index_remove_key(const IndexRemoveKeyRequest& req);
+    BoolResponse index_add(const EntryRequest& req);
+    IndexGetResponse index_get(const KeyRequest& req);
+    BoolResponse index_remove(const EntryRequest& req);
+    BoolResponse index_remove_key(const KeyRequest& req);
+    BoolResponse index_has(const EntryRequest& req);
+    BoolResponse index_has_key(const KeyRequest& req);
 
-    IndexCursorAdvanceResponse advance_index_cursor(const IndexCursorAdvanceRequest& req);
+    IndexCursorAdvanceResponse advance_index_cursor(const CursorRequest& req);
 };
 
 } // namespace bb::nodejs::store

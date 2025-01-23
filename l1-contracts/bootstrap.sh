@@ -6,7 +6,7 @@ cmd=${1:-}
 export hash=$(cache_content_hash .rebuild_patterns)
 
 function build {
-  github_group "l1-contracts build"
+  echo_header "l1-contracts build"
   local artifact=l1-contracts-$hash.tar.gz
   if ! cache_download $artifact; then
     # Clean
@@ -23,26 +23,28 @@ function build {
 
     cache_upload $artifact out
   fi
-  github_endgroup
+}
+
+function test_cmds {
+  echo "$hash cd l1-contracts && solhint --config ./.solhint.json \"src/**/*.sol\""
+  echo "$hash cd l1-contracts && forge fmt --check"
+  echo "$hash cd l1-contracts && forge test --no-match-contract UniswapPortalTest"
 }
 
 function test {
-  set -eu
-  local test_flag=l1-contracts-test-$hash
-  test_should_run $test_flag || return 0
-
-  github_group "l1-contracts test"
+  echo_header "l1-contracts test"
   solhint --config ./.solhint.json "src/**/*.sol"
   forge fmt --check
   forge test --no-match-contract UniswapPortalTest
-  cache_upload_flag $test_flag
-  github_endgroup
 }
-export -f test
 
 case "$cmd" in
   "clean")
     git clean -fdx
+    ;;
+  "ci")
+    build
+    test
     ;;
   ""|"fast"|"full")
     build
@@ -51,11 +53,7 @@ case "$cmd" in
     test
     ;;
   "test-cmds")
-    echo "cd l1-contracts && forge test --no-match-contract UniswapPortalTest"
-    ;;
-  "ci")
-    build
-    denoise test
+    test_cmds
     ;;
   "hash")
     echo $hash

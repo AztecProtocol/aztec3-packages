@@ -1,9 +1,5 @@
-# Usage 'source ci3/source'
+# Usage: source $(git rev-parse --show-toplevel)/ci3/source
 # This is a basis for shell scripts that use the ci3 framework.
-# Set BASH best practices for early error exit and undefined variables.
-set -euo pipefail
-# Enable extended bash globs.
-shopt -s extglob
 
 # Enter our script directory, allowing usage of scripts from any directory.
 [ -z "${NO_CD:-}" ] && cd "$(dirname $0)"
@@ -13,24 +9,14 @@ export root="$(git rev-parse --show-toplevel)"
 export ci3="$root/ci3"
 [[ "$PATH" != *"$ci3:" ]] && export PATH=$ci3:$PATH
 
-# Conditionally print all statements ran in CI scripts.
-# Useful for debugging commands that weren't expected to error out.
-[ -n "${BUILD_SYSTEM_DEBUG:-}" ] && set -x || true
+# For when we need to reference our devbox and test isolation images.
+export DEVBOX_IMAGE=aztecprotocol/devbox:3.0
+export ISOLATION_IMAGE=aztecprotocol/build:3.0
 
-function hash_str {
-  set -eu
-  if [[ "$1" == *"disabled-cache"* ]]; then
-    # We want to propagate cache being disabled so that cache_upload and cache_download can catch this
-    echo "disabled-cache"
-  else
-    echo $1 | git hash-object --stdin | cut -c1-16 | tr -d '\n'
-  fi
-}
+# We always want color.
+export FORCE_COLOR=true
 
-function echo_stderr {
-  echo $@ >&2
-}
-
-export -f hash_str echo_stderr
-
+source $ci3/source_options
+source $ci3/source_stdlib
 source $ci3/source_color
+source $ci3/source_redis

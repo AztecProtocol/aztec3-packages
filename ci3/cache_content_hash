@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
-[ "${BUILD_SYSTEM_DEBUG:-}" = 1 ] && set -x
+NO_CD=1 source $(git rev-parse --show-toplevel)/ci3/source
 
 if [[ "$#" = 0 ]]; then
   echo "Error: No arguments provided."
@@ -27,12 +26,14 @@ AWK_PATTERN=$(echo "$rebuild_patterns" | grep -v '^$' | sed 's/\\/\\\\/g' | tr '
 # use git repo root because that is where our patterns are focused
 cd "$(git rev-parse --show-toplevel)"
 
-unstaged_diff="$(git diff --name-only | grep -E "$GREP_PATTERN" || true)"
-staged_diff="$(git diff --staged --name-only | grep -E "$GREP_PATTERN" || true)"
-untracked_diff="$(git ls-files --others --exclude-standard | grep -E "$GREP_PATTERN" || true)"
+diff="$({
+  git diff --name-only
+  git diff --staged --name-only
+  git ls-files --others --exclude-standard
+} | grep -E "$GREP_PATTERN" || true)"
 
 # Check for uncommitted files/changes
-if [[ -n "$unstaged_diff" ]] || [[ -n "$staged_diff" ]] || [[ -n "$untracked_diff" ]]; then
+if [ -n "$diff" ]; then
   # Signal to cache_upload and cache_download to not touch this file.
   echo "disabled-cache"
   exit 0
@@ -59,4 +60,4 @@ if [[ "$CONTENT_HASH" == "$EMPTY_HASH" ]]; then
 fi
 
 # important: include architecture in content hash because we target x86_64 and arm64
-echo "${CONTENT_HASH}-${PLATFORM_TAG}"
+echo $(hash_str $CONTENT_HASH-$PLATFORM_TAG)

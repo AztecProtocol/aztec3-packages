@@ -21,51 +21,52 @@ class perm_cmp_alu_permutation_settings {
 
     template <typename AllEntities> static inline auto inverse_polynomial_is_computed_at_row(const AllEntities& in)
     {
-        return (in.cmp_sel_cmp == 1 || in.alu_cmp_gadget_sel == 1);
+        return (in.template get_column<ColumnAndShifts::cmp_sel_cmp>() == 1 ||
+                in.template get_column<ColumnAndShifts::alu_cmp_gadget_sel>() == 1);
     }
 
     template <typename AllEntities> static inline auto get_const_entities(const AllEntities& in)
     {
-        return std::forward_as_tuple(in.perm_cmp_alu_inv,
-                                     in.cmp_sel_cmp,
-                                     in.cmp_sel_cmp,
-                                     in.alu_cmp_gadget_sel,
-                                     in.cmp_clk,
-                                     in.cmp_input_a,
-                                     in.cmp_input_b,
-                                     in.cmp_result,
-                                     in.cmp_op_eq,
-                                     in.cmp_op_gt,
-                                     in.cmp_op_non_ff_gt,
-                                     in.alu_clk,
-                                     in.alu_cmp_gadget_input_a,
-                                     in.alu_cmp_gadget_input_b,
-                                     in.alu_cmp_gadget_result,
-                                     in.alu_op_eq,
-                                     in.alu_cmp_gadget_gt,
-                                     in.alu_cmp_gadget_non_ff_gt);
+        return std::forward_as_tuple(in.template get_column<ColumnAndShifts::perm_cmp_alu_inv>(),
+                                     in.template get_column<ColumnAndShifts::cmp_sel_cmp>(),
+                                     in.template get_column<ColumnAndShifts::cmp_sel_cmp>(),
+                                     in.template get_column<ColumnAndShifts::alu_cmp_gadget_sel>(),
+                                     in.template get_column<ColumnAndShifts::cmp_clk>(),
+                                     in.template get_column<ColumnAndShifts::cmp_input_a>(),
+                                     in.template get_column<ColumnAndShifts::cmp_input_b>(),
+                                     in.template get_column<ColumnAndShifts::cmp_result>(),
+                                     in.template get_column<ColumnAndShifts::cmp_op_eq>(),
+                                     in.template get_column<ColumnAndShifts::cmp_op_gt>(),
+                                     in.template get_column<ColumnAndShifts::cmp_op_non_ff_gt>(),
+                                     in.template get_column<ColumnAndShifts::alu_clk>(),
+                                     in.template get_column<ColumnAndShifts::alu_cmp_gadget_input_a>(),
+                                     in.template get_column<ColumnAndShifts::alu_cmp_gadget_input_b>(),
+                                     in.template get_column<ColumnAndShifts::alu_cmp_gadget_result>(),
+                                     in.template get_column<ColumnAndShifts::alu_op_eq>(),
+                                     in.template get_column<ColumnAndShifts::alu_cmp_gadget_gt>(),
+                                     in.template get_column<ColumnAndShifts::alu_cmp_gadget_non_ff_gt>());
     }
 
     template <typename AllEntities> static inline auto get_nonconst_entities(AllEntities& in)
     {
-        return std::forward_as_tuple(in.perm_cmp_alu_inv,
-                                     in.cmp_sel_cmp,
-                                     in.cmp_sel_cmp,
-                                     in.alu_cmp_gadget_sel,
-                                     in.cmp_clk,
-                                     in.cmp_input_a,
-                                     in.cmp_input_b,
-                                     in.cmp_result,
-                                     in.cmp_op_eq,
-                                     in.cmp_op_gt,
-                                     in.cmp_op_non_ff_gt,
-                                     in.alu_clk,
-                                     in.alu_cmp_gadget_input_a,
-                                     in.alu_cmp_gadget_input_b,
-                                     in.alu_cmp_gadget_result,
-                                     in.alu_op_eq,
-                                     in.alu_cmp_gadget_gt,
-                                     in.alu_cmp_gadget_non_ff_gt);
+        return std::forward_as_tuple(in.template get_column<ColumnAndShifts::perm_cmp_alu_inv>(),
+                                     in.template get_column<ColumnAndShifts::cmp_sel_cmp>(),
+                                     in.template get_column<ColumnAndShifts::cmp_sel_cmp>(),
+                                     in.template get_column<ColumnAndShifts::alu_cmp_gadget_sel>(),
+                                     in.template get_column<ColumnAndShifts::cmp_clk>(),
+                                     in.template get_column<ColumnAndShifts::cmp_input_a>(),
+                                     in.template get_column<ColumnAndShifts::cmp_input_b>(),
+                                     in.template get_column<ColumnAndShifts::cmp_result>(),
+                                     in.template get_column<ColumnAndShifts::cmp_op_eq>(),
+                                     in.template get_column<ColumnAndShifts::cmp_op_gt>(),
+                                     in.template get_column<ColumnAndShifts::cmp_op_non_ff_gt>(),
+                                     in.template get_column<ColumnAndShifts::alu_clk>(),
+                                     in.template get_column<ColumnAndShifts::alu_cmp_gadget_input_a>(),
+                                     in.template get_column<ColumnAndShifts::alu_cmp_gadget_input_b>(),
+                                     in.template get_column<ColumnAndShifts::alu_cmp_gadget_result>(),
+                                     in.template get_column<ColumnAndShifts::alu_op_eq>(),
+                                     in.template get_column<ColumnAndShifts::alu_cmp_gadget_gt>(),
+                                     in.template get_column<ColumnAndShifts::alu_cmp_gadget_non_ff_gt>());
     }
 };
 

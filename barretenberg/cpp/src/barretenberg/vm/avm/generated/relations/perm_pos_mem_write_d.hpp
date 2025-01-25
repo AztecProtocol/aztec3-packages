@@ -21,43 +21,44 @@ class perm_pos_mem_write_d_permutation_settings {
 
     template <typename AllEntities> static inline auto inverse_polynomial_is_computed_at_row(const AllEntities& in)
     {
-        return (in.poseidon2_sel_poseidon_perm_mem_op == 1 || in.mem_sel_op_poseidon_write_d == 1);
+        return (in.template get_column<ColumnAndShifts::poseidon2_sel_poseidon_perm_mem_op>() == 1 ||
+                in.template get_column<ColumnAndShifts::mem_sel_op_poseidon_write_d>() == 1);
     }
 
     template <typename AllEntities> static inline auto get_const_entities(const AllEntities& in)
     {
-        return std::forward_as_tuple(in.perm_pos_mem_write_d_inv,
-                                     in.poseidon2_sel_poseidon_perm_mem_op,
-                                     in.poseidon2_sel_poseidon_perm_mem_op,
-                                     in.mem_sel_op_poseidon_write_d,
-                                     in.poseidon2_clk,
-                                     in.poseidon2_space_id,
-                                     in.poseidon2_mem_addr_write_d,
-                                     in.poseidon2_b_3,
-                                     in.poseidon2_sel_poseidon_perm,
-                                     in.mem_clk,
-                                     in.mem_space_id,
-                                     in.mem_addr,
-                                     in.mem_val,
-                                     in.mem_rw);
+        return std::forward_as_tuple(in.template get_column<ColumnAndShifts::perm_pos_mem_write_d_inv>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_sel_poseidon_perm_mem_op>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_sel_poseidon_perm_mem_op>(),
+                                     in.template get_column<ColumnAndShifts::mem_sel_op_poseidon_write_d>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_clk>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_space_id>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_mem_addr_write_d>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_b_3>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_sel_poseidon_perm>(),
+                                     in.template get_column<ColumnAndShifts::mem_clk>(),
+                                     in.template get_column<ColumnAndShifts::mem_space_id>(),
+                                     in.template get_column<ColumnAndShifts::mem_addr>(),
+                                     in.template get_column<ColumnAndShifts::mem_val>(),
+                                     in.template get_column<ColumnAndShifts::mem_rw>());
     }
 
     template <typename AllEntities> static inline auto get_nonconst_entities(AllEntities& in)
     {
-        return std::forward_as_tuple(in.perm_pos_mem_write_d_inv,
-                                     in.poseidon2_sel_poseidon_perm_mem_op,
-                                     in.poseidon2_sel_poseidon_perm_mem_op,
-                                     in.mem_sel_op_poseidon_write_d,
-                                     in.poseidon2_clk,
-                                     in.poseidon2_space_id,
-                                     in.poseidon2_mem_addr_write_d,
-                                     in.poseidon2_b_3,
-                                     in.poseidon2_sel_poseidon_perm,
-                                     in.mem_clk,
-                                     in.mem_space_id,
-                                     in.mem_addr,
-                                     in.mem_val,
-                                     in.mem_rw);
+        return std::forward_as_tuple(in.template get_column<ColumnAndShifts::perm_pos_mem_write_d_inv>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_sel_poseidon_perm_mem_op>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_sel_poseidon_perm_mem_op>(),
+                                     in.template get_column<ColumnAndShifts::mem_sel_op_poseidon_write_d>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_clk>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_space_id>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_mem_addr_write_d>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_b_3>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_sel_poseidon_perm>(),
+                                     in.template get_column<ColumnAndShifts::mem_clk>(),
+                                     in.template get_column<ColumnAndShifts::mem_space_id>(),
+                                     in.template get_column<ColumnAndShifts::mem_addr>(),
+                                     in.template get_column<ColumnAndShifts::mem_val>(),
+                                     in.template get_column<ColumnAndShifts::mem_rw>());
     }
 };
 

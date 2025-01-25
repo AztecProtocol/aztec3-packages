@@ -21,47 +21,48 @@ class perm_main_bin_permutation_settings {
 
     template <typename AllEntities> static inline auto inverse_polynomial_is_computed_at_row(const AllEntities& in)
     {
-        return (in.main_sel_bin == 1 || in.binary_start == 1);
+        return (in.template get_column<ColumnAndShifts::main_sel_bin>() == 1 ||
+                in.template get_column<ColumnAndShifts::binary_start>() == 1);
     }
 
     template <typename AllEntities> static inline auto get_const_entities(const AllEntities& in)
     {
-        return std::forward_as_tuple(in.perm_main_bin_inv,
-                                     in.main_sel_bin,
-                                     in.main_sel_bin,
-                                     in.binary_start,
-                                     in.main_clk,
-                                     in.main_ia,
-                                     in.main_ib,
-                                     in.main_ic,
-                                     in.main_bin_op_id,
-                                     in.main_r_in_tag,
-                                     in.binary_clk,
-                                     in.binary_acc_ia,
-                                     in.binary_acc_ib,
-                                     in.binary_acc_ic,
-                                     in.binary_op_id,
-                                     in.binary_in_tag);
+        return std::forward_as_tuple(in.template get_column<ColumnAndShifts::perm_main_bin_inv>(),
+                                     in.template get_column<ColumnAndShifts::main_sel_bin>(),
+                                     in.template get_column<ColumnAndShifts::main_sel_bin>(),
+                                     in.template get_column<ColumnAndShifts::binary_start>(),
+                                     in.template get_column<ColumnAndShifts::main_clk>(),
+                                     in.template get_column<ColumnAndShifts::main_ia>(),
+                                     in.template get_column<ColumnAndShifts::main_ib>(),
+                                     in.template get_column<ColumnAndShifts::main_ic>(),
+                                     in.template get_column<ColumnAndShifts::main_bin_op_id>(),
+                                     in.template get_column<ColumnAndShifts::main_r_in_tag>(),
+                                     in.template get_column<ColumnAndShifts::binary_clk>(),
+                                     in.template get_column<ColumnAndShifts::binary_acc_ia>(),
+                                     in.template get_column<ColumnAndShifts::binary_acc_ib>(),
+                                     in.template get_column<ColumnAndShifts::binary_acc_ic>(),
+                                     in.template get_column<ColumnAndShifts::binary_op_id>(),
+                                     in.template get_column<ColumnAndShifts::binary_in_tag>());
     }
 
     template <typename AllEntities> static inline auto get_nonconst_entities(AllEntities& in)
     {
-        return std::forward_as_tuple(in.perm_main_bin_inv,
-                                     in.main_sel_bin,
-                                     in.main_sel_bin,
-                                     in.binary_start,
-                                     in.main_clk,
-                                     in.main_ia,
-                                     in.main_ib,
-                                     in.main_ic,
-                                     in.main_bin_op_id,
-                                     in.main_r_in_tag,
-                                     in.binary_clk,
-                                     in.binary_acc_ia,
-                                     in.binary_acc_ib,
-                                     in.binary_acc_ic,
-                                     in.binary_op_id,
-                                     in.binary_in_tag);
+        return std::forward_as_tuple(in.template get_column<ColumnAndShifts::perm_main_bin_inv>(),
+                                     in.template get_column<ColumnAndShifts::main_sel_bin>(),
+                                     in.template get_column<ColumnAndShifts::main_sel_bin>(),
+                                     in.template get_column<ColumnAndShifts::binary_start>(),
+                                     in.template get_column<ColumnAndShifts::main_clk>(),
+                                     in.template get_column<ColumnAndShifts::main_ia>(),
+                                     in.template get_column<ColumnAndShifts::main_ib>(),
+                                     in.template get_column<ColumnAndShifts::main_ic>(),
+                                     in.template get_column<ColumnAndShifts::main_bin_op_id>(),
+                                     in.template get_column<ColumnAndShifts::main_r_in_tag>(),
+                                     in.template get_column<ColumnAndShifts::binary_clk>(),
+                                     in.template get_column<ColumnAndShifts::binary_acc_ia>(),
+                                     in.template get_column<ColumnAndShifts::binary_acc_ib>(),
+                                     in.template get_column<ColumnAndShifts::binary_acc_ic>(),
+                                     in.template get_column<ColumnAndShifts::binary_op_id>(),
+                                     in.template get_column<ColumnAndShifts::binary_in_tag>());
     }
 };
 

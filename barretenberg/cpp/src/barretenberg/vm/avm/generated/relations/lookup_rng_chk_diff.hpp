@@ -30,15 +30,16 @@ class lookup_rng_chk_diff_lookup_settings {
 
     template <typename AllEntities> static inline auto inverse_polynomial_is_computed_at_row(const AllEntities& in)
     {
-        return (in.range_check_sel_rng_chk == 1 || in.main_sel_rng_16 == 1);
+        return (in.template get_column<ColumnAndShifts::range_check_sel_rng_chk>() == 1 ||
+                in.template get_column<ColumnAndShifts::main_sel_rng_16>() == 1);
     }
 
     template <typename Accumulator, typename AllEntities>
     static inline auto compute_inverse_exists(const AllEntities& in)
     {
         using View = typename Accumulator::View;
-        const auto is_operation = View(in.range_check_sel_rng_chk);
-        const auto is_table_entry = View(in.main_sel_rng_16);
+        const auto is_operation = View(in.template get_column<ColumnAndShifts::range_check_sel_rng_chk>());
+        const auto is_table_entry = View(in.template get_column<ColumnAndShifts::main_sel_rng_16>());
         return (is_operation + is_table_entry - is_operation * is_table_entry);
     }
 
@@ -54,12 +55,12 @@ class lookup_rng_chk_diff_lookup_settings {
 
     template <typename AllEntities> static inline auto get_entities(AllEntities&& in)
     {
-        return std::forward_as_tuple(in.lookup_rng_chk_diff_inv,
-                                     in.lookup_rng_chk_diff_counts,
-                                     in.range_check_sel_rng_chk,
-                                     in.main_sel_rng_16,
-                                     in.range_check_dyn_diff,
-                                     in.main_clk);
+        return std::forward_as_tuple(in.template get_column<ColumnAndShifts::lookup_rng_chk_diff_inv>(),
+                                     in.template get_column<ColumnAndShifts::lookup_rng_chk_diff_counts>(),
+                                     in.template get_column<ColumnAndShifts::range_check_sel_rng_chk>(),
+                                     in.template get_column<ColumnAndShifts::main_sel_rng_16>(),
+                                     in.template get_column<ColumnAndShifts::range_check_dyn_diff>(),
+                                     in.template get_column<ColumnAndShifts::main_clk>());
     }
 };
 

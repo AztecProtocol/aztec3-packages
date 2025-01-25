@@ -21,35 +21,36 @@ class perm_rng_alu_permutation_settings {
 
     template <typename AllEntities> static inline auto inverse_polynomial_is_computed_at_row(const AllEntities& in)
     {
-        return (in.range_check_alu_rng_chk == 1 || in.alu_range_check_sel == 1);
+        return (in.template get_column<ColumnAndShifts::range_check_alu_rng_chk>() == 1 ||
+                in.template get_column<ColumnAndShifts::alu_range_check_sel>() == 1);
     }
 
     template <typename AllEntities> static inline auto get_const_entities(const AllEntities& in)
     {
-        return std::forward_as_tuple(in.perm_rng_alu_inv,
-                                     in.range_check_alu_rng_chk,
-                                     in.range_check_alu_rng_chk,
-                                     in.alu_range_check_sel,
-                                     in.range_check_clk,
-                                     in.range_check_value,
-                                     in.range_check_rng_chk_bits,
-                                     in.alu_clk,
-                                     in.alu_range_check_input_value,
-                                     in.alu_range_check_num_bits);
+        return std::forward_as_tuple(in.template get_column<ColumnAndShifts::perm_rng_alu_inv>(),
+                                     in.template get_column<ColumnAndShifts::range_check_alu_rng_chk>(),
+                                     in.template get_column<ColumnAndShifts::range_check_alu_rng_chk>(),
+                                     in.template get_column<ColumnAndShifts::alu_range_check_sel>(),
+                                     in.template get_column<ColumnAndShifts::range_check_clk>(),
+                                     in.template get_column<ColumnAndShifts::range_check_value>(),
+                                     in.template get_column<ColumnAndShifts::range_check_rng_chk_bits>(),
+                                     in.template get_column<ColumnAndShifts::alu_clk>(),
+                                     in.template get_column<ColumnAndShifts::alu_range_check_input_value>(),
+                                     in.template get_column<ColumnAndShifts::alu_range_check_num_bits>());
     }
 
     template <typename AllEntities> static inline auto get_nonconst_entities(AllEntities& in)
     {
-        return std::forward_as_tuple(in.perm_rng_alu_inv,
-                                     in.range_check_alu_rng_chk,
-                                     in.range_check_alu_rng_chk,
-                                     in.alu_range_check_sel,
-                                     in.range_check_clk,
-                                     in.range_check_value,
-                                     in.range_check_rng_chk_bits,
-                                     in.alu_clk,
-                                     in.alu_range_check_input_value,
-                                     in.alu_range_check_num_bits);
+        return std::forward_as_tuple(in.template get_column<ColumnAndShifts::perm_rng_alu_inv>(),
+                                     in.template get_column<ColumnAndShifts::range_check_alu_rng_chk>(),
+                                     in.template get_column<ColumnAndShifts::range_check_alu_rng_chk>(),
+                                     in.template get_column<ColumnAndShifts::alu_range_check_sel>(),
+                                     in.template get_column<ColumnAndShifts::range_check_clk>(),
+                                     in.template get_column<ColumnAndShifts::range_check_value>(),
+                                     in.template get_column<ColumnAndShifts::range_check_rng_chk_bits>(),
+                                     in.template get_column<ColumnAndShifts::alu_clk>(),
+                                     in.template get_column<ColumnAndShifts::alu_range_check_input_value>(),
+                                     in.template get_column<ColumnAndShifts::alu_range_check_num_bits>());
     }
 };
 

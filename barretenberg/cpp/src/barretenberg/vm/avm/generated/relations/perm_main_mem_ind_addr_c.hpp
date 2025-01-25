@@ -21,39 +21,40 @@ class perm_main_mem_ind_addr_c_permutation_settings {
 
     template <typename AllEntities> static inline auto inverse_polynomial_is_computed_at_row(const AllEntities& in)
     {
-        return (in.main_sel_resolve_ind_addr_c == 1 || in.mem_sel_resolve_ind_addr_c == 1);
+        return (in.template get_column<ColumnAndShifts::main_sel_resolve_ind_addr_c>() == 1 ||
+                in.template get_column<ColumnAndShifts::mem_sel_resolve_ind_addr_c>() == 1);
     }
 
     template <typename AllEntities> static inline auto get_const_entities(const AllEntities& in)
     {
-        return std::forward_as_tuple(in.perm_main_mem_ind_addr_c_inv,
-                                     in.main_sel_resolve_ind_addr_c,
-                                     in.main_sel_resolve_ind_addr_c,
-                                     in.mem_sel_resolve_ind_addr_c,
-                                     in.main_clk,
-                                     in.main_space_id,
-                                     in.main_ind_addr_c,
-                                     in.main_mem_addr_c,
-                                     in.mem_clk,
-                                     in.mem_space_id,
-                                     in.mem_addr,
-                                     in.mem_val);
+        return std::forward_as_tuple(in.template get_column<ColumnAndShifts::perm_main_mem_ind_addr_c_inv>(),
+                                     in.template get_column<ColumnAndShifts::main_sel_resolve_ind_addr_c>(),
+                                     in.template get_column<ColumnAndShifts::main_sel_resolve_ind_addr_c>(),
+                                     in.template get_column<ColumnAndShifts::mem_sel_resolve_ind_addr_c>(),
+                                     in.template get_column<ColumnAndShifts::main_clk>(),
+                                     in.template get_column<ColumnAndShifts::main_space_id>(),
+                                     in.template get_column<ColumnAndShifts::main_ind_addr_c>(),
+                                     in.template get_column<ColumnAndShifts::main_mem_addr_c>(),
+                                     in.template get_column<ColumnAndShifts::mem_clk>(),
+                                     in.template get_column<ColumnAndShifts::mem_space_id>(),
+                                     in.template get_column<ColumnAndShifts::mem_addr>(),
+                                     in.template get_column<ColumnAndShifts::mem_val>());
     }
 
     template <typename AllEntities> static inline auto get_nonconst_entities(AllEntities& in)
     {
-        return std::forward_as_tuple(in.perm_main_mem_ind_addr_c_inv,
-                                     in.main_sel_resolve_ind_addr_c,
-                                     in.main_sel_resolve_ind_addr_c,
-                                     in.mem_sel_resolve_ind_addr_c,
-                                     in.main_clk,
-                                     in.main_space_id,
-                                     in.main_ind_addr_c,
-                                     in.main_mem_addr_c,
-                                     in.mem_clk,
-                                     in.mem_space_id,
-                                     in.mem_addr,
-                                     in.mem_val);
+        return std::forward_as_tuple(in.template get_column<ColumnAndShifts::perm_main_mem_ind_addr_c_inv>(),
+                                     in.template get_column<ColumnAndShifts::main_sel_resolve_ind_addr_c>(),
+                                     in.template get_column<ColumnAndShifts::main_sel_resolve_ind_addr_c>(),
+                                     in.template get_column<ColumnAndShifts::mem_sel_resolve_ind_addr_c>(),
+                                     in.template get_column<ColumnAndShifts::main_clk>(),
+                                     in.template get_column<ColumnAndShifts::main_space_id>(),
+                                     in.template get_column<ColumnAndShifts::main_ind_addr_c>(),
+                                     in.template get_column<ColumnAndShifts::main_mem_addr_c>(),
+                                     in.template get_column<ColumnAndShifts::mem_clk>(),
+                                     in.template get_column<ColumnAndShifts::mem_space_id>(),
+                                     in.template get_column<ColumnAndShifts::mem_addr>(),
+                                     in.template get_column<ColumnAndShifts::mem_val>());
     }
 };
 

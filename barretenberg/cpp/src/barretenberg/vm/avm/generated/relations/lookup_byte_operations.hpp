@@ -35,15 +35,16 @@ class lookup_byte_operations_lookup_settings {
 
     template <typename AllEntities> static inline auto inverse_polynomial_is_computed_at_row(const AllEntities& in)
     {
-        return (in.binary_sel_bin == 1 || in.byte_lookup_sel_bin == 1);
+        return (in.template get_column<ColumnAndShifts::binary_sel_bin>() == 1 ||
+                in.template get_column<ColumnAndShifts::byte_lookup_sel_bin>() == 1);
     }
 
     template <typename Accumulator, typename AllEntities>
     static inline auto compute_inverse_exists(const AllEntities& in)
     {
         using View = typename Accumulator::View;
-        const auto is_operation = View(in.binary_sel_bin);
-        const auto is_table_entry = View(in.byte_lookup_sel_bin);
+        const auto is_operation = View(in.template get_column<ColumnAndShifts::binary_sel_bin>());
+        const auto is_table_entry = View(in.template get_column<ColumnAndShifts::byte_lookup_sel_bin>());
         return (is_operation + is_table_entry - is_operation * is_table_entry);
     }
 
@@ -59,18 +60,18 @@ class lookup_byte_operations_lookup_settings {
 
     template <typename AllEntities> static inline auto get_entities(AllEntities&& in)
     {
-        return std::forward_as_tuple(in.lookup_byte_operations_inv,
-                                     in.lookup_byte_operations_counts,
-                                     in.binary_sel_bin,
-                                     in.byte_lookup_sel_bin,
-                                     in.binary_op_id,
-                                     in.binary_ia_bytes,
-                                     in.binary_ib_bytes,
-                                     in.binary_ic_bytes,
-                                     in.byte_lookup_table_op_id,
-                                     in.byte_lookup_table_input_a,
-                                     in.byte_lookup_table_input_b,
-                                     in.byte_lookup_table_output);
+        return std::forward_as_tuple(in.template get_column<ColumnAndShifts::lookup_byte_operations_inv>(),
+                                     in.template get_column<ColumnAndShifts::lookup_byte_operations_counts>(),
+                                     in.template get_column<ColumnAndShifts::binary_sel_bin>(),
+                                     in.template get_column<ColumnAndShifts::byte_lookup_sel_bin>(),
+                                     in.template get_column<ColumnAndShifts::binary_op_id>(),
+                                     in.template get_column<ColumnAndShifts::binary_ia_bytes>(),
+                                     in.template get_column<ColumnAndShifts::binary_ib_bytes>(),
+                                     in.template get_column<ColumnAndShifts::binary_ic_bytes>(),
+                                     in.template get_column<ColumnAndShifts::byte_lookup_table_op_id>(),
+                                     in.template get_column<ColumnAndShifts::byte_lookup_table_input_a>(),
+                                     in.template get_column<ColumnAndShifts::byte_lookup_table_input_b>(),
+                                     in.template get_column<ColumnAndShifts::byte_lookup_table_output>());
     }
 };
 

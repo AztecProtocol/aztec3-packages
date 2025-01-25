@@ -31,15 +31,16 @@ class lookup_cd_value_lookup_settings {
 
     template <typename AllEntities> static inline auto inverse_polynomial_is_computed_at_row(const AllEntities& in)
     {
-        return (in.slice_sel_cd_cpy == 1 || in.main_sel_calldata == 1);
+        return (in.template get_column<ColumnAndShifts::slice_sel_cd_cpy>() == 1 ||
+                in.template get_column<ColumnAndShifts::main_sel_calldata>() == 1);
     }
 
     template <typename Accumulator, typename AllEntities>
     static inline auto compute_inverse_exists(const AllEntities& in)
     {
         using View = typename Accumulator::View;
-        const auto is_operation = View(in.slice_sel_cd_cpy);
-        const auto is_table_entry = View(in.main_sel_calldata);
+        const auto is_operation = View(in.template get_column<ColumnAndShifts::slice_sel_cd_cpy>());
+        const auto is_table_entry = View(in.template get_column<ColumnAndShifts::main_sel_calldata>());
         return (is_operation + is_table_entry - is_operation * is_table_entry);
     }
 
@@ -55,14 +56,14 @@ class lookup_cd_value_lookup_settings {
 
     template <typename AllEntities> static inline auto get_entities(AllEntities&& in)
     {
-        return std::forward_as_tuple(in.lookup_cd_value_inv,
-                                     in.lookup_cd_value_counts,
-                                     in.slice_sel_cd_cpy,
-                                     in.main_sel_calldata,
-                                     in.slice_col_offset,
-                                     in.slice_val,
-                                     in.main_clk,
-                                     in.main_calldata);
+        return std::forward_as_tuple(in.template get_column<ColumnAndShifts::lookup_cd_value_inv>(),
+                                     in.template get_column<ColumnAndShifts::lookup_cd_value_counts>(),
+                                     in.template get_column<ColumnAndShifts::slice_sel_cd_cpy>(),
+                                     in.template get_column<ColumnAndShifts::main_sel_calldata>(),
+                                     in.template get_column<ColumnAndShifts::slice_col_offset>(),
+                                     in.template get_column<ColumnAndShifts::slice_val>(),
+                                     in.template get_column<ColumnAndShifts::main_clk>(),
+                                     in.template get_column<ColumnAndShifts::main_calldata>());
     }
 };
 

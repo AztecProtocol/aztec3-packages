@@ -38,15 +38,15 @@ class {{lookup_name}}_lookup_settings {
 
     template <typename AllEntities> static inline auto inverse_polynomial_is_computed_at_row(const AllEntities& in)
     {
-        return (in.{{lhs_selector}} == 1 || in.{{rhs_selector}} == 1);
+        return (in.template get_column<ColumnAndShifts::{{lhs_selector}}>() == 1 || in.template get_column<ColumnAndShifts::{{rhs_selector}}>() == 1);
     }
 
     template <typename Accumulator, typename AllEntities>
     static inline auto compute_inverse_exists(const AllEntities& in)
     {
         using View = typename Accumulator::View;
-        const auto is_operation = View(in.{{lhs_selector}});
-        const auto is_table_entry = View(in.{{rhs_selector}});
+        const auto is_operation = View(in.template get_column<ColumnAndShifts::{{lhs_selector}}>());
+        const auto is_table_entry = View(in.template get_column<ColumnAndShifts::{{rhs_selector}}>());
         return (is_operation + is_table_entry - is_operation * is_table_entry);
     }
 
@@ -63,15 +63,15 @@ class {{lookup_name}}_lookup_settings {
     template <typename AllEntities> static inline auto get_entities(AllEntities&& in)
     {
         return std::forward_as_tuple(
-            in.{{inverses_col}},
-            in.{{counts_col}},
-            in.{{lhs_selector}},
-            in.{{rhs_selector}},
+            in.template get_column<ColumnAndShifts::{{inverses_col}}>(),
+            in.template get_column<ColumnAndShifts::{{counts_col}}>(),
+            in.template get_column<ColumnAndShifts::{{lhs_selector}}>(),
+            in.template get_column<ColumnAndShifts::{{rhs_selector}}>(),
             {{#each lhs_cols as |col|}}
-            in.{{col}},
+            in.template get_column<ColumnAndShifts::{{col}}>(),
             {{/each}}
             {{#each rhs_cols as |col|}}
-            in.{{col}}{{#unless @last}},{{/unless}}
+            in.template get_column<ColumnAndShifts::{{col}}>(){{#unless @last}},{{/unless}}
             {{/each}}
         );
     }

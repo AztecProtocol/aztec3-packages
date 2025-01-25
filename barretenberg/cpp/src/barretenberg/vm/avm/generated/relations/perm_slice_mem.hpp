@@ -21,43 +21,44 @@ class perm_slice_mem_permutation_settings {
 
     template <typename AllEntities> static inline auto inverse_polynomial_is_computed_at_row(const AllEntities& in)
     {
-        return (in.slice_sel_mem_active == 1 || in.mem_sel_op_slice == 1);
+        return (in.template get_column<ColumnAndShifts::slice_sel_mem_active>() == 1 ||
+                in.template get_column<ColumnAndShifts::mem_sel_op_slice>() == 1);
     }
 
     template <typename AllEntities> static inline auto get_const_entities(const AllEntities& in)
     {
-        return std::forward_as_tuple(in.perm_slice_mem_inv,
-                                     in.slice_sel_mem_active,
-                                     in.slice_sel_mem_active,
-                                     in.mem_sel_op_slice,
-                                     in.slice_clk,
-                                     in.slice_space_id,
-                                     in.slice_addr,
-                                     in.slice_val,
-                                     in.slice_sel_cd_cpy,
-                                     in.mem_clk,
-                                     in.mem_space_id,
-                                     in.mem_addr,
-                                     in.mem_val,
-                                     in.mem_rw);
+        return std::forward_as_tuple(in.template get_column<ColumnAndShifts::perm_slice_mem_inv>(),
+                                     in.template get_column<ColumnAndShifts::slice_sel_mem_active>(),
+                                     in.template get_column<ColumnAndShifts::slice_sel_mem_active>(),
+                                     in.template get_column<ColumnAndShifts::mem_sel_op_slice>(),
+                                     in.template get_column<ColumnAndShifts::slice_clk>(),
+                                     in.template get_column<ColumnAndShifts::slice_space_id>(),
+                                     in.template get_column<ColumnAndShifts::slice_addr>(),
+                                     in.template get_column<ColumnAndShifts::slice_val>(),
+                                     in.template get_column<ColumnAndShifts::slice_sel_cd_cpy>(),
+                                     in.template get_column<ColumnAndShifts::mem_clk>(),
+                                     in.template get_column<ColumnAndShifts::mem_space_id>(),
+                                     in.template get_column<ColumnAndShifts::mem_addr>(),
+                                     in.template get_column<ColumnAndShifts::mem_val>(),
+                                     in.template get_column<ColumnAndShifts::mem_rw>());
     }
 
     template <typename AllEntities> static inline auto get_nonconst_entities(AllEntities& in)
     {
-        return std::forward_as_tuple(in.perm_slice_mem_inv,
-                                     in.slice_sel_mem_active,
-                                     in.slice_sel_mem_active,
-                                     in.mem_sel_op_slice,
-                                     in.slice_clk,
-                                     in.slice_space_id,
-                                     in.slice_addr,
-                                     in.slice_val,
-                                     in.slice_sel_cd_cpy,
-                                     in.mem_clk,
-                                     in.mem_space_id,
-                                     in.mem_addr,
-                                     in.mem_val,
-                                     in.mem_rw);
+        return std::forward_as_tuple(in.template get_column<ColumnAndShifts::perm_slice_mem_inv>(),
+                                     in.template get_column<ColumnAndShifts::slice_sel_mem_active>(),
+                                     in.template get_column<ColumnAndShifts::slice_sel_mem_active>(),
+                                     in.template get_column<ColumnAndShifts::mem_sel_op_slice>(),
+                                     in.template get_column<ColumnAndShifts::slice_clk>(),
+                                     in.template get_column<ColumnAndShifts::slice_space_id>(),
+                                     in.template get_column<ColumnAndShifts::slice_addr>(),
+                                     in.template get_column<ColumnAndShifts::slice_val>(),
+                                     in.template get_column<ColumnAndShifts::slice_sel_cd_cpy>(),
+                                     in.template get_column<ColumnAndShifts::mem_clk>(),
+                                     in.template get_column<ColumnAndShifts::mem_space_id>(),
+                                     in.template get_column<ColumnAndShifts::mem_addr>(),
+                                     in.template get_column<ColumnAndShifts::mem_val>(),
+                                     in.template get_column<ColumnAndShifts::mem_rw>());
     }
 };
 

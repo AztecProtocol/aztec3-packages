@@ -21,39 +21,40 @@ class perm_main_sha256_permutation_settings {
 
     template <typename AllEntities> static inline auto inverse_polynomial_is_computed_at_row(const AllEntities& in)
     {
-        return (in.main_sel_op_sha256 == 1 || in.sha256_sel_sha256_compression == 1);
+        return (in.template get_column<ColumnAndShifts::main_sel_op_sha256>() == 1 ||
+                in.template get_column<ColumnAndShifts::sha256_sel_sha256_compression>() == 1);
     }
 
     template <typename AllEntities> static inline auto get_const_entities(const AllEntities& in)
     {
-        return std::forward_as_tuple(in.perm_main_sha256_inv,
-                                     in.main_sel_op_sha256,
-                                     in.main_sel_op_sha256,
-                                     in.sha256_sel_sha256_compression,
-                                     in.main_clk,
-                                     in.main_ia,
-                                     in.main_ib,
-                                     in.main_ic,
-                                     in.sha256_clk,
-                                     in.sha256_state,
-                                     in.sha256_input,
-                                     in.sha256_output);
+        return std::forward_as_tuple(in.template get_column<ColumnAndShifts::perm_main_sha256_inv>(),
+                                     in.template get_column<ColumnAndShifts::main_sel_op_sha256>(),
+                                     in.template get_column<ColumnAndShifts::main_sel_op_sha256>(),
+                                     in.template get_column<ColumnAndShifts::sha256_sel_sha256_compression>(),
+                                     in.template get_column<ColumnAndShifts::main_clk>(),
+                                     in.template get_column<ColumnAndShifts::main_ia>(),
+                                     in.template get_column<ColumnAndShifts::main_ib>(),
+                                     in.template get_column<ColumnAndShifts::main_ic>(),
+                                     in.template get_column<ColumnAndShifts::sha256_clk>(),
+                                     in.template get_column<ColumnAndShifts::sha256_state>(),
+                                     in.template get_column<ColumnAndShifts::sha256_input>(),
+                                     in.template get_column<ColumnAndShifts::sha256_output>());
     }
 
     template <typename AllEntities> static inline auto get_nonconst_entities(AllEntities& in)
     {
-        return std::forward_as_tuple(in.perm_main_sha256_inv,
-                                     in.main_sel_op_sha256,
-                                     in.main_sel_op_sha256,
-                                     in.sha256_sel_sha256_compression,
-                                     in.main_clk,
-                                     in.main_ia,
-                                     in.main_ib,
-                                     in.main_ic,
-                                     in.sha256_clk,
-                                     in.sha256_state,
-                                     in.sha256_input,
-                                     in.sha256_output);
+        return std::forward_as_tuple(in.template get_column<ColumnAndShifts::perm_main_sha256_inv>(),
+                                     in.template get_column<ColumnAndShifts::main_sel_op_sha256>(),
+                                     in.template get_column<ColumnAndShifts::main_sel_op_sha256>(),
+                                     in.template get_column<ColumnAndShifts::sha256_sel_sha256_compression>(),
+                                     in.template get_column<ColumnAndShifts::main_clk>(),
+                                     in.template get_column<ColumnAndShifts::main_ia>(),
+                                     in.template get_column<ColumnAndShifts::main_ib>(),
+                                     in.template get_column<ColumnAndShifts::main_ic>(),
+                                     in.template get_column<ColumnAndShifts::sha256_clk>(),
+                                     in.template get_column<ColumnAndShifts::sha256_state>(),
+                                     in.template get_column<ColumnAndShifts::sha256_input>(),
+                                     in.template get_column<ColumnAndShifts::sha256_output>());
     }
 };
 

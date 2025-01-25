@@ -21,59 +21,60 @@ class perm_pos2_fixed_pos2_perm_permutation_settings {
 
     template <typename AllEntities> static inline auto inverse_polynomial_is_computed_at_row(const AllEntities& in)
     {
-        return (in.poseidon2_full_sel_poseidon == 1 || in.poseidon2_sel_poseidon_perm_immediate == 1);
+        return (in.template get_column<ColumnAndShifts::poseidon2_full_sel_poseidon>() == 1 ||
+                in.template get_column<ColumnAndShifts::poseidon2_sel_poseidon_perm_immediate>() == 1);
     }
 
     template <typename AllEntities> static inline auto get_const_entities(const AllEntities& in)
     {
-        return std::forward_as_tuple(in.perm_pos2_fixed_pos2_perm_inv,
-                                     in.poseidon2_full_sel_poseidon,
-                                     in.poseidon2_full_sel_poseidon,
-                                     in.poseidon2_sel_poseidon_perm_immediate,
-                                     in.poseidon2_full_clk,
-                                     in.poseidon2_full_a_0,
-                                     in.poseidon2_full_a_1,
-                                     in.poseidon2_full_a_2,
-                                     in.poseidon2_full_a_3,
-                                     in.poseidon2_full_b_0,
-                                     in.poseidon2_full_b_1,
-                                     in.poseidon2_full_b_2,
-                                     in.poseidon2_full_b_3,
-                                     in.poseidon2_clk,
-                                     in.poseidon2_a_0,
-                                     in.poseidon2_a_1,
-                                     in.poseidon2_a_2,
-                                     in.poseidon2_a_3,
-                                     in.poseidon2_b_0,
-                                     in.poseidon2_b_1,
-                                     in.poseidon2_b_2,
-                                     in.poseidon2_b_3);
+        return std::forward_as_tuple(in.template get_column<ColumnAndShifts::perm_pos2_fixed_pos2_perm_inv>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_full_sel_poseidon>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_full_sel_poseidon>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_sel_poseidon_perm_immediate>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_full_clk>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_full_a_0>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_full_a_1>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_full_a_2>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_full_a_3>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_full_b_0>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_full_b_1>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_full_b_2>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_full_b_3>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_clk>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_a_0>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_a_1>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_a_2>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_a_3>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_b_0>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_b_1>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_b_2>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_b_3>());
     }
 
     template <typename AllEntities> static inline auto get_nonconst_entities(AllEntities& in)
     {
-        return std::forward_as_tuple(in.perm_pos2_fixed_pos2_perm_inv,
-                                     in.poseidon2_full_sel_poseidon,
-                                     in.poseidon2_full_sel_poseidon,
-                                     in.poseidon2_sel_poseidon_perm_immediate,
-                                     in.poseidon2_full_clk,
-                                     in.poseidon2_full_a_0,
-                                     in.poseidon2_full_a_1,
-                                     in.poseidon2_full_a_2,
-                                     in.poseidon2_full_a_3,
-                                     in.poseidon2_full_b_0,
-                                     in.poseidon2_full_b_1,
-                                     in.poseidon2_full_b_2,
-                                     in.poseidon2_full_b_3,
-                                     in.poseidon2_clk,
-                                     in.poseidon2_a_0,
-                                     in.poseidon2_a_1,
-                                     in.poseidon2_a_2,
-                                     in.poseidon2_a_3,
-                                     in.poseidon2_b_0,
-                                     in.poseidon2_b_1,
-                                     in.poseidon2_b_2,
-                                     in.poseidon2_b_3);
+        return std::forward_as_tuple(in.template get_column<ColumnAndShifts::perm_pos2_fixed_pos2_perm_inv>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_full_sel_poseidon>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_full_sel_poseidon>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_sel_poseidon_perm_immediate>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_full_clk>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_full_a_0>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_full_a_1>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_full_a_2>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_full_a_3>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_full_b_0>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_full_b_1>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_full_b_2>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_full_b_3>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_clk>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_a_0>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_a_1>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_a_2>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_a_3>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_b_0>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_b_1>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_b_2>(),
+                                     in.template get_column<ColumnAndShifts::poseidon2_b_3>());
     }
 };
 

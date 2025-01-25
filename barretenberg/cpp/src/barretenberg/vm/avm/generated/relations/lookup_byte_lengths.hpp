@@ -32,15 +32,16 @@ class lookup_byte_lengths_lookup_settings {
 
     template <typename AllEntities> static inline auto inverse_polynomial_is_computed_at_row(const AllEntities& in)
     {
-        return (in.binary_start == 1 || in.byte_lookup_sel_bin == 1);
+        return (in.template get_column<ColumnAndShifts::binary_start>() == 1 ||
+                in.template get_column<ColumnAndShifts::byte_lookup_sel_bin>() == 1);
     }
 
     template <typename Accumulator, typename AllEntities>
     static inline auto compute_inverse_exists(const AllEntities& in)
     {
         using View = typename Accumulator::View;
-        const auto is_operation = View(in.binary_start);
-        const auto is_table_entry = View(in.byte_lookup_sel_bin);
+        const auto is_operation = View(in.template get_column<ColumnAndShifts::binary_start>());
+        const auto is_table_entry = View(in.template get_column<ColumnAndShifts::byte_lookup_sel_bin>());
         return (is_operation + is_table_entry - is_operation * is_table_entry);
     }
 
@@ -56,14 +57,14 @@ class lookup_byte_lengths_lookup_settings {
 
     template <typename AllEntities> static inline auto get_entities(AllEntities&& in)
     {
-        return std::forward_as_tuple(in.lookup_byte_lengths_inv,
-                                     in.lookup_byte_lengths_counts,
-                                     in.binary_start,
-                                     in.byte_lookup_sel_bin,
-                                     in.binary_in_tag,
-                                     in.binary_mem_tag_ctr,
-                                     in.byte_lookup_table_in_tags,
-                                     in.byte_lookup_table_byte_lengths);
+        return std::forward_as_tuple(in.template get_column<ColumnAndShifts::lookup_byte_lengths_inv>(),
+                                     in.template get_column<ColumnAndShifts::lookup_byte_lengths_counts>(),
+                                     in.template get_column<ColumnAndShifts::binary_start>(),
+                                     in.template get_column<ColumnAndShifts::byte_lookup_sel_bin>(),
+                                     in.template get_column<ColumnAndShifts::binary_in_tag>(),
+                                     in.template get_column<ColumnAndShifts::binary_mem_tag_ctr>(),
+                                     in.template get_column<ColumnAndShifts::byte_lookup_table_in_tags>(),
+                                     in.template get_column<ColumnAndShifts::byte_lookup_table_byte_lengths>());
     }
 };
 

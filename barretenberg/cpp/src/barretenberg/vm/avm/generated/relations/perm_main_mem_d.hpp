@@ -21,51 +21,52 @@ class perm_main_mem_d_permutation_settings {
 
     template <typename AllEntities> static inline auto inverse_polynomial_is_computed_at_row(const AllEntities& in)
     {
-        return (in.main_sel_mem_op_d == 1 || in.mem_sel_op_d == 1);
+        return (in.template get_column<ColumnAndShifts::main_sel_mem_op_d>() == 1 ||
+                in.template get_column<ColumnAndShifts::mem_sel_op_d>() == 1);
     }
 
     template <typename AllEntities> static inline auto get_const_entities(const AllEntities& in)
     {
-        return std::forward_as_tuple(in.perm_main_mem_d_inv,
-                                     in.main_sel_mem_op_d,
-                                     in.main_sel_mem_op_d,
-                                     in.mem_sel_op_d,
-                                     in.main_clk,
-                                     in.main_space_id,
-                                     in.main_mem_addr_d,
-                                     in.main_id,
-                                     in.main_rwd,
-                                     in.main_r_in_tag,
-                                     in.main_w_in_tag,
-                                     in.mem_clk,
-                                     in.mem_space_id,
-                                     in.mem_addr,
-                                     in.mem_val,
-                                     in.mem_rw,
-                                     in.mem_r_in_tag,
-                                     in.mem_w_in_tag);
+        return std::forward_as_tuple(in.template get_column<ColumnAndShifts::perm_main_mem_d_inv>(),
+                                     in.template get_column<ColumnAndShifts::main_sel_mem_op_d>(),
+                                     in.template get_column<ColumnAndShifts::main_sel_mem_op_d>(),
+                                     in.template get_column<ColumnAndShifts::mem_sel_op_d>(),
+                                     in.template get_column<ColumnAndShifts::main_clk>(),
+                                     in.template get_column<ColumnAndShifts::main_space_id>(),
+                                     in.template get_column<ColumnAndShifts::main_mem_addr_d>(),
+                                     in.template get_column<ColumnAndShifts::main_id>(),
+                                     in.template get_column<ColumnAndShifts::main_rwd>(),
+                                     in.template get_column<ColumnAndShifts::main_r_in_tag>(),
+                                     in.template get_column<ColumnAndShifts::main_w_in_tag>(),
+                                     in.template get_column<ColumnAndShifts::mem_clk>(),
+                                     in.template get_column<ColumnAndShifts::mem_space_id>(),
+                                     in.template get_column<ColumnAndShifts::mem_addr>(),
+                                     in.template get_column<ColumnAndShifts::mem_val>(),
+                                     in.template get_column<ColumnAndShifts::mem_rw>(),
+                                     in.template get_column<ColumnAndShifts::mem_r_in_tag>(),
+                                     in.template get_column<ColumnAndShifts::mem_w_in_tag>());
     }
 
     template <typename AllEntities> static inline auto get_nonconst_entities(AllEntities& in)
     {
-        return std::forward_as_tuple(in.perm_main_mem_d_inv,
-                                     in.main_sel_mem_op_d,
-                                     in.main_sel_mem_op_d,
-                                     in.mem_sel_op_d,
-                                     in.main_clk,
-                                     in.main_space_id,
-                                     in.main_mem_addr_d,
-                                     in.main_id,
-                                     in.main_rwd,
-                                     in.main_r_in_tag,
-                                     in.main_w_in_tag,
-                                     in.mem_clk,
-                                     in.mem_space_id,
-                                     in.mem_addr,
-                                     in.mem_val,
-                                     in.mem_rw,
-                                     in.mem_r_in_tag,
-                                     in.mem_w_in_tag);
+        return std::forward_as_tuple(in.template get_column<ColumnAndShifts::perm_main_mem_d_inv>(),
+                                     in.template get_column<ColumnAndShifts::main_sel_mem_op_d>(),
+                                     in.template get_column<ColumnAndShifts::main_sel_mem_op_d>(),
+                                     in.template get_column<ColumnAndShifts::mem_sel_op_d>(),
+                                     in.template get_column<ColumnAndShifts::main_clk>(),
+                                     in.template get_column<ColumnAndShifts::main_space_id>(),
+                                     in.template get_column<ColumnAndShifts::main_mem_addr_d>(),
+                                     in.template get_column<ColumnAndShifts::main_id>(),
+                                     in.template get_column<ColumnAndShifts::main_rwd>(),
+                                     in.template get_column<ColumnAndShifts::main_r_in_tag>(),
+                                     in.template get_column<ColumnAndShifts::main_w_in_tag>(),
+                                     in.template get_column<ColumnAndShifts::mem_clk>(),
+                                     in.template get_column<ColumnAndShifts::mem_space_id>(),
+                                     in.template get_column<ColumnAndShifts::mem_addr>(),
+                                     in.template get_column<ColumnAndShifts::mem_val>(),
+                                     in.template get_column<ColumnAndShifts::mem_rw>(),
+                                     in.template get_column<ColumnAndShifts::mem_r_in_tag>(),
+                                     in.template get_column<ColumnAndShifts::mem_w_in_tag>());
     }
 };
 

@@ -30,15 +30,16 @@ class lookup_mem_rng_chk_2_lookup_settings {
 
     template <typename AllEntities> static inline auto inverse_polynomial_is_computed_at_row(const AllEntities& in)
     {
-        return (in.mem_sel_rng_chk == 1 || in.main_sel_rng_8 == 1);
+        return (in.template get_column<ColumnAndShifts::mem_sel_rng_chk>() == 1 ||
+                in.template get_column<ColumnAndShifts::main_sel_rng_8>() == 1);
     }
 
     template <typename Accumulator, typename AllEntities>
     static inline auto compute_inverse_exists(const AllEntities& in)
     {
         using View = typename Accumulator::View;
-        const auto is_operation = View(in.mem_sel_rng_chk);
-        const auto is_table_entry = View(in.main_sel_rng_8);
+        const auto is_operation = View(in.template get_column<ColumnAndShifts::mem_sel_rng_chk>());
+        const auto is_table_entry = View(in.template get_column<ColumnAndShifts::main_sel_rng_8>());
         return (is_operation + is_table_entry - is_operation * is_table_entry);
     }
 
@@ -54,12 +55,12 @@ class lookup_mem_rng_chk_2_lookup_settings {
 
     template <typename AllEntities> static inline auto get_entities(AllEntities&& in)
     {
-        return std::forward_as_tuple(in.lookup_mem_rng_chk_2_inv,
-                                     in.lookup_mem_rng_chk_2_counts,
-                                     in.mem_sel_rng_chk,
-                                     in.main_sel_rng_8,
-                                     in.mem_u8_r0,
-                                     in.main_clk);
+        return std::forward_as_tuple(in.template get_column<ColumnAndShifts::lookup_mem_rng_chk_2_inv>(),
+                                     in.template get_column<ColumnAndShifts::lookup_mem_rng_chk_2_counts>(),
+                                     in.template get_column<ColumnAndShifts::mem_sel_rng_chk>(),
+                                     in.template get_column<ColumnAndShifts::main_sel_rng_8>(),
+                                     in.template get_column<ColumnAndShifts::mem_u8_r0>(),
+                                     in.template get_column<ColumnAndShifts::main_clk>());
     }
 };
 

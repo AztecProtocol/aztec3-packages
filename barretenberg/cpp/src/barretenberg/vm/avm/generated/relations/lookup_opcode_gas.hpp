@@ -38,15 +38,16 @@ class lookup_opcode_gas_lookup_settings {
 
     template <typename AllEntities> static inline auto inverse_polynomial_is_computed_at_row(const AllEntities& in)
     {
-        return (in.main_is_gas_accounted == 1 || in.gas_sel_gas_cost == 1);
+        return (in.template get_column<ColumnAndShifts::main_is_gas_accounted>() == 1 ||
+                in.template get_column<ColumnAndShifts::gas_sel_gas_cost>() == 1);
     }
 
     template <typename Accumulator, typename AllEntities>
     static inline auto compute_inverse_exists(const AllEntities& in)
     {
         using View = typename Accumulator::View;
-        const auto is_operation = View(in.main_is_gas_accounted);
-        const auto is_table_entry = View(in.gas_sel_gas_cost);
+        const auto is_operation = View(in.template get_column<ColumnAndShifts::main_is_gas_accounted>());
+        const auto is_table_entry = View(in.template get_column<ColumnAndShifts::gas_sel_gas_cost>());
         return (is_operation + is_table_entry - is_operation * is_table_entry);
     }
 
@@ -62,20 +63,20 @@ class lookup_opcode_gas_lookup_settings {
 
     template <typename AllEntities> static inline auto get_entities(AllEntities&& in)
     {
-        return std::forward_as_tuple(in.lookup_opcode_gas_inv,
-                                     in.lookup_opcode_gas_counts,
-                                     in.main_is_gas_accounted,
-                                     in.gas_sel_gas_cost,
-                                     in.main_opcode_val,
-                                     in.main_base_l2_gas_op_cost,
-                                     in.main_base_da_gas_op_cost,
-                                     in.main_dyn_l2_gas_op_cost,
-                                     in.main_dyn_da_gas_op_cost,
-                                     in.main_clk,
-                                     in.gas_base_l2_gas_fixed_table,
-                                     in.gas_base_da_gas_fixed_table,
-                                     in.gas_dyn_l2_gas_fixed_table,
-                                     in.gas_dyn_da_gas_fixed_table);
+        return std::forward_as_tuple(in.template get_column<ColumnAndShifts::lookup_opcode_gas_inv>(),
+                                     in.template get_column<ColumnAndShifts::lookup_opcode_gas_counts>(),
+                                     in.template get_column<ColumnAndShifts::main_is_gas_accounted>(),
+                                     in.template get_column<ColumnAndShifts::gas_sel_gas_cost>(),
+                                     in.template get_column<ColumnAndShifts::main_opcode_val>(),
+                                     in.template get_column<ColumnAndShifts::main_base_l2_gas_op_cost>(),
+                                     in.template get_column<ColumnAndShifts::main_base_da_gas_op_cost>(),
+                                     in.template get_column<ColumnAndShifts::main_dyn_l2_gas_op_cost>(),
+                                     in.template get_column<ColumnAndShifts::main_dyn_da_gas_op_cost>(),
+                                     in.template get_column<ColumnAndShifts::main_clk>(),
+                                     in.template get_column<ColumnAndShifts::gas_base_l2_gas_fixed_table>(),
+                                     in.template get_column<ColumnAndShifts::gas_base_da_gas_fixed_table>(),
+                                     in.template get_column<ColumnAndShifts::gas_dyn_l2_gas_fixed_table>(),
+                                     in.template get_column<ColumnAndShifts::gas_dyn_da_gas_fixed_table>());
     }
 };
 

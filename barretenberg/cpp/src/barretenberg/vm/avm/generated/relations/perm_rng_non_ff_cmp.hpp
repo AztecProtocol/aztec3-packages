@@ -21,31 +21,32 @@ class perm_rng_non_ff_cmp_permutation_settings {
 
     template <typename AllEntities> static inline auto inverse_polynomial_is_computed_at_row(const AllEntities& in)
     {
-        return (in.range_check_cmp_non_ff_rng_chk == 1 || in.cmp_op_non_ff_gt == 1);
+        return (in.template get_column<ColumnAndShifts::range_check_cmp_non_ff_rng_chk>() == 1 ||
+                in.template get_column<ColumnAndShifts::cmp_op_non_ff_gt>() == 1);
     }
 
     template <typename AllEntities> static inline auto get_const_entities(const AllEntities& in)
     {
-        return std::forward_as_tuple(in.perm_rng_non_ff_cmp_inv,
-                                     in.range_check_cmp_non_ff_rng_chk,
-                                     in.range_check_cmp_non_ff_rng_chk,
-                                     in.cmp_op_non_ff_gt,
-                                     in.range_check_clk,
-                                     in.range_check_value,
-                                     in.cmp_range_chk_clk,
-                                     in.cmp_diff);
+        return std::forward_as_tuple(in.template get_column<ColumnAndShifts::perm_rng_non_ff_cmp_inv>(),
+                                     in.template get_column<ColumnAndShifts::range_check_cmp_non_ff_rng_chk>(),
+                                     in.template get_column<ColumnAndShifts::range_check_cmp_non_ff_rng_chk>(),
+                                     in.template get_column<ColumnAndShifts::cmp_op_non_ff_gt>(),
+                                     in.template get_column<ColumnAndShifts::range_check_clk>(),
+                                     in.template get_column<ColumnAndShifts::range_check_value>(),
+                                     in.template get_column<ColumnAndShifts::cmp_range_chk_clk>(),
+                                     in.template get_column<ColumnAndShifts::cmp_diff>());
     }
 
     template <typename AllEntities> static inline auto get_nonconst_entities(AllEntities& in)
     {
-        return std::forward_as_tuple(in.perm_rng_non_ff_cmp_inv,
-                                     in.range_check_cmp_non_ff_rng_chk,
-                                     in.range_check_cmp_non_ff_rng_chk,
-                                     in.cmp_op_non_ff_gt,
-                                     in.range_check_clk,
-                                     in.range_check_value,
-                                     in.cmp_range_chk_clk,
-                                     in.cmp_diff);
+        return std::forward_as_tuple(in.template get_column<ColumnAndShifts::perm_rng_non_ff_cmp_inv>(),
+                                     in.template get_column<ColumnAndShifts::range_check_cmp_non_ff_rng_chk>(),
+                                     in.template get_column<ColumnAndShifts::range_check_cmp_non_ff_rng_chk>(),
+                                     in.template get_column<ColumnAndShifts::cmp_op_non_ff_gt>(),
+                                     in.template get_column<ColumnAndShifts::range_check_clk>(),
+                                     in.template get_column<ColumnAndShifts::range_check_value>(),
+                                     in.template get_column<ColumnAndShifts::cmp_range_chk_clk>(),
+                                     in.template get_column<ColumnAndShifts::cmp_diff>());
     }
 };
 

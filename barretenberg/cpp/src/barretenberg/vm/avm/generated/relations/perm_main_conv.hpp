@@ -21,43 +21,44 @@ class perm_main_conv_permutation_settings {
 
     template <typename AllEntities> static inline auto inverse_polynomial_is_computed_at_row(const AllEntities& in)
     {
-        return (in.main_sel_op_radix_be == 1 || in.conversion_sel_to_radix_be == 1);
+        return (in.template get_column<ColumnAndShifts::main_sel_op_radix_be>() == 1 ||
+                in.template get_column<ColumnAndShifts::conversion_sel_to_radix_be>() == 1);
     }
 
     template <typename AllEntities> static inline auto get_const_entities(const AllEntities& in)
     {
-        return std::forward_as_tuple(in.perm_main_conv_inv,
-                                     in.main_sel_op_radix_be,
-                                     in.main_sel_op_radix_be,
-                                     in.conversion_sel_to_radix_be,
-                                     in.main_clk,
-                                     in.main_ia,
-                                     in.main_ib,
-                                     in.main_ic,
-                                     in.main_id,
-                                     in.conversion_clk,
-                                     in.conversion_input,
-                                     in.conversion_radix,
-                                     in.conversion_num_limbs,
-                                     in.conversion_output_bits);
+        return std::forward_as_tuple(in.template get_column<ColumnAndShifts::perm_main_conv_inv>(),
+                                     in.template get_column<ColumnAndShifts::main_sel_op_radix_be>(),
+                                     in.template get_column<ColumnAndShifts::main_sel_op_radix_be>(),
+                                     in.template get_column<ColumnAndShifts::conversion_sel_to_radix_be>(),
+                                     in.template get_column<ColumnAndShifts::main_clk>(),
+                                     in.template get_column<ColumnAndShifts::main_ia>(),
+                                     in.template get_column<ColumnAndShifts::main_ib>(),
+                                     in.template get_column<ColumnAndShifts::main_ic>(),
+                                     in.template get_column<ColumnAndShifts::main_id>(),
+                                     in.template get_column<ColumnAndShifts::conversion_clk>(),
+                                     in.template get_column<ColumnAndShifts::conversion_input>(),
+                                     in.template get_column<ColumnAndShifts::conversion_radix>(),
+                                     in.template get_column<ColumnAndShifts::conversion_num_limbs>(),
+                                     in.template get_column<ColumnAndShifts::conversion_output_bits>());
     }
 
     template <typename AllEntities> static inline auto get_nonconst_entities(AllEntities& in)
     {
-        return std::forward_as_tuple(in.perm_main_conv_inv,
-                                     in.main_sel_op_radix_be,
-                                     in.main_sel_op_radix_be,
-                                     in.conversion_sel_to_radix_be,
-                                     in.main_clk,
-                                     in.main_ia,
-                                     in.main_ib,
-                                     in.main_ic,
-                                     in.main_id,
-                                     in.conversion_clk,
-                                     in.conversion_input,
-                                     in.conversion_radix,
-                                     in.conversion_num_limbs,
-                                     in.conversion_output_bits);
+        return std::forward_as_tuple(in.template get_column<ColumnAndShifts::perm_main_conv_inv>(),
+                                     in.template get_column<ColumnAndShifts::main_sel_op_radix_be>(),
+                                     in.template get_column<ColumnAndShifts::main_sel_op_radix_be>(),
+                                     in.template get_column<ColumnAndShifts::conversion_sel_to_radix_be>(),
+                                     in.template get_column<ColumnAndShifts::main_clk>(),
+                                     in.template get_column<ColumnAndShifts::main_ia>(),
+                                     in.template get_column<ColumnAndShifts::main_ib>(),
+                                     in.template get_column<ColumnAndShifts::main_ic>(),
+                                     in.template get_column<ColumnAndShifts::main_id>(),
+                                     in.template get_column<ColumnAndShifts::conversion_clk>(),
+                                     in.template get_column<ColumnAndShifts::conversion_input>(),
+                                     in.template get_column<ColumnAndShifts::conversion_radix>(),
+                                     in.template get_column<ColumnAndShifts::conversion_num_limbs>(),
+                                     in.template get_column<ColumnAndShifts::conversion_output_bits>());
     }
 };
 

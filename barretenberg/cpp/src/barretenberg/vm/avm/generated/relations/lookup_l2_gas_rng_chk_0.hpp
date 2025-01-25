@@ -30,15 +30,16 @@ class lookup_l2_gas_rng_chk_0_lookup_settings {
 
     template <typename AllEntities> static inline auto inverse_polynomial_is_computed_at_row(const AllEntities& in)
     {
-        return (in.main_is_gas_accounted == 1 || in.main_sel_rng_16 == 1);
+        return (in.template get_column<ColumnAndShifts::main_is_gas_accounted>() == 1 ||
+                in.template get_column<ColumnAndShifts::main_sel_rng_16>() == 1);
     }
 
     template <typename Accumulator, typename AllEntities>
     static inline auto compute_inverse_exists(const AllEntities& in)
     {
         using View = typename Accumulator::View;
-        const auto is_operation = View(in.main_is_gas_accounted);
-        const auto is_table_entry = View(in.main_sel_rng_16);
+        const auto is_operation = View(in.template get_column<ColumnAndShifts::main_is_gas_accounted>());
+        const auto is_table_entry = View(in.template get_column<ColumnAndShifts::main_sel_rng_16>());
         return (is_operation + is_table_entry - is_operation * is_table_entry);
     }
 
@@ -54,12 +55,12 @@ class lookup_l2_gas_rng_chk_0_lookup_settings {
 
     template <typename AllEntities> static inline auto get_entities(AllEntities&& in)
     {
-        return std::forward_as_tuple(in.lookup_l2_gas_rng_chk_0_inv,
-                                     in.lookup_l2_gas_rng_chk_0_counts,
-                                     in.main_is_gas_accounted,
-                                     in.main_sel_rng_16,
-                                     in.main_l2_gas_u16_r0,
-                                     in.main_clk);
+        return std::forward_as_tuple(in.template get_column<ColumnAndShifts::lookup_l2_gas_rng_chk_0_inv>(),
+                                     in.template get_column<ColumnAndShifts::lookup_l2_gas_rng_chk_0_counts>(),
+                                     in.template get_column<ColumnAndShifts::main_is_gas_accounted>(),
+                                     in.template get_column<ColumnAndShifts::main_sel_rng_16>(),
+                                     in.template get_column<ColumnAndShifts::main_l2_gas_u16_r0>(),
+                                     in.template get_column<ColumnAndShifts::main_clk>());
     }
 };
 

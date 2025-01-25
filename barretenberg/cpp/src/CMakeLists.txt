@@ -17,6 +17,7 @@ add_compile_options(-Werror -Wall -Wextra -Wconversion -Wsign-conversion -Wfatal
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     add_compile_options(-fcolor-diagnostics -fconstexpr-steps=100000000)
+    add_compile_options(-Wno-missing-braces)
 
     if(MEMORY_CHECKS)
         message(STATUS "Compiling with memory checks.")

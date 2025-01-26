@@ -1,4 +1,8 @@
-import { SchnorrAccountContractArtifact, getSchnorrAccount } from '@aztec/accounts/schnorr';
+import {
+  SchnorrAccountContractArtifact,
+  getSchnorrAccount,
+  getSchnorrWalletWithSecretKey,
+} from '@aztec/accounts/schnorr';
 import { type Archiver, createArchiver } from '@aztec/archiver';
 import {
   type AccountWalletWithSecretKey,
@@ -31,8 +35,8 @@ import { getBBConfig } from '../fixtures/get_bb_config.js';
 import {
   type ISnapshotManager,
   type SubsystemsContext,
-  addAccounts,
   createSnapshotManager,
+  deployAccounts,
   publicDeployAccounts,
 } from '../fixtures/snapshot_manager.js';
 import { getPrivateKeyFromIndex, setupPXEService } from '../fixtures/utils.js';
@@ -101,17 +105,18 @@ export class FullProverTest {
    * 2. Publicly deploy accounts, deploy token contract
    */
   async applyBaseSnapshots() {
-    await this.snapshotManager.snapshot('2_accounts', addAccounts(2, this.logger), async ({ accountKeys }, { pxe }) => {
-      this.keys = accountKeys;
-      this.wallets = await Promise.all(
-        accountKeys.map(async ak => {
-          const account = await getSchnorrAccount(pxe, ak[0], ak[1], SALT);
-          return account.getWallet();
-        }),
-      );
-      this.accounts = this.wallets.map(w => w.getCompleteAddress());
-      this.wallets.forEach((w, i) => this.logger.verbose(`Wallet ${i} address: ${w.getAddress()}`));
-    });
+    await this.snapshotManager.snapshot(
+      '2_accounts',
+      deployAccounts(2, this.logger),
+      async ({ deployedAccounts }, { pxe }) => {
+        this.keys = deployedAccounts.map(a => [a.secret, a.signingKey]);
+        this.wallets = await Promise.all(
+          deployedAccounts.map(a => getSchnorrWalletWithSecretKey(pxe, a.secret, a.signingKey, a.salt)),
+        );
+        this.accounts = this.wallets.map(w => w.getCompleteAddress());
+        this.wallets.forEach((w, i) => this.logger.verbose(`Wallet ${i} address: ${w.getAddress()}`));
+      },
+    );
 
     await this.snapshotManager.snapshot(
       'client_prover_integration',

@@ -267,6 +267,7 @@ __metadata:
     "@aztec/telemetry-client": "workspace:^"
     "@aztec/txe": "workspace:^"
     "@aztec/types": "workspace:^"
+    "@aztec/world-state": "workspace:^"
     "@jest/globals": "npm:^29.5.0"
     "@types/chalk": "npm:^2.2.0"
     "@types/jest": "npm:^29.5.0"

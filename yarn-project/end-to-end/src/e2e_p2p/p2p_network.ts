@@ -1,4 +1,4 @@
-import { getSchnorrAccount } from '@aztec/accounts/schnorr';
+import { getSchnorrWalletWithSecretKey } from '@aztec/accounts/schnorr';
 import { type AztecNodeConfig, type AztecNodeService } from '@aztec/aztec-node';
 import { type AccountWalletWithSecretKey } from '@aztec/aztec.js';
 import { ChainMonitor } from '@aztec/aztec.js/utils';
@@ -23,8 +23,8 @@ import {
 import {
   type ISnapshotManager,
   type SubsystemsContext,
-  addAccounts,
   createSnapshotManager,
+  deployAccounts,
 } from '../fixtures/snapshot_manager.js';
 import { getPrivateKeyFromIndex } from '../fixtures/utils.js';
 import { getEndToEndTestTelemetryClient } from '../fixtures/with_telemetry_utils.js';
@@ -241,16 +241,10 @@ export class P2PNetworkTest {
   async setupAccount() {
     await this.snapshotManager.snapshot(
       'setup-account',
-      addAccounts(1, this.logger, false),
-      async ({ accountKeys }, ctx) => {
-        const wallets = await Promise.all(
-          accountKeys.map(async ak => {
-            const account = await getSchnorrAccount(ctx.pxe, ak[0], ak[1], 1);
-            return account.getWallet();
-          }),
-        );
-
-        this.wallet = wallets[0];
+      deployAccounts(1, this.logger, false),
+      async ({ deployedAccounts }, { pxe }) => {
+        const [account] = deployedAccounts;
+        this.wallet = await getSchnorrWalletWithSecretKey(pxe, account.secret, account.signingKey, account.salt);
       },
     );
   }

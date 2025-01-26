@@ -1,13 +1,10 @@
-import { createPXEClient, AccountManager, Fr, Wallet, deriveMasterIncomingViewingSecretKey } from '@aztec/aztec.js';
+import { Fr, Wallet, createPXEClient } from '@aztec/aztec.js';
 
-import { SingleKeyAccountContract } from '@aztec/accounts/single_key';
+import { getDeployedTestAccountsWallets } from '@aztec/accounts/testing';
 import { VanillaContract } from '../artifacts/Vanilla';
 
-const secretKey = Fr.random();
 const pxe = createPXEClient(process.env.PXE_URL || 'http://localhost:8080');
 
-const encryptionPrivateKey = deriveMasterIncomingViewingSecretKey(secretKey);
-const account = await AccountManager.create(pxe, secretKey, new SingleKeyAccountContract(encryptionPrivateKey));
 let contract: any = null;
 let wallet: Wallet | null = null;
 
@@ -19,7 +16,10 @@ const setWait = (state: boolean): void =>
 
 document.querySelector('#deploy').addEventListener('click', async ({ target }: any) => {
   setWait(true);
-  wallet = await account.register();
+  wallet = (await getDeployedTestAccountsWallets(pxe))[0];
+  if (!wallet) {
+    alert('Wallet not found. Please connect the app to a testing environment with deployed and funded test accounts.');
+  }
 
   contract = await VanillaContract.deploy(wallet, Fr.random(), wallet.getCompleteAddress().address)
     .send({ contractAddressSalt: Fr.random() })

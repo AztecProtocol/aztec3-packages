@@ -8,12 +8,12 @@ test-protocol-circuits:
   FROM ../+bootstrap
   ENV PATH="/usr/src/noir/noir-repo/target/release:${PATH}"
   # TODO(#10754): Remove --skip-brillig-constraints-check
-  RUN cd /usr/src/noir-projects/noir-protocol-circuits && nargo test --silence-warnings --skip-brillig-constraints-check
+  RUN cd /usr/src/noir-projects/noir-protocol-circuits && nargo test --pedantic-solving --silence-warnings --skip-brillig-constraints-check
 
   # Also execute circuits to ensure that `Prover.toml` files are in sync.
   LET circuits = "private-kernel-init private-kernel-inner private-kernel-reset private-kernel-tail-to-public private-kernel-tail rollup-base-private rollup-base-public rollup-block-root rollup-block-merge rollup-merge rollup-root"
   FOR circuit IN $circuits
-      RUN cd /usr/src/noir-projects/noir-protocol-circuits/crates/$circuit && nargo execute --silence-warnings --skip-brillig-constraints-check > /dev/null
+      RUN cd /usr/src/noir-projects/noir-protocol-circuits/crates/$circuit && nargo execute --pedantic-solving --silence-warnings --skip-brillig-constraints-check > /dev/null
   END
 
 test-aztec-nr:
@@ -23,7 +23,7 @@ test-aztec-nr:
       # Wait for TXE to initialize
       sleep 5 && \
       cd /usr/src/noir-projects/aztec-nr && \
-      NARGO_FOREIGN_CALL_TIMEOUT=300000 nargo test --silence-warnings --oracle-resolver http://localhost:8080
+      NARGO_FOREIGN_CALL_TIMEOUT=300000 nargo test --pedantic-solving --silence-warnings --oracle-resolver http://localhost:8080
 
 test-contracts:
   FROM ../+bootstrap
@@ -34,7 +34,7 @@ test-contracts:
       cd /usr/src/noir-projects/noir-contracts && \
       # We need to increase the timeout since all tests running in parallel hammer TXE at the same time and processing slows down, leading to timeouts
       # The only way we currently have to batch tests is via RAYON_NUM_THREADS, which is not ideal
-      NARGO_FOREIGN_CALL_TIMEOUT=300000 nargo test --silence-warnings --oracle-resolver http://localhost:8080
+      NARGO_FOREIGN_CALL_TIMEOUT=300000 nargo test --pedantic-solving --silence-warnings --oracle-resolver http://localhost:8080
 
 format:
   FROM ../+bootstrap

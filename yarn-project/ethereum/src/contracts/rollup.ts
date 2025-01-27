@@ -35,7 +35,7 @@ export class RollupContract {
 
   @memoize
   getL1GenesisTime() {
-    return this.rollup.read.GENESIS_TIME();
+    return this.rollup.read.getGenesisTime();
   }
 
   getBlockNumber() {

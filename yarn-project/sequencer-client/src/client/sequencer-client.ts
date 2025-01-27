@@ -69,8 +69,8 @@ export class SequencerClient {
 
     const rollup = publisher.getRollupContract();
     const [l1GenesisTime, slotDuration] = await Promise.all([
-      rollup.read.GENESIS_TIME(),
-      rollup.read.SLOT_DURATION(),
+      rollup.read.getGenesisTime(),
+      rollup.read.getSlotDuration(),
     ] as const);
 
     const ethereumSlotDuration = config.ethereumSlotDuration;

@@ -406,10 +406,6 @@ describe('e2e_synching', () => {
       deployL1ContractsValues.publicClient,
       deployL1ContractsValues.l1ContractAddresses.rollupAddress.toString(),
     );
-    const [l1GenesisTime, slotDuration] = await Promise.all([
-      rollupContract.getL1GenesisTime(),
-      rollupContract.getSlotDuration(),
-    ] as const);
     const forwarderContract = await createForwarderContract(config, sequencerPK);
     const epochCache = await EpochCache.create(config.l1Contracts.rollupAddress, config, {
       dateProvider: new TestDateProvider(),

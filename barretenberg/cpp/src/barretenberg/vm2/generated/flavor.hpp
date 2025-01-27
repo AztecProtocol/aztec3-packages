@@ -18,6 +18,7 @@
 
 // Relations
 #include "relations/alu.hpp"
+#include "relations/bitwise.hpp"
 #include "relations/execution.hpp"
 #include "relations/range_check.hpp"
 
@@ -54,12 +55,12 @@ class AvmFlavor {
     static constexpr bool HasZK = false;
 
     static constexpr size_t NUM_PRECOMPUTED_ENTITIES = 12;
-    static constexpr size_t NUM_WITNESS_ENTITIES = 91;
-    static constexpr size_t NUM_SHIFTED_ENTITIES = 1;
+    static constexpr size_t NUM_WITNESS_ENTITIES = 103;
+    static constexpr size_t NUM_SHIFTED_ENTITIES = 6;
     static constexpr size_t NUM_WIRES = NUM_WITNESS_ENTITIES + NUM_PRECOMPUTED_ENTITIES;
     // We have two copies of the witness entities, so we subtract the number of fixed ones (they have no shift), one for
     // the unshifted and one for the shifted
-    static constexpr size_t NUM_ALL_ENTITIES = 104;
+    static constexpr size_t NUM_ALL_ENTITIES = 121;
     // The total number of witnesses including shifts and derived entities.
     static constexpr size_t NUM_ALL_WITNESS_ENTITIES = NUM_WITNESS_ENTITIES + NUM_SHIFTED_ENTITIES;
 
@@ -68,6 +69,7 @@ class AvmFlavor {
     using MainRelations_ = std::tuple<
         // Relations
         avm2::alu<FF_>,
+        avm2::bitwise<FF_>,
         avm2::execution<FF_>,
         avm2::range_check<FF_>>;
 

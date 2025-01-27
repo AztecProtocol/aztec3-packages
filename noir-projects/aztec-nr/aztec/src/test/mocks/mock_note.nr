@@ -47,11 +47,11 @@ impl NullifiableNote for MockNote {
 }
 
 impl NoteInterface<MOCK_NOTE_LENGTH> for MockNote {
-    fn serialize_content(self) -> [Field; MOCK_NOTE_LENGTH] {
+    fn pack_content(self) -> [Field; MOCK_NOTE_LENGTH] {
         [self.value]
     }
 
-    fn deserialize_content(fields: [Field; MOCK_NOTE_LENGTH]) -> Self {
+    fn unpack_content(fields: [Field; MOCK_NOTE_LENGTH]) -> Self {
         Self { value: fields[0], header: NoteHeader::empty() }
     }
 
@@ -69,7 +69,7 @@ impl NoteInterface<MOCK_NOTE_LENGTH> for MockNote {
     }
 
     fn to_be_bytes(self, storage_slot: Field) -> [u8; MOCK_NOTE_LENGTH * 32 + 64] {
-        let serialized_note = self.serialize_content();
+        let packed_content = self.pack_content();
 
         let mut buffer: [u8; MOCK_NOTE_LENGTH * 32 + 64] = [0; MOCK_NOTE_LENGTH * 32 + 64];
 
@@ -81,8 +81,8 @@ impl NoteInterface<MOCK_NOTE_LENGTH> for MockNote {
             buffer[32 + i] = note_type_id_bytes[i];
         }
 
-        for i in 0..serialized_note.len() {
-            let bytes: [u8; 32] = serialized_note[i].to_be_bytes();
+        for i in 0..packed_content.len() {
+            let bytes: [u8; 32] = packed_content[i].to_be_bytes();
             for j in 0..32 {
                 buffer[64 + i * 32 + j] = bytes[j];
             }

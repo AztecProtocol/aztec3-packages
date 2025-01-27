@@ -121,6 +121,13 @@ export class TxProvingState {
 
     return new PublicBaseRollupInputs(tubeData, avmProofData, this.baseRollupHints);
   }
+public resetState() {
+  this.tube = undefined;
+  this.avm = undefined;
+
+  this.treeSnapshots.clear();
+}
+
 
   #getTubeVkData() {
     let vkIndex = TUBE_VK_INDEX;

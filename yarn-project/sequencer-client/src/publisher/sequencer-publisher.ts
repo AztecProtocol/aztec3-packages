@@ -11,6 +11,7 @@ import type { L1PublishBlockStats, L1PublishStats } from '@aztec/circuit-types/s
 import { type BlockHeader, EthAddress } from '@aztec/circuits.js';
 import { type EpochCache } from '@aztec/epoch-cache';
 import {
+  FormattedViemError,
   type ForwarderContract,
   type GasPrice,
   type L1BlobInputs,
@@ -200,6 +201,7 @@ export class SequencerPublisher {
 
     // @note - we can only have one gas config and one blob config per bundle
     // find requests with gas and blob configs
+    // See https://github.com/AztecProtocol/aztec-packages/issues/11513
     const gasConfigs = requestsToProcess.filter(request => request.gasConfig);
     const blobConfigs = requestsToProcess.filter(request => request.blobConfig);
 
@@ -236,6 +238,59 @@ export class SequencerPublisher {
       logger(`Bundled [${request.action}] transaction [${success ? 'succeeded' : 'failed'}]`);
       request.onResult?.(request.request, result);
     }
+  }
+
+  /**
+   * @notice  Will call `canProposeAtNextEthBlock` to make sure that it is possible to propose
+   * @param tipArchive - The archive to check
+   * @returns The slot and block number if it is possible to propose, undefined otherwise
+   */
+  public canProposeAtNextEthBlock(tipArchive: Buffer) {
+    const ignoredErrors = ['SlotAlreadyInChain', 'InvalidProposer'];
+    return this.rollupContract
+      .canProposeAtNextEthBlock(tipArchive, this.getForwarderAddress().toString(), this.ethereumSlotDuration)
+      .catch(err => {
+        if (err instanceof FormattedViemError && ignoredErrors.find(e => err.message.includes(e))) {
+          this.log.debug(err.message);
+        } else {
+          this.log.error(err.name, err);
+        }
+        return undefined;
+      });
+  }
+
+  /**
+   * @returns The epoch that is currently claimable, undefined otherwise
+   */
+  public getClaimableEpoch() {
+    const acceptedErrors = ['Rollup__NoEpochToProve', 'Rollup__ProofRightAlreadyClaimed'] as const;
+    return this.rollupContract.getClaimableEpoch().catch(err => {
+      if (acceptedErrors.find(e => err.message.includes(e))) {
+        return undefined;
+      }
+      throw err;
+    });
+  }
+
+  /**
+   * @notice  Will filter out invalid quotes according to L1
+   * @param quotes - The quotes to filter
+   * @returns The filtered quotes
+   */
+  public filterValidQuotes(quotes: EpochProofQuote[]): Promise<EpochProofQuote[]> {
+    return Promise.all(
+      quotes.map(x =>
+        this.rollupContract
+          // validate throws if the quote is not valid
+          // else returns void
+          .validateProofQuote(x.toViemArgs(), this.getForwarderAddress().toString(), this.ethereumSlotDuration)
+          .then(() => x)
+          .catch(err => {
+            this.log.error(`Failed to validate proof quote`, err, { quote: x.toInspect() });
+            return undefined;
+          }),
+      ),
+    ).then(quotes => quotes.filter((q): q is EpochProofQuote => !!q));
   }
 
   /**

@@ -21,7 +21,6 @@ import {
   type GlobalVariables,
   StateReference,
 } from '@aztec/circuits.js';
-import { FormattedViemError, type RollupContract } from '@aztec/ethereum';
 import { AztecAddress } from '@aztec/foundation/aztec-address';
 import { omit } from '@aztec/foundation/collection';
 import { EthAddress } from '@aztec/foundation/eth-address';
@@ -79,7 +78,6 @@ export class Sequencer {
   protected timetable!: SequencerTimetable;
 
   protected enforceTimeTable: boolean = false;
-  public rollupContract: RollupContract;
 
   constructor(
     protected publisher: SequencerPublisher,
@@ -106,9 +104,6 @@ export class Sequencer {
 
     // Register the slasher on the publisher to fetch slashing payloads
     this.publisher.registerSlashPayloadGetter(this.slasherClient.getSlashPayload.bind(this.slasherClient));
-
-    // TODO: only allow the publisher to access the rollup contract
-    this.rollupContract = this.publisher.rollupContract;
   }
 
   get tracer(): Tracer {
@@ -363,27 +358,13 @@ export class Sequencer {
    * @returns The slot number if we can propose at the next block, otherwise undefined.
    */
   async slotForProposal(tipArchive: Buffer, proposalBlockNumber: bigint): Promise<bigint | undefined> {
-    const ignoredErrors = ['SlotAlreadyInChain', 'InvalidProposer'];
-    const res = await this.rollupContract
-      .canProposeAtNextEthBlock(
-        tipArchive,
-        this.getForwarderAddress().toString(),
-        this.l1Constants.ethereumSlotDuration,
-      )
-      .catch(err => {
-        if (err instanceof FormattedViemError && ignoredErrors.find(e => err.message.includes(e))) {
-          this.log.debug(err.message);
-        } else {
-          this.log.error(err.name, err);
-        }
-        return undefined;
-      });
+    const result = await this.publisher.canProposeAtNextEthBlock(tipArchive);
 
-    if (!res) {
+    if (!result) {
       return undefined;
     }
 
-    const [slot, blockNumber] = res;
+    const [slot, blockNumber] = result;
 
     if (proposalBlockNumber !== blockNumber) {
       const msg = `Sequencer block number mismatch. Expected ${proposalBlockNumber} but got ${blockNumber}.`;
@@ -677,13 +658,7 @@ export class Sequencer {
   protected async createProofClaimForPreviousEpoch(slotNumber: bigint): Promise<EpochProofQuote | undefined> {
     try {
       // Find out which epoch we are currently in
-      const acceptedErrors = ['Rollup__NoEpochToProve', 'Rollup__ProofRightAlreadyClaimed'] as const;
-      const epochToProve = await this.rollupContract.getClaimableEpoch().catch(err => {
-        if (acceptedErrors.find(e => err.message.includes(e))) {
-          return undefined;
-        }
-        throw err;
-      });
+      const epochToProve = await this.publisher.getClaimableEpoch();
 
       if (epochToProve === undefined) {
         this.log.trace(`No epoch to claim at slot ${slotNumber}`);
@@ -709,23 +684,7 @@ export class Sequencer {
       }
 
       // ensure these quotes are still valid for the slot and have the contract validate them
-      const validQuotes = await Promise.all(
-        p2pQuotes.map(x =>
-          this.rollupContract
-            // validate throws if the quote is not valid
-            // else returns void
-            .validateProofQuote(
-              x.toViemArgs(),
-              this.getForwarderAddress().toString(),
-              this.l1Constants.ethereumSlotDuration,
-            )
-            .then(() => x)
-            .catch(err => {
-              this.log.error(`Failed to validate proof quote`, err, { quote: x.toInspect() });
-              return undefined;
-            }),
-        ),
-      ).then(quotes => quotes.filter((q): q is EpochProofQuote => !!q));
+      const validQuotes = await this.publisher.filterValidQuotes(p2pQuotes);
 
       if (!validQuotes.length) {
         this.log.warn(`Failed to find any valid proof quotes`);

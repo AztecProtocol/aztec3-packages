@@ -18,5 +18,3 @@ class TestSequencerClient_ extends SequencerClient {
 }
 
 export type TestSequencerClient = TestSequencerClient_;
-
-export * from './test-l1-publisher.js';

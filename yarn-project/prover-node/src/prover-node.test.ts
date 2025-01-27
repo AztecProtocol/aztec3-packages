@@ -24,7 +24,6 @@ import { sleep } from '@aztec/foundation/sleep';
 import { openTmpStore } from '@aztec/kv-store/lmdb';
 import { type BootstrapNode, InMemoryTxPool, MemoryEpochProofQuotePool, P2PClient } from '@aztec/p2p';
 import { createBootstrapNode, createTestLibP2PService } from '@aztec/p2p/mocks';
-import { type L1Publisher } from '@aztec/sequencer-client';
 import { type PublicProcessorFactory } from '@aztec/simulator/server';
 import { getTelemetryClient } from '@aztec/telemetry-client';
 
@@ -33,6 +32,7 @@ import { type MockProxy, mock } from 'jest-mock-extended';
 
 import { type BondManager } from './bond/bond-manager.js';
 import { type EpochProvingJob } from './job/epoch-proving-job.js';
+import { type L1TxPublisher } from './l1-tx-publisher.js';
 import { ClaimsMonitor } from './monitors/claims-monitor.js';
 import { EpochMonitor } from './monitors/epoch-monitor.js';
 import { ProverNode, type ProverNodeOptions } from './prover-node.js';
@@ -42,7 +42,7 @@ import { type QuoteSigner } from './quote-signer.js';
 describe('prover-node', () => {
   // Prover node dependencies
   let prover: MockProxy<EpochProverManager>;
-  let publisher: MockProxy<L1Publisher>;
+  let publisher: MockProxy<L1TxPublisher>;
   let l2BlockSource: MockProxy<L2BlockSource>;
   let l1ToL2MessageSource: MockProxy<L1ToL2MessageSource>;
   let contractDataSource: MockProxy<ContractDataSource>;
@@ -105,7 +105,7 @@ describe('prover-node', () => {
 
   beforeEach(async () => {
     prover = mock<EpochProverManager>();
-    publisher = mock<L1Publisher>();
+    publisher = mock<L1TxPublisher>();
     l2BlockSource = mock<L2BlockSource>();
     l1ToL2MessageSource = mock<L1ToL2MessageSource>();
     contractDataSource = mock<ContractDataSource>();

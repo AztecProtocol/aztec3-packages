@@ -2,87 +2,40 @@ import { HttpBlobSinkClient } from '@aztec/blob-sink/client';
 import { inboundTransform } from '@aztec/blob-sink/encoding';
 import { L2Block } from '@aztec/circuit-types';
 import { EthAddress } from '@aztec/circuits.js';
+import { type EpochCache } from '@aztec/epoch-cache';
 import {
+  type ForwarderContract,
   type GasPrice,
   type L1ContractsConfig,
-  type L1TxRequest,
+  type L1TxUtils,
   type L1TxUtilsConfig,
+  type RollupContract,
   defaultL1TxUtilsConfig,
   getL1ContractsConfigEnvVars,
 } from '@aztec/ethereum';
 import { Blob } from '@aztec/foundation/blob';
-import { type ViemSignature } from '@aztec/foundation/eth-signature';
 import { sleep } from '@aztec/foundation/sleep';
-import { RollupAbi } from '@aztec/l1-artifacts';
+import { EmpireBaseAbi, RollupAbi } from '@aztec/l1-artifacts';
 
 import { jest } from '@jest/globals';
 import express, { json } from 'express';
 import { type Server } from 'http';
 import { type MockProxy, mock } from 'jest-mock-extended';
-import {
-  type GetTransactionReceiptReturnType,
-  type PrivateKeyAccount,
-  type TransactionReceipt,
-  encodeFunctionData,
-} from 'viem';
+import { type GetTransactionReceiptReturnType, type TransactionReceipt, encodeFunctionData } from 'viem';
 
 import { type PublisherConfig, type TxSenderConfig } from './config.js';
 import { L1Publisher } from './l1-publisher.js';
 
-const mockRollupAddress = '0xcafe';
-
-interface MockPublicClient {
-  getTransactionReceipt: ({ hash }: { hash: '0x${string}' }) => Promise<GetTransactionReceiptReturnType>;
-  getBlock(): Promise<{ timestamp: bigint }>;
-  getTransaction: ({ hash }: { hash: '0x${string}' }) => Promise<{ input: `0x${string}`; hash: `0x${string}` }>;
-  estimateGas: ({ to, data }: { to: '0x${string}'; data: '0x${string}' }) => Promise<bigint>;
-}
-
-interface MockL1TxUtils {
-  sendAndMonitorTransaction: (
-    request: L1TxRequest,
-    _gasConfig?: Partial<L1TxUtilsConfig>,
-  ) => Promise<{ receipt: TransactionReceipt; gasPrice: GasPrice }>;
-}
-
-interface MockRollupContractWrite {
-  propose: (
-    args: readonly [`0x${string}`, `0x${string}`] | readonly [`0x${string}`, `0x${string}`, `0x${string}`],
-    options: { account: PrivateKeyAccount },
-  ) => Promise<`0x${string}`>;
-}
-
-interface MockRollupContractRead {
-  archive: () => Promise<`0x${string}`>;
-  getCurrentSlot(): Promise<bigint>;
-  validateHeader: (
-    args: readonly [
-      `0x${string}`,
-      ViemSignature[],
-      `0x${string}`,
-      bigint,
-      { ignoreDA: boolean; ignoreSignatures: boolean },
-    ],
-  ) => Promise<void>;
-}
-
-class MockRollupContract {
-  constructor(public write: MockRollupContractWrite, public read: MockRollupContractRead, public abi = RollupAbi) {}
-  get address() {
-    return mockRollupAddress;
-  }
-}
-
+const mockRollupAddress = EthAddress.random().toString();
+const mockGovernanceProposerAddress = EthAddress.random().toString();
+const mockForwarderAddress = EthAddress.random().toString();
 const BLOB_SINK_PORT = 50525;
 const BLOB_SINK_URL = `http://localhost:${BLOB_SINK_PORT}`;
 
 describe('L1Publisher', () => {
-  let rollupContractRead: MockProxy<MockRollupContractRead>;
-  let rollupContractWrite: MockProxy<MockRollupContractWrite>;
-  let rollupContract: MockRollupContract;
-
-  let publicClient: MockProxy<MockPublicClient>;
-  let l1TxUtils: MockProxy<MockL1TxUtils>;
+  let rollup: MockProxy<RollupContract>;
+  let forwarder: MockProxy<ForwarderContract>;
+  let l1TxUtils: MockProxy<L1TxUtils>;
 
   let proposeTxHash: `0x${string}`;
   let proposeTxReceipt: GetTransactionReceiptReturnType;
@@ -120,36 +73,57 @@ describe('L1Publisher', () => {
       logs: [],
     } as unknown as GetTransactionReceiptReturnType;
 
-    rollupContractWrite = mock<MockRollupContractWrite>();
-    rollupContractRead = mock<MockRollupContractRead>();
-    rollupContract = new MockRollupContract(rollupContractWrite, rollupContractRead);
-
-    publicClient = mock<MockPublicClient>();
-    l1TxUtils = mock<MockL1TxUtils>();
+    l1TxUtils = mock<L1TxUtils>();
+    l1TxUtils.getBlock.mockResolvedValue({ timestamp: 12n } as any);
     const config = {
       blobSinkUrl: BLOB_SINK_URL,
       l1RpcUrl: `http://127.0.0.1:8545`,
       l1ChainId: 1,
       publisherPrivateKey: `0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80`,
-      l1Contracts: { rollupAddress: EthAddress.ZERO.toString() },
+      l1Contracts: {
+        rollupAddress: EthAddress.ZERO.toString(),
+        governanceProposerAddress: mockGovernanceProposerAddress,
+      },
       l1PublishRetryIntervalMS: 1,
       ethereumSlotDuration: getL1ContractsConfigEnvVars().ethereumSlotDuration,
+
       ...defaultL1TxUtilsConfig,
     } as unknown as TxSenderConfig &
       PublisherConfig &
       Pick<L1ContractsConfig, 'ethereumSlotDuration'> &
       L1TxUtilsConfig;
 
-    publisher = new L1Publisher(config, { blobSinkClient });
+    rollup = mock<RollupContract>();
+    rollup.validateHeader.mockResolvedValue(Promise.resolve());
+    (rollup as any).address = mockRollupAddress;
 
-    (publisher as any)['rollupContract'] = rollupContract;
-    (publisher as any)['publicClient'] = publicClient;
+    forwarder = mock<ForwarderContract>();
+    forwarder.getAddress.mockReturnValue(mockForwarderAddress);
+    forwarder.forward.mockResolvedValue({
+      receipt: proposeTxReceipt,
+      gasPrice: { maxFeePerGas: 1n, maxPriorityFeePerGas: 1n },
+      errorMsg: undefined,
+    });
+
+    const epochCache = mock<EpochCache>();
+    epochCache.getEpochAndSlotNow.mockReturnValue({ epoch: 1n, slot: 2n, ts: 3n });
+
+    publisher = new L1Publisher(config, {
+      blobSinkClient,
+      rollupContract: rollup,
+      l1TxUtils,
+      forwarderContract: forwarder,
+      epochCache,
+      l1Constants: {
+        ethereumSlotDuration: 12,
+        l1GenesisTime: 0n,
+        slotDuration: 36,
+      },
+    });
+
     (publisher as any)['l1TxUtils'] = l1TxUtils;
     publisher as any;
 
-    rollupContractRead.getCurrentSlot.mockResolvedValue(l2Block.header.globalVariables.slotNumber.toBigInt());
-    publicClient.getBlock.mockResolvedValue({ timestamp: 12n });
-    publicClient.estimateGas.mockResolvedValue(GAS_GUESS);
     l1TxUtils.sendAndMonitorTransaction.mockResolvedValue({
       receipt: proposeTxReceipt,
       gasPrice: { maxFeePerGas: 1n, maxPriorityFeePerGas: 1n },
@@ -157,6 +131,15 @@ describe('L1Publisher', () => {
     (l1TxUtils as any).estimateGas.mockResolvedValue(GAS_GUESS);
     (l1TxUtils as any).simulateGasUsed.mockResolvedValue(1_000_000n);
     (l1TxUtils as any).bumpGasLimit.mockImplementation((val: bigint) => val + (val * 20n) / 100n);
+
+    const currentL2Slot = publisher.getCurrentL2Slot();
+
+    l2Block = await L2Block.random(42, undefined, undefined, undefined, undefined, Number(currentL2Slot));
+
+    header = l2Block.header.toBuffer();
+    archive = l2Block.archive.root.toBuffer();
+    blockHash = l2Block.header.hash().toBuffer();
+    body = l2Block.body.toBuffer();
   });
 
   const closeServer = (server: Server): Promise<void> => {
@@ -200,10 +183,7 @@ describe('L1Publisher', () => {
     });
   };
 
-  it('publishes and propose l2 block to l1', async () => {
-    rollupContractRead.archive.mockResolvedValue(l2Block.header.lastArchive.root.toString() as `0x${string}`);
-    rollupContractWrite.propose.mockResolvedValueOnce(proposeTxHash);
-
+  it('bundles propose and vote tx to l1', async () => {
     const kzg = Blob.getViemKzgInstance();
 
     const expectedBlobs = await Blob.getBlobs(l2Block.body.toBlobFields());
@@ -214,9 +194,15 @@ describe('L1Publisher', () => {
     // Expect the blob sink server to receive the blobs
     await runBlobSinkServer(expectedBlobs);
 
-    const result = await publisher.proposeL2Block(l2Block);
+    expect(await publisher.enqueueProposeL2Block(l2Block)).toEqual(true);
+    // TODO
+    // const govPayload = EthAddress.random();
+    // publisher.setGovernancePayload(govPayload);
+    // rollup.getProposerAt.mockResolvedValueOnce(mockForwarderAddress);
+    // expect(await publisher.enqueueCastVote(1n, 1n, VoteType.GOVERNANCE)).toEqual(true);
+    // expect(await publisher.enqueueCastVote(0n, 0n, VoteType.SLASHING)).toEqual(true);
 
-    expect(result).toEqual(true);
+    await publisher.sendRequests();
 
     const blobInput = Blob.getEthBlobEvaluationInputs(expectedBlobs);
 
@@ -235,11 +221,18 @@ describe('L1Publisher', () => {
       `0x${body.toString('hex')}`,
       blobInput,
     ] as const;
-    expect(l1TxUtils.sendAndMonitorTransaction).toHaveBeenCalledWith(
-      {
-        to: mockRollupAddress,
-        data: encodeFunctionData({ abi: rollupContract.abi, functionName: 'propose', args }),
-      },
+    expect(forwarder.forward).toHaveBeenCalledWith(
+      [
+        {
+          to: mockRollupAddress,
+          data: encodeFunctionData({ abi: RollupAbi, functionName: 'propose', args }),
+        },
+        // {
+        //   to: mockGovernanceProposerAddress,
+        //   data: encodeFunctionData({ abi: EmpireBaseAbi, functionName: 'vote', args: [govPayload.toString()] }),
+        // },
+      ],
+      l1TxUtils,
       // val + (val * 20n) / 100n
       { gasLimit: 1_000_000n + GAS_GUESS + ((1_000_000n + GAS_GUESS) * 20n) / 100n },
       { blobs: expectedBlobs.map(b => b.data), kzg },
@@ -252,94 +245,84 @@ describe('L1Publisher', () => {
     expect(await returnValuePromise).toBe(true);
   });
 
-  it('does not retry if sending a propose tx fails', async () => {
-    rollupContractRead.archive.mockResolvedValue(l2Block.header.lastArchive.root.toString() as `0x${string}`);
-    l1TxUtils.sendAndMonitorTransaction
-      .mockRejectedValueOnce(new Error())
-      .mockResolvedValueOnce({ receipt: proposeTxReceipt, gasPrice: { maxFeePerGas: 1n, maxPriorityFeePerGas: 1n } });
-
-    const result = await publisher.proposeL2Block(l2Block);
-
-    expect(result).toEqual(false);
-  });
-
-  it('does not retry if simulating a publish and propose tx fails', async () => {
-    rollupContractRead.archive.mockResolvedValue(l2Block.header.lastArchive.root.toString() as `0x${string}`);
-    rollupContractRead.validateHeader.mockRejectedValueOnce(new Error('Test error'));
-
-    await expect(publisher.proposeL2Block(l2Block)).rejects.toThrow();
-
-    expect(rollupContractRead.validateHeader).toHaveBeenCalledTimes(1);
-  });
-
-  it('does not retry if sending a publish and propose tx fails', async () => {
-    rollupContractRead.archive.mockResolvedValue(l2Block.header.lastArchive.root.toString() as `0x${string}`);
-    l1TxUtils.sendAndMonitorTransaction
-      .mockRejectedValueOnce(new Error())
-      .mockResolvedValueOnce({ receipt: proposeTxReceipt, gasPrice: { maxFeePerGas: 1n, maxPriorityFeePerGas: 1n } });
-
-    const result = await publisher.proposeL2Block(l2Block);
-
-    expect(result).toEqual(false);
-  });
-
-  it('returns false if publish and propose tx reverts', async () => {
-    rollupContractRead.archive.mockResolvedValue(l2Block.header.lastArchive.root.toString() as `0x${string}`);
-    l1TxUtils.sendAndMonitorTransaction.mockResolvedValueOnce({
-      receipt: { ...proposeTxReceipt, status: 'reverted' },
+  it('errors if forwarder tx fails', async () => {
+    forwarder.forward.mockRejectedValueOnce(new Error()).mockResolvedValueOnce({
+      receipt: proposeTxReceipt,
       gasPrice: { maxFeePerGas: 1n, maxPriorityFeePerGas: 1n },
+      errorMsg: undefined,
     });
 
-    const result = await publisher.proposeL2Block(l2Block);
-
-    expect(result).toEqual(false);
+    const enqueued = await publisher.enqueueProposeL2Block(l2Block);
+    expect(enqueued).toEqual(true);
+    const result = await publisher.sendRequests();
+    expect(result).toEqual(undefined);
   });
 
-  it('returns false if propose tx reverts', async () => {
-    rollupContractRead.archive.mockResolvedValue(l2Block.header.lastArchive.root.toString() as `0x${string}`);
+  it('does send propose tx if rollup validation fails', async () => {
+    rollup.validateHeader.mockRejectedValueOnce(new Error('Test error'));
 
-    l1TxUtils.sendAndMonitorTransaction.mockResolvedValueOnce({
+    await expect(publisher.enqueueProposeL2Block(l2Block)).rejects.toThrow();
+
+    expect(rollup.validateHeader).toHaveBeenCalledTimes(1);
+
+    const result = await publisher.sendRequests();
+    expect(result).toEqual(undefined);
+    expect(forwarder.forward).not.toHaveBeenCalled();
+  });
+
+  it('returns errorMsg if forwarder tx reverts', async () => {
+    forwarder.forward.mockResolvedValueOnce({
       receipt: { ...proposeTxReceipt, status: 'reverted' },
       gasPrice: { maxFeePerGas: 1n, maxPriorityFeePerGas: 1n },
+      errorMsg: 'Test error',
     });
 
-    const result = await publisher.proposeL2Block(l2Block);
+    const enqueued = await publisher.enqueueProposeL2Block(l2Block);
+    expect(enqueued).toEqual(true);
+    const result = await publisher.sendRequests();
 
-    expect(result).toEqual(false);
+    expect(result?.errorMsg).toEqual('Test error');
   });
 
-  it('returns false if sending publish and progress tx is interrupted', async () => {
-    rollupContractRead.archive.mockResolvedValue(l2Block.header.lastArchive.root.toString() as `0x${string}`);
-    l1TxUtils.sendAndMonitorTransaction.mockImplementationOnce(
+  it('does not send requests if interrupted', async () => {
+    forwarder.forward.mockImplementationOnce(
       () =>
         sleep(10, { receipt: proposeTxReceipt, gasPrice: { maxFeePerGas: 1n, maxPriorityFeePerGas: 1n } }) as Promise<{
           receipt: TransactionReceipt;
           gasPrice: GasPrice;
+          errorMsg: undefined;
         }>,
     );
-    const resultPromise = publisher.proposeL2Block(l2Block);
+    const enqueued = await publisher.enqueueProposeL2Block(l2Block);
+    expect(enqueued).toEqual(true);
     publisher.interrupt();
+    const resultPromise = publisher.sendRequests();
     const result = await resultPromise;
 
-    expect(result).toEqual(false);
-    expect(publicClient.getTransactionReceipt).not.toHaveBeenCalled();
+    expect(result).toEqual(undefined);
+    expect(forwarder.forward).not.toHaveBeenCalled();
+    expect((publisher as any).requests.length).toEqual(0);
   });
 
-  it('returns false if sending propose tx is interrupted', async () => {
-    rollupContractRead.archive.mockResolvedValue(l2Block.header.lastArchive.root.toString() as `0x${string}`);
-    l1TxUtils.sendAndMonitorTransaction.mockImplementationOnce(
-      () =>
-        sleep(10, { receipt: proposeTxReceipt, gasPrice: { maxFeePerGas: 1n, maxPriorityFeePerGas: 1n } }) as Promise<{
-          receipt: TransactionReceipt;
-          gasPrice: GasPrice;
-        }>,
-    );
+  it('does not send requests if no valid requests are found', async () => {
+    const epochCache = (publisher as any).epochCache as MockProxy<EpochCache>;
 
-    const resultPromise = publisher.proposeL2Block(l2Block);
-    publisher.interrupt();
+    epochCache.getEpochAndSlotNow.mockReturnValue({ epoch: 1n, slot: 2n, ts: 3n });
+
+    publisher.addRequest({
+      action: 'propose',
+      request: {
+        to: mockRollupAddress,
+        data: encodeFunctionData({ abi: EmpireBaseAbi, functionName: 'vote', args: [EthAddress.random().toString()] }),
+      },
+      lastValidL2Slot: 1n,
+    });
+
+    const resultPromise = publisher.sendRequests();
     const result = await resultPromise;
 
-    expect(result).toEqual(false);
-    expect(publicClient.getTransactionReceipt).not.toHaveBeenCalled();
+    expect(result).toEqual(undefined);
+    expect(forwarder.forward).not.toHaveBeenCalled();
+    expect((publisher as any).requests.length).toEqual(0);
   });
 });

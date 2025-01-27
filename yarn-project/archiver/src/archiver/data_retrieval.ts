@@ -7,7 +7,7 @@ import { type EthAddress } from '@aztec/foundation/eth-address';
 import { type ViemSignature } from '@aztec/foundation/eth-signature';
 import { type Logger, createLogger } from '@aztec/foundation/log';
 import { numToUInt32BE } from '@aztec/foundation/serialize';
-import { type InboxAbi, RollupAbi } from '@aztec/l1-artifacts';
+import { ForwarderAbi, type InboxAbi, RollupAbi } from '@aztec/l1-artifacts';
 
 import {
   type Chain,
@@ -101,7 +101,13 @@ export async function processL2BlockProposedLogs(
 
     // The value from the event and contract will match only if the block is in the chain.
     if (archive === archiveFromChain) {
-      const block = await getBlockFromRollupTx(publicClient, blobSinkClient, log.transactionHash!, l2BlockNumber);
+      const block = await getBlockFromRollupTx(
+        publicClient,
+        blobSinkClient,
+        log.transactionHash!,
+        l2BlockNumber,
+        rollup.address,
+      );
 
       const l1: L1PublishedData = {
         blockNumber: log.blockNumber,
@@ -127,6 +133,74 @@ export async function getL1BlockTime(publicClient: PublicClient, blockNumber: bi
 }
 
 /**
+ * Extracts the first 'propose' method calldata from a forwarder transaction's data.
+ * @param forwarderData - The forwarder transaction input data
+ * @param rollupAddress - The address of the rollup contract
+ * @returns The calldata for the first 'propose' method call to the rollup contract
+ */
+function extractRollupProposeCalldata(forwarderData: Hex, rollupAddress: Hex): Hex {
+  // TODO(#11451): custom forwarders
+  const { functionName: forwarderFunctionName, args: forwarderArgs } = decodeFunctionData({
+    abi: ForwarderAbi,
+    data: forwarderData,
+  });
+
+  if (forwarderFunctionName !== 'forward') {
+    throw new Error(`Unexpected forwarder method called ${forwarderFunctionName}`);
+  }
+
+  if (forwarderArgs.length !== 2) {
+    throw new Error(`Unexpected number of arguments for forwarder`);
+  }
+
+  const [to, data] = forwarderArgs;
+
+  // Find all rollup calls
+  const rollupAddressLower = rollupAddress.toLowerCase();
+  const rollupCalls = to.reduce((acc: number[], arg, index) => {
+    if (arg.toLowerCase() === rollupAddressLower) {
+      acc.push(index);
+    }
+    return acc;
+  }, []);
+
+  if (rollupCalls.length === 0) {
+    throw new Error(`Rollup address not found in forwarder args`);
+  }
+
+  // Find the first propose method among all rollup calls
+  let rollupData: Hex | undefined;
+
+  for (const index of rollupCalls) {
+    if (index >= data.length) {
+      continue;
+    }
+
+    const callData = data[index];
+    try {
+      const { functionName: rollupFunctionName } = decodeFunctionData({
+        abi: RollupAbi,
+        data: callData,
+      });
+
+      if (rollupFunctionName === 'propose') {
+        rollupData = callData;
+        break;
+      }
+    } catch (err) {
+      // Skip invalid function data
+      continue;
+    }
+  }
+
+  if (!rollupData) {
+    throw new Error(`No propose method found in rollup calls`);
+  }
+
+  return rollupData;
+}
+
+/**
  * Gets block from the calldata of an L1 transaction.
  * Assumes that the block was published from an EOA.
  * TODO: Add retries and error management.
@@ -140,18 +214,22 @@ async function getBlockFromRollupTx(
   blobSinkClient: BlobSinkClientInterface,
   txHash: `0x${string}`,
   l2BlockNum: bigint,
+  rollupAddress: Hex,
 ): Promise<L2Block> {
-  const { input: data, blockHash } = await publicClient.getTransaction({ hash: txHash });
+  const { input: forwarderData, blockHash } = await publicClient.getTransaction({ hash: txHash });
 
-  const { functionName, args } = decodeFunctionData({ abi: RollupAbi, data });
+  const rollupData = extractRollupProposeCalldata(forwarderData, rollupAddress);
+  const { functionName: rollupFunctionName, args: rollupArgs } = decodeFunctionData({
+    abi: RollupAbi,
+    data: rollupData,
+  });
 
-  const allowedMethods = ['propose', 'proposeAndClaim'];
-
-  if (!allowedMethods.includes(functionName)) {
-    throw new Error(`Unexpected method called ${functionName}`);
+  if (rollupFunctionName !== 'propose') {
+    throw new Error(`Unexpected rollup method called ${rollupFunctionName}`);
   }
+
   // TODO(#9101): 'bodyHex' will be removed from below
-  const [decodedArgs, , bodyHex, blobInputs] = args! as readonly [
+  const [decodedArgs, , bodyHex, blobInputs] = rollupArgs! as readonly [
     {
       header: Hex;
       archive: Hex;

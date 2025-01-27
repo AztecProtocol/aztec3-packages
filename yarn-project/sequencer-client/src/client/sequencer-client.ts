@@ -1,8 +1,17 @@
 import { type BlobSinkClientInterface } from '@aztec/blob-sink/client';
 import { type L1ToL2MessageSource, type L2BlockSource, type WorldStateSynchronizer } from '@aztec/circuit-types';
-import { type ContractDataSource } from '@aztec/circuits.js';
-import { isAnvilTestChain } from '@aztec/ethereum';
-import { type EthAddress } from '@aztec/foundation/eth-address';
+import { type AztecAddress, type ContractDataSource } from '@aztec/circuits.js';
+import { EpochCache } from '@aztec/epoch-cache';
+import {
+  ForwarderContract,
+  L1TxUtils,
+  RollupContract,
+  createEthereumChain,
+  createL1Clients,
+  isAnvilTestChain,
+} from '@aztec/ethereum';
+import { EthAddress } from '@aztec/foundation/eth-address';
+import { createLogger } from '@aztec/foundation/log';
 import { type DateProvider } from '@aztec/foundation/timer';
 import { type P2P } from '@aztec/p2p';
 import { LightweightBlockBuilderFactory } from '@aztec/prover-client/block-builder';
@@ -49,6 +58,8 @@ export class SequencerClient {
       publisher?: L1Publisher;
       blobSinkClient?: BlobSinkClientInterface;
       dateProvider: DateProvider;
+      epochCache?: EpochCache;
+      l1TxUtils?: L1TxUtils;
     },
   ) {
     const {
@@ -61,17 +72,53 @@ export class SequencerClient {
       l1ToL2MessageSource,
       telemetry: telemetryClient,
     } = deps;
+    const { l1RpcUrl: rpcUrl, l1ChainId: chainId, publisherPrivateKey } = config;
+    const chain = createEthereumChain(rpcUrl, chainId);
+    const log = createLogger('sequencer-client');
+    const { publicClient, walletClient } = createL1Clients(rpcUrl, publisherPrivateKey, chain.chainInfo);
+    const l1TxUtils = deps.l1TxUtils ?? new L1TxUtils(publicClient, walletClient, log, config);
+    const rollupContract = new RollupContract(publicClient, config.l1Contracts.rollupAddress.toString());
+    const [l1GenesisTime, slotDuration] = await Promise.all([
+      rollupContract.getL1GenesisTime(),
+      rollupContract.getSlotDuration(),
+    ] as const);
+    const forwarderContract =
+      config.customForwarderContractAddress && config.customForwarderContractAddress !== EthAddress.ZERO
+        ? new ForwarderContract(publicClient, config.customForwarderContractAddress.toString())
+        : await ForwarderContract.create(walletClient.account.address, walletClient, publicClient, log);
+    const epochCache =
+      deps.epochCache ??
+      (await EpochCache.create(
+        config.l1Contracts.rollupAddress,
+        {
+          l1RpcUrl: rpcUrl,
+          l1ChainId: chainId,
+          viemPollingIntervalMS: config.viemPollingIntervalMS,
+          aztecSlotDuration: config.aztecSlotDuration,
+          ethereumSlotDuration: config.ethereumSlotDuration,
+          aztecEpochDuration: config.aztecEpochDuration,
+        },
+        { dateProvider: deps.dateProvider },
+      ));
+
     const publisher =
-      deps.publisher ?? new L1Publisher(config, { telemetry: telemetryClient, blobSinkClient: deps.blobSinkClient });
+      deps.publisher ??
+      new L1Publisher(config, {
+        l1TxUtils,
+        telemetry: telemetryClient,
+        blobSinkClient: deps.blobSinkClient,
+        rollupContract,
+        epochCache,
+        forwarderContract,
+        l1Constants: {
+          ethereumSlotDuration: config.ethereumSlotDuration,
+          l1GenesisTime,
+          slotDuration: Number(slotDuration),
+        },
+      });
     const globalsBuilder = new GlobalVariableBuilder(config);
 
     const publicProcessorFactory = new PublicProcessorFactory(contractDataSource, deps.dateProvider, telemetryClient);
-
-    const rollup = publisher.getRollupContract();
-    const [l1GenesisTime, slotDuration] = await Promise.all([
-      rollup.read.GENESIS_TIME(),
-      rollup.read.SLOT_DURATION(),
-    ] as const);
 
     const ethereumSlotDuration = config.ethereumSlotDuration;
 
@@ -143,7 +190,11 @@ export class SequencerClient {
     return this.sequencer.coinbase;
   }
 
-  get feeRecipient() {
+  get feeRecipient(): AztecAddress {
     return this.sequencer.feeRecipient;
+  }
+
+  get forwarderAddress(): EthAddress {
+    return this.sequencer.getForwarderAddress();
   }
 }

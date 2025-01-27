@@ -34,7 +34,7 @@ namespace {
 
 auto build_precomputed_columns_jobs(TraceContainer& trace)
 {
-    return std::array<std::function<void()>, 4>{
+    return std::array<std::function<void()>, 3>{
         [&]() {
             PrecomputedTraceBuilder precomputed_builder;
             AVM_TRACK_TIME("tracegen/precomputed/misc", precomputed_builder.process_misc(trace));
@@ -48,9 +48,6 @@ auto build_precomputed_columns_jobs(TraceContainer& trace)
             AVM_TRACK_TIME("tracegen/precomputed/range_8", precomputed_builder.process_sel_range_8(trace));
             AVM_TRACK_TIME("tracegen/precomputed/range_16", precomputed_builder.process_sel_range_16(trace));
             AVM_TRACK_TIME("tracegen/precomputed/power_of_2", precomputed_builder.process_power_of_2(trace));
-        },
-        [&]() {
-            PrecomputedTraceBuilder precomputed_builder;
             AVM_TRACK_TIME("tracegen/precomputed/integral_tag_length",
                            precomputed_builder.process_integral_tag_length(trace));
         },

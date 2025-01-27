@@ -482,10 +482,8 @@ export async function setup(
   const sequencer = aztecNode.getSequencer();
 
   if (sequencer) {
-    (sequencer as TestSequencerClient).sequencer.publisher.l1TxUtils = DelayedTxUtils.fromL1TxUtils(
-      (sequencer as TestSequencerClient).sequencer.publisher.l1TxUtils,
-      config.ethereumSlotDuration,
-    );
+    const publisher = (sequencer as TestSequencerClient).sequencer.publisher;
+    publisher.l1TxUtils = DelayedTxUtils.fromL1TxUtils(publisher.l1TxUtils, config.ethereumSlotDuration);
   }
 
   let proverNode: ProverNode | undefined = undefined;

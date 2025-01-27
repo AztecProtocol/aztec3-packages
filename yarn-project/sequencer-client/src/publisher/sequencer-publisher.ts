@@ -2,7 +2,6 @@ import { type BlobSinkClientInterface, createBlobSinkClient } from '@aztec/blob-
 import {
   ConsensusPayload,
   type EpochProofQuote,
-  type L1RollupConstants,
   type L2Block,
   SignatureDomainSeparator,
   type TxHash,
@@ -35,9 +34,7 @@ import pick from 'lodash.pick';
 import { type TransactionReceipt, encodeFunctionData, getAddress, getContract } from 'viem';
 
 import { type PublisherConfig, type TxSenderConfig } from './config.js';
-import { L1PublisherMetrics } from './l1-publisher-metrics.js';
-
-type SequencerRollupConstants = Pick<L1RollupConstants, 'ethereumSlotDuration' | 'l1GenesisTime' | 'slotDuration'>;
+import { SequencerPublisherMetrics } from './sequencer-publisher-metrics.js';
 
 /** Arguments to the process method of the rollup contract */
 type L1ProcessArgs = {
@@ -64,20 +61,6 @@ export enum VoteType {
 
 type GetSlashPayloadCallBack = (slotNumber: bigint) => Promise<EthAddress | undefined>;
 
-export interface IL1Publisher {
-  /**
-   * Add a request to the publisher.
-   * @param request - The request to add.
-   * @param lastValidL2Slot - The last L2 slot number at which the request is still valid.
-   */
-  addRequest(request: RequestWithExpiry): void;
-  /**
-   * Send all requests that are still valid.
-   * @returns The receipts of the sent requests.
-   */
-  sendRequests(): Promise<{ receipt: TransactionReceipt; gasPrice: GasPrice } | undefined>;
-}
-
 type Action = 'propose' | 'claim' | 'governance-vote' | 'slashing-vote';
 interface RequestWithExpiry {
   action: Action;
@@ -91,18 +74,9 @@ interface RequestWithExpiry {
   ) => void;
 }
 
-/**
- * Publishes L2 blocks to L1. This implementation does *not* retry a transaction in
- * the event of network congestion, but should work for local development.
- * - If sending (not mining) a tx fails, it retries indefinitely at 1-minute intervals.
- * - If the tx is not mined, keeps polling indefinitely at 1-second intervals.
- *
- * Adapted from https://github.com/AztecProtocol/aztec2-internal/blob/master/falafel/src/rollup_publisher.ts.
- */
-export class L1Publisher implements IL1Publisher {
+export class SequencerPublisher {
   private interrupted = false;
-  private metrics: L1PublisherMetrics;
-  private l1Constants: SequencerRollupConstants;
+  private metrics: SequencerPublisherMetrics;
   private epochCache: EpochCache;
   private forwarderContract: ForwarderContract;
 
@@ -142,7 +116,6 @@ export class L1Publisher implements IL1Publisher {
       forwarderContract: ForwarderContract;
       l1TxUtils: L1TxUtils;
       rollupContract: RollupContract;
-      l1Constants: SequencerRollupConstants;
       epochCache: EpochCache;
     },
   ) {
@@ -155,11 +128,10 @@ export class L1Publisher implements IL1Publisher {
     this.blobSinkClient = deps.blobSinkClient ?? createBlobSinkClient(config);
 
     const telemetry = deps.telemetry ?? getTelemetryClient();
-    this.metrics = new L1PublisherMetrics(telemetry, 'L1Publisher');
+    this.metrics = new SequencerPublisherMetrics(telemetry, 'SequencerPublisher');
     this.l1TxUtils = deps.l1TxUtils;
 
     this.rollupContract = deps.rollupContract;
-    this.l1Constants = deps.l1Constants;
     this.forwarderContract = deps.forwarderContract;
   }
 
@@ -581,13 +553,13 @@ export class L1Publisher implements IL1Publisher {
         {
           to: this.getForwarderAddress().toString(),
           data: forwarderData,
-          gas: L1Publisher.PROPOSE_GAS_GUESS,
+          gas: SequencerPublisher.PROPOSE_GAS_GUESS,
         },
         {
           // @note we add 1n to the timestamp because geth implementation doesn't like simulation timestamp to be equal to the current block timestamp
           time: timestamp + 1n,
           // @note reth should have a 30m gas limit per block but throws errors that this tx is beyond limit
-          gasLimit: L1Publisher.PROPOSE_GAS_GUESS * 2n,
+          gasLimit: SequencerPublisher.PROPOSE_GAS_GUESS * 2n,
         },
         [
           {
@@ -603,7 +575,7 @@ export class L1Publisher implements IL1Publisher {
         ],
         {
           // @note fallback gas estimate to use if the node doesn't support simulation API
-          fallbackGasEstimate: L1Publisher.PROPOSE_GAS_GUESS,
+          fallbackGasEstimate: SequencerPublisher.PROPOSE_GAS_GUESS,
         },
       )
       .catch(err => {

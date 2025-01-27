@@ -35,7 +35,7 @@ export type L1SubmitEpochProofArgs = {
   proof: Proof;
 };
 
-export class L1TxPublisher {
+export class ProverNodePublisher {
   private interruptibleSleep = new InterruptibleSleep();
   private sleepTimeMs: number;
   private interrupted = false;

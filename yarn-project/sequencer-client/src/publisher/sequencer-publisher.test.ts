@@ -24,7 +24,7 @@ import { type MockProxy, mock } from 'jest-mock-extended';
 import { type GetTransactionReceiptReturnType, type TransactionReceipt, encodeFunctionData } from 'viem';
 
 import { type PublisherConfig, type TxSenderConfig } from './config.js';
-import { L1Publisher } from './l1-publisher.js';
+import { SequencerPublisher } from './sequencer-publisher.js';
 
 const mockRollupAddress = EthAddress.random().toString();
 const mockGovernanceProposerAddress = EthAddress.random().toString();
@@ -32,7 +32,7 @@ const mockForwarderAddress = EthAddress.random().toString();
 const BLOB_SINK_PORT = 50525;
 const BLOB_SINK_URL = `http://localhost:${BLOB_SINK_PORT}`;
 
-describe('L1Publisher', () => {
+describe('SequencerPublisher', () => {
   let rollup: MockProxy<RollupContract>;
   let forwarder: MockProxy<ForwarderContract>;
   let l1TxUtils: MockProxy<L1TxUtils>;
@@ -50,7 +50,7 @@ describe('L1Publisher', () => {
   let mockBlobSinkServer: Server | undefined = undefined;
 
   // An l1 publisher with some private methods exposed
-  let publisher: L1Publisher;
+  let publisher: SequencerPublisher;
 
   const GAS_GUESS = 300_000n;
 
@@ -108,17 +108,12 @@ describe('L1Publisher', () => {
     const epochCache = mock<EpochCache>();
     epochCache.getEpochAndSlotNow.mockReturnValue({ epoch: 1n, slot: 2n, ts: 3n });
 
-    publisher = new L1Publisher(config, {
+    publisher = new SequencerPublisher(config, {
       blobSinkClient,
       rollupContract: rollup,
       l1TxUtils,
       forwarderContract: forwarder,
       epochCache,
-      l1Constants: {
-        ethereumSlotDuration: 12,
-        l1GenesisTime: 0n,
-        slotDuration: 36,
-      },
     });
 
     (publisher as any)['l1TxUtils'] = l1TxUtils;

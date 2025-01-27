@@ -7,9 +7,9 @@ import { RootRollupPublicInputs } from '@aztec/circuits.js/rollup';
 import { RollupContract } from '@aztec/ethereum/contracts';
 import { type DelayedTxUtils, type Delayer, waitUntilL1Timestamp } from '@aztec/ethereum/test';
 import { promiseWithResolvers } from '@aztec/foundation/promise';
-import { type L1TxPublisher } from '@aztec/prover-node';
+import { type ProverNodePublisher } from '@aztec/prover-node';
 import { type TestProverNode } from '@aztec/prover-node/test';
-import { type L1Publisher } from '@aztec/sequencer-client';
+import { type SequencerPublisher } from '@aztec/sequencer-client';
 import { type TestSequencerClient } from '@aztec/sequencer-client/test';
 
 import { jest } from '@jest/globals';
@@ -63,10 +63,11 @@ describe('e2e_epochs', () => {
     monitor = new ChainMonitor(rollup, logger);
     monitor.start();
 
-    proverDelayer = (((context.proverNode as TestProverNode).publisher as L1TxPublisher).l1TxUtils as DelayedTxUtils)
-      .delayer!;
+    proverDelayer = (
+      ((context.proverNode as TestProverNode).publisher as ProverNodePublisher).l1TxUtils as DelayedTxUtils
+    ).delayer!;
     sequencerDelayer = (
-      ((context.sequencer as TestSequencerClient).sequencer.publisher as L1Publisher).l1TxUtils as DelayedTxUtils
+      ((context.sequencer as TestSequencerClient).sequencer.publisher as SequencerPublisher).l1TxUtils as DelayedTxUtils
     ).delayer!;
     expect(proverDelayer).toBeDefined();
     expect(sequencerDelayer).toBeDefined();

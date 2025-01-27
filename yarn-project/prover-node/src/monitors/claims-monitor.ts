@@ -10,7 +10,7 @@ import {
   trackSpan,
 } from '@aztec/telemetry-client';
 
-import { type L1TxPublisher } from '../l1-tx-publisher.js';
+import { type ProverNodePublisher } from '../prover-node-publisher.js';
 
 export interface ClaimsMonitorHandler {
   handleClaim(proofClaim: EpochProofClaim): Promise<void>;
@@ -26,7 +26,7 @@ export class ClaimsMonitor implements Traceable {
   public readonly tracer: Tracer;
 
   constructor(
-    private readonly l1Publisher: L1TxPublisher,
+    private readonly l1Publisher: ProverNodePublisher,
     private options: { pollingIntervalMs: number },
     telemetry: TelemetryClient = getTelemetryClient(),
   ) {

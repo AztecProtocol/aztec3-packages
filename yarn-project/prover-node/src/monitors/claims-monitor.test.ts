@@ -4,18 +4,18 @@ import { sleep } from '@aztec/foundation/sleep';
 
 import { type MockProxy, mock } from 'jest-mock-extended';
 
-import { type L1TxPublisher } from '../l1-tx-publisher.js';
+import { type ProverNodePublisher } from '../prover-node-publisher.js';
 import { ClaimsMonitor, type ClaimsMonitorHandler } from './claims-monitor.js';
 
 describe('ClaimsMonitor', () => {
-  let l1Publisher: MockProxy<L1TxPublisher>;
+  let l1Publisher: MockProxy<ProverNodePublisher>;
   let handler: MockProxy<ClaimsMonitorHandler>;
   let claimsMonitor: ClaimsMonitor;
 
   let publisherAddress: EthAddress;
 
   beforeEach(() => {
-    l1Publisher = mock<L1TxPublisher>();
+    l1Publisher = mock<ProverNodePublisher>();
     handler = mock<ClaimsMonitorHandler>();
 
     publisherAddress = EthAddress.random();

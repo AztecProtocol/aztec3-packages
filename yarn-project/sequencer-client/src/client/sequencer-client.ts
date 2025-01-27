@@ -21,7 +21,7 @@ import { type ValidatorClient } from '@aztec/validator-client';
 
 import { type SequencerClientConfig } from '../config.js';
 import { GlobalVariableBuilder } from '../global_variable_builder/index.js';
-import { L1Publisher } from '../publisher/index.js';
+import { SequencerPublisher } from '../publisher/index.js';
 import { Sequencer, type SequencerConfig } from '../sequencer/index.js';
 import { type SlasherClient } from '../slasher/index.js';
 
@@ -55,7 +55,7 @@ export class SequencerClient {
       l2BlockSource: L2BlockSource;
       l1ToL2MessageSource: L1ToL2MessageSource;
       telemetry: TelemetryClient;
-      publisher?: L1Publisher;
+      publisher?: SequencerPublisher;
       blobSinkClient?: BlobSinkClientInterface;
       dateProvider: DateProvider;
       epochCache?: EpochCache;
@@ -103,18 +103,13 @@ export class SequencerClient {
 
     const publisher =
       deps.publisher ??
-      new L1Publisher(config, {
+      new SequencerPublisher(config, {
         l1TxUtils,
         telemetry: telemetryClient,
         blobSinkClient: deps.blobSinkClient,
         rollupContract,
         epochCache,
         forwarderContract,
-        l1Constants: {
-          ethereumSlotDuration: config.ethereumSlotDuration,
-          l1GenesisTime,
-          slotDuration: Number(slotDuration),
-        },
       });
     const globalsBuilder = new GlobalVariableBuilder(config);
 

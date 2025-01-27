@@ -32,9 +32,9 @@ import { type MockProxy, mock } from 'jest-mock-extended';
 
 import { type BondManager } from './bond/bond-manager.js';
 import { type EpochProvingJob } from './job/epoch-proving-job.js';
-import { type L1TxPublisher } from './l1-tx-publisher.js';
 import { ClaimsMonitor } from './monitors/claims-monitor.js';
 import { EpochMonitor } from './monitors/epoch-monitor.js';
+import { type ProverNodePublisher } from './prover-node-publisher.js';
 import { ProverNode, type ProverNodeOptions } from './prover-node.js';
 import { type QuoteProvider } from './quote-provider/index.js';
 import { type QuoteSigner } from './quote-signer.js';
@@ -42,7 +42,7 @@ import { type QuoteSigner } from './quote-signer.js';
 describe('prover-node', () => {
   // Prover node dependencies
   let prover: MockProxy<EpochProverManager>;
-  let publisher: MockProxy<L1TxPublisher>;
+  let publisher: MockProxy<ProverNodePublisher>;
   let l2BlockSource: MockProxy<L2BlockSource>;
   let l1ToL2MessageSource: MockProxy<L1ToL2MessageSource>;
   let contractDataSource: MockProxy<ContractDataSource>;
@@ -105,7 +105,7 @@ describe('prover-node', () => {
 
   beforeEach(async () => {
     prover = mock<EpochProverManager>();
-    publisher = mock<L1TxPublisher>();
+    publisher = mock<ProverNodePublisher>();
     l2BlockSource = mock<L2BlockSource>();
     l1ToL2MessageSource = mock<L1ToL2MessageSource>();
     contractDataSource = mock<ContractDataSource>();

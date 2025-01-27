@@ -38,10 +38,10 @@ import {
 
 import { type BondManager } from './bond/bond-manager.js';
 import { EpochProvingJob, type EpochProvingJobState } from './job/epoch-proving-job.js';
-import { type L1TxPublisher } from './l1-tx-publisher.js';
 import { ProverNodeMetrics } from './metrics.js';
 import { type ClaimsMonitor, type ClaimsMonitorHandler } from './monitors/claims-monitor.js';
 import { type EpochMonitor, type EpochMonitorHandler } from './monitors/epoch-monitor.js';
+import { type ProverNodePublisher } from './prover-node-publisher.js';
 import { type QuoteProvider } from './quote-provider/index.js';
 import { type QuoteSigner } from './quote-signer.js';
 
@@ -74,7 +74,7 @@ export class ProverNode implements ClaimsMonitorHandler, EpochMonitorHandler, Pr
 
   constructor(
     protected readonly prover: EpochProverManager,
-    protected readonly publisher: L1TxPublisher,
+    protected readonly publisher: ProverNodePublisher,
     protected readonly l2BlockSource: L2BlockSource & Maybe<Service>,
     protected readonly l1ToL2MessageSource: L1ToL2MessageSource,
     protected readonly contractDataSource: ContractDataSource,

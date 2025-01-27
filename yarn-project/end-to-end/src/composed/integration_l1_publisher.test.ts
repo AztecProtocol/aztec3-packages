@@ -35,7 +35,7 @@ import { SHA256Trunc, StandardTree } from '@aztec/merkle-tree';
 import { getVKTreeRoot } from '@aztec/noir-protocol-circuits-types/vks';
 import { protocolContractTreeRoot } from '@aztec/protocol-contracts';
 import { LightweightBlockBuilder } from '@aztec/prover-client/block-builder';
-import { L1Publisher } from '@aztec/sequencer-client';
+import { SequencerPublisher } from '@aztec/sequencer-client';
 import {
   type MerkleTreeAdminDatabase,
   NativeWorldStateService,
@@ -93,7 +93,7 @@ describe('L1Publisher integration', () => {
   let rollup: GetContractReturnType<typeof RollupAbi, PublicClient<HttpTransport, Chain>>;
   let outbox: GetContractReturnType<typeof OutboxAbi, PublicClient<HttpTransport, Chain>>;
 
-  let publisher: L1Publisher;
+  let publisher: SequencerPublisher;
 
   let builderDb: MerkleTreeAdminDatabase;
 
@@ -190,14 +190,10 @@ describe('L1Publisher integration', () => {
     const l1TxUtils = new L1TxUtils(sequencerPublicClient, sequencerWalletClient, logger, config);
     const rollupContract = new RollupContract(sequencerPublicClient, l1ContractAddresses.rollupAddress.toString());
     const forwarderContract = await createForwarderContract(config, sequencerPK);
-    const [l1GenesisTime, slotDuration] = await Promise.all([
-      rollupContract.getL1GenesisTime(),
-      rollupContract.getSlotDuration(),
-    ] as const);
     const epochCache = await EpochCache.create(l1ContractAddresses.rollupAddress, config, {
       dateProvider: new TestDateProvider(),
     });
-    publisher = new L1Publisher(
+    publisher = new SequencerPublisher(
       {
         l1RpcUrl: config.l1RpcUrl,
         requiredConfirmations: 1,
@@ -215,11 +211,6 @@ describe('L1Publisher integration', () => {
         rollupContract,
         forwarderContract,
         epochCache,
-        l1Constants: {
-          ethereumSlotDuration: config.ethereumSlotDuration,
-          l1GenesisTime,
-          slotDuration: Number(slotDuration),
-        },
       },
     );
 

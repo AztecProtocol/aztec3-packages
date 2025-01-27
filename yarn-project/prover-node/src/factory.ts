@@ -17,10 +17,10 @@ import { createPublicClient, getAddress, getContract, http } from 'viem';
 
 import { createBondManager } from './bond/factory.js';
 import { type ProverNodeConfig, type QuoteProviderConfig } from './config.js';
-import { L1TxPublisher } from './l1-tx-publisher.js';
 import { ClaimsMonitor } from './monitors/claims-monitor.js';
 import { EpochMonitor } from './monitors/epoch-monitor.js';
 import { createProverCoordination } from './prover-coordination/factory.js';
+import { ProverNodePublisher } from './prover-node-publisher.js';
 import { ProverNode, type ProverNodeOptions } from './prover-node.js';
 import { HttpQuoteProvider } from './quote-provider/http.js';
 import { SimpleQuoteProvider } from './quote-provider/simple.js';
@@ -34,7 +34,7 @@ export async function createProverNode(
     log?: Logger;
     aztecNodeTxProvider?: ProverCoordination;
     archiver?: Archiver;
-    publisher?: L1TxPublisher;
+    publisher?: ProverNodePublisher;
     blobSinkClient?: BlobSinkClientInterface;
     broker?: ProvingJobBroker;
     l1TxUtils?: L1TxUtils;
@@ -60,7 +60,7 @@ export async function createProverNode(
   const rollupContract = new RollupContract(publicClient, config.l1Contracts.rollupAddress.toString());
 
   const l1TxUtils = deps.l1TxUtils ?? new L1TxUtils(publicClient, walletClient, log, config);
-  const publisher = deps.publisher ?? new L1TxPublisher(config, { telemetry, rollupContract, l1TxUtils });
+  const publisher = deps.publisher ?? new ProverNodePublisher(config, { telemetry, rollupContract, l1TxUtils });
 
   const epochCache = await EpochCache.create(config.l1Contracts.rollupAddress, config);
 

@@ -18,14 +18,14 @@ import { getTelemetryClient } from '@aztec/telemetry-client';
 
 import { type MockProxy, mock } from 'jest-mock-extended';
 
-import { type L1TxPublisher } from '../l1-tx-publisher.js';
 import { ProverNodeMetrics } from '../metrics.js';
+import { type ProverNodePublisher } from '../prover-node-publisher.js';
 import { EpochProvingJob } from './epoch-proving-job.js';
 
 describe('epoch-proving-job', () => {
   // Dependencies
   let prover: MockProxy<EpochProver>;
-  let publisher: MockProxy<L1TxPublisher>;
+  let publisher: MockProxy<ProverNodePublisher>;
   let l2BlockSource: MockProxy<L2BlockSource>;
   let l1ToL2MessageSource: MockProxy<L1ToL2MessageSource>;
   let worldState: MockProxy<WorldStateSynchronizer>;
@@ -68,7 +68,7 @@ describe('epoch-proving-job', () => {
 
   beforeEach(async () => {
     prover = mock<EpochProver>();
-    publisher = mock<L1TxPublisher>();
+    publisher = mock<ProverNodePublisher>();
     l2BlockSource = mock<L2BlockSource>();
     l1ToL2MessageSource = mock<L1ToL2MessageSource>();
     worldState = mock<WorldStateSynchronizer>();

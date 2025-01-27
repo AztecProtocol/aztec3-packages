@@ -37,7 +37,7 @@ import { Attributes, type TelemetryClient, type Tracer, getTelemetryClient, trac
 import { type ValidatorClient } from '@aztec/validator-client';
 
 import { type GlobalVariableBuilder } from '../global_variable_builder/global_builder.js';
-import { type L1Publisher, VoteType } from '../publisher/l1-publisher.js';
+import { type SequencerPublisher, VoteType } from '../publisher/sequencer-publisher.js';
 import { type SlasherClient } from '../slasher/slasher_client.js';
 import { createValidatorsForBlockBuilding } from '../tx_validator/tx_validator_factory.js';
 import { getDefaultAllowedSetupFunctions } from './allowed.js';
@@ -82,7 +82,7 @@ export class Sequencer {
   public rollupContract: RollupContract;
 
   constructor(
-    protected publisher: L1Publisher,
+    protected publisher: SequencerPublisher,
     protected validatorClient: ValidatorClient | undefined, // During migration the validator client can be inactive
     protected globalsBuilder: GlobalVariableBuilder,
     protected p2pClient: P2P,

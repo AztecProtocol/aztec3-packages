@@ -228,6 +228,8 @@ export function createL1Clients(
         : mnemonicToAccount(mnemonicOrPrivateKeyOrHdAccount)
       : mnemonicOrPrivateKeyOrHdAccount;
 
+  // From what I can see, this is the difference between the HDAccount and the PrivateKeyAccount
+  // and we don't need it for anything. This lets us use the same type for both.
   // eslint-disable-next-line camelcase
   hdAccount.experimental_signAuthorization ??= () => {
     throw new Error('experimental_signAuthorization not implemented for HDAccount');

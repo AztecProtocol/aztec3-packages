@@ -46,14 +46,14 @@ import { expect } from '@jest/globals';
 import { type MockProxy, mock, mockFn } from 'jest-mock-extended';
 
 import { type GlobalVariableBuilder } from '../global_variable_builder/global_builder.js';
-import { type L1Publisher } from '../publisher/l1-publisher.js';
+import { type SequencerPublisher } from '../publisher/sequencer-publisher.js';
 import { type SlasherClient } from '../slasher/index.js';
 import { Sequencer } from './sequencer.js';
 import { SequencerState } from './utils.js';
 
 describe('sequencer', () => {
   let rollup: MockProxy<RollupContract>;
-  let publisher: MockProxy<L1Publisher>;
+  let publisher: MockProxy<SequencerPublisher>;
   let validatorClient: MockProxy<ValidatorClient>;
   let globalVariableBuilder: MockProxy<GlobalVariableBuilder>;
   let p2p: MockProxy<P2P>;
@@ -167,7 +167,7 @@ describe('sequencer', () => {
     rollup = mock<RollupContract>();
     rollup.canProposeAtNextEthBlock.mockResolvedValue([BigInt(newSlotNumber), BigInt(newBlockNumber)]);
 
-    publisher = mock<L1Publisher>();
+    publisher = mock<SequencerPublisher>();
     publisher.getSenderAddress.mockImplementation(() => EthAddress.random());
     publisher.getForwarderAddress.mockImplementation(() => EthAddress.random());
     publisher.getCurrentEpochCommittee.mockResolvedValue(committee);

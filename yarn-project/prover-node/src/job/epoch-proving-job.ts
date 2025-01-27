@@ -18,8 +18,8 @@ import { Attributes, type Traceable, type Tracer, trackSpan } from '@aztec/telem
 
 import * as crypto from 'node:crypto';
 
-import { type L1TxPublisher } from '../l1-tx-publisher.js';
 import { type ProverNodeMetrics } from '../metrics.js';
+import { type ProverNodePublisher } from '../prover-node-publisher.js';
 
 /**
  * Job that grabs a range of blocks from the unfinalised chain from L1, gets their txs given their hashes,
@@ -43,7 +43,7 @@ export class EpochProvingJob implements Traceable {
     private txs: Tx[],
     private prover: EpochProver,
     private publicProcessorFactory: PublicProcessorFactory,
-    private publisher: L1TxPublisher,
+    private publisher: ProverNodePublisher,
     private l2BlockSource: L2BlockSource,
     private l1ToL2MessageSource: L1ToL2MessageSource,
     private metrics: ProverNodeMetrics,

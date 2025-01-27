@@ -57,7 +57,7 @@ import { SchnorrHardcodedAccountContract } from '@aztec/noir-contracts.js/Schnor
 import { SpamContract } from '@aztec/noir-contracts.js/Spam';
 import { TokenContract } from '@aztec/noir-contracts.js/Token';
 import { type PXEService } from '@aztec/pxe';
-import { L1Publisher } from '@aztec/sequencer-client';
+import { SequencerPublisher } from '@aztec/sequencer-client';
 import { createWorldStateSynchronizer } from '@aztec/world-state';
 
 import * as fs from 'fs';
@@ -414,7 +414,7 @@ describe('e2e_synching', () => {
     const epochCache = await EpochCache.create(config.l1Contracts.rollupAddress, config, {
       dateProvider: new TestDateProvider(),
     });
-    const publisher = new L1Publisher(
+    const publisher = new SequencerPublisher(
       {
         l1RpcUrl: config.l1RpcUrl,
         requiredConfirmations: 1,
@@ -433,11 +433,6 @@ describe('e2e_synching', () => {
         rollupContract,
         forwarderContract,
         epochCache,
-        l1Constants: {
-          ethereumSlotDuration: ETHEREUM_SLOT_DURATION,
-          l1GenesisTime,
-          slotDuration: Number(slotDuration),
-        },
       },
     );
 

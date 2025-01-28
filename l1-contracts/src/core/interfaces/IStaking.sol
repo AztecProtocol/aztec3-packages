@@ -2,7 +2,8 @@
 // Copyright 2024 Aztec Labs.
 pragma solidity >=0.8.27;
 
-import {Timestamp} from "@aztec/core/libraries/TimeLib.sol";
+import {Timestamp} from "@aztec/core/libraries/TimeMath.sol";
+import {IERC20} from "@oz/token/ERC20/IERC20.sol";
 import {EnumerableSet} from "@oz/utils/structs/EnumerableSet.sol";
 
 // None -> Does not exist in our setup
@@ -10,6 +11,7 @@ import {EnumerableSet} from "@oz/utils/structs/EnumerableSet.sol";
 // Living -> Not participating as validator, but have funds in setup,
 // 			 hit if slashes and going below the minimum
 // Exiting -> In the process of exiting the system
+
 enum Status {
   NONE,
   VALIDATING,
@@ -35,6 +37,10 @@ struct Exit {
 }
 
 struct StakingStorage {
+  IERC20 stakingAsset;
+  address slasher;
+  uint256 minimumStake;
+  Timestamp exitDelay;
   EnumerableSet.AddressSet attesters;
   mapping(address attester => ValidatorInfo) info;
   mapping(address attester => Exit) exits;
@@ -61,4 +67,8 @@ interface IStaking {
   function getProposerAtIndex(uint256 _index) external view returns (address);
   function getProposerForAttester(address _attester) external view returns (address);
   function getOperatorAtIndex(uint256 _index) external view returns (OperatorInfo memory);
+  function getSlasher() external view returns (address);
+  function getStakingAsset() external view returns (IERC20);
+  function getMinimumStake() external view returns (uint256);
+  function getExitDelay() external view returns (Timestamp);
 }

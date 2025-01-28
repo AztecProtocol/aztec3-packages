@@ -66,7 +66,7 @@ describe('e2e_p2p_slashing', () => {
     });
 
     const slasherContract = getContract({
-      address: getAddress(await rollup.read.SLASHER()),
+      address: getAddress(await rollup.read.getSlasher()),
       abi: SlasherAbi,
       client: t.ctx.deployL1ContractsValues.publicClient,
     });

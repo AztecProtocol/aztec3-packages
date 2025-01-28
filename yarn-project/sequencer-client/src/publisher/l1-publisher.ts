@@ -249,7 +249,7 @@ export class L1Publisher {
       return this.slashingProposerAddress;
     }
 
-    const slasherAddress = await this.rollupContract.read.SLASHER();
+    const slasherAddress = await this.rollupContract.read.getSlasher();
     const slasher = getContract({
       address: getAddress(slasherAddress.toString()),
       abi: SlasherAbi,
@@ -752,7 +752,7 @@ export class L1Publisher {
     try {
       // NB: If this fn starts unexpectedly giving incorrect blob hash errors, it may be because the checkBlob
       // bool is no longer at the slot below. To find the slot, run: forge inspect src/core/Rollup.sol:Rollup storage
-      const checkBlobSlot = 9n;
+      const checkBlobSlot = 5n;
       await this.publicClient.simulateContract({
         ...args,
         account: this.walletClient.account,

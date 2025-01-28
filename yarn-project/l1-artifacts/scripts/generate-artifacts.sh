@@ -36,6 +36,7 @@ contracts=(
   "EmpireBase"
   "SlashFactory"
   "HonkVerifier"
+  "StakingLib"
 )
 
 # Combine error ABIs once, removing duplicates by {type, name}.

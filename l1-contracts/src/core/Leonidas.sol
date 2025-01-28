@@ -3,14 +3,16 @@
 pragma solidity >=0.8.27;
 
 import {ILeonidas, EpochData, LeonidasStorage} from "@aztec/core/interfaces/ILeonidas.sol";
+import {IStaking, ValidatorInfo, Exit, OperatorInfo} from "@aztec/core/interfaces/IStaking.sol";
 import {Signature} from "@aztec/core/libraries/crypto/SignatureLib.sol";
 import {DataStructures} from "@aztec/core/libraries/DataStructures.sol";
 import {Errors} from "@aztec/core/libraries/Errors.sol";
 import {LeonidasLib} from "@aztec/core/libraries/LeonidasLib/LeonidasLib.sol";
+import {StakingLib} from "@aztec/core/libraries/staking/StakingLib.sol";
 import {
   Timestamp, Slot, Epoch, SlotLib, EpochLib, TimeLib
 } from "@aztec/core/libraries/TimeLib.sol";
-import {Staking} from "@aztec/core/staking/Staking.sol";
+import {Slasher} from "@aztec/core/staking/Slasher.sol";
 import {IERC20} from "@oz/token/ERC20/IERC20.sol";
 import {EnumerableSet} from "@oz/utils/structs/EnumerableSet.sol";
 
@@ -26,7 +28,7 @@ import {EnumerableSet} from "@oz/utils/structs/EnumerableSet.sol";
  *          It will be the duty of his successor (Pleistarchus) to optimize the costs with same functionality.
  *
  */
-contract Leonidas is Staking, ILeonidas {
+contract Leonidas is ILeonidas, IStaking {
   using EnumerableSet for EnumerableSet.AddressSet;
 
   using SlotLib for Slot;
@@ -49,10 +51,45 @@ contract Leonidas is Staking, ILeonidas {
     uint256 _slotDuration,
     uint256 _epochDuration,
     uint256 _targetCommitteeSize
-  ) Staking(_stakingAsset, _minimumStake, _slashingQuorum, _roundSize) {
+  ) {
     TARGET_COMMITTEE_SIZE = _targetCommitteeSize;
 
     TimeLib.initialize(block.timestamp, _slotDuration, _epochDuration);
+
+    Timestamp exitDelay = Timestamp.wrap(60 * 60 * 24);
+    Slasher slasher = new Slasher(_slashingQuorum, _roundSize);
+    StakingLib.initialize(_stakingAsset, _minimumStake, exitDelay, address(slasher));
+  }
+
+  function deposit(address _attester, address _proposer, address _withdrawer, uint256 _amount)
+    external
+    override(IStaking)
+  {
+    setupEpoch();
+    require(
+      _attester != address(0) && _proposer != address(0),
+      Errors.Leonidas__InvalidDeposit(_attester, _proposer)
+    );
+    StakingLib.deposit(_attester, _proposer, _withdrawer, _amount);
+  }
+
+  function initiateWithdraw(address _attester, address _recipient)
+    external
+    override(IStaking)
+    returns (bool)
+  {
+    // @note The attester might be chosen for the epoch, so the delay must be long enough
+    //       to allow for that.
+    setupEpoch();
+    return StakingLib.initiateWithdraw(_attester, _recipient);
+  }
+
+  function finaliseWithdraw(address _attester) external override(IStaking) {
+    StakingLib.finaliseWithdraw(_attester);
+  }
+
+  function slash(address _attester, uint256 _amount) external override(IStaking) {
+    StakingLib.slash(_attester, _amount);
   }
 
   function getGenesisTime() external view override(ILeonidas) returns (Timestamp) {
@@ -65,6 +102,67 @@ contract Leonidas is Staking, ILeonidas {
 
   function getEpochDuration() external view override(ILeonidas) returns (uint256) {
     return TimeLib.getEpochDuration();
+  }
+
+  function getSlasher() external view override(IStaking) returns (address) {
+    return StakingLib.getStorage().slasher;
+  }
+
+  function getStakingAsset() external view override(IStaking) returns (IERC20) {
+    return StakingLib.getStorage().stakingAsset;
+  }
+
+  function getMinimumStake() external view override(IStaking) returns (uint256) {
+    return StakingLib.getStorage().minimumStake;
+  }
+
+  function getExitDelay() external view override(IStaking) returns (Timestamp) {
+    return StakingLib.getStorage().exitDelay;
+  }
+
+  function getActiveAttesterCount() external view override(IStaking) returns (uint256) {
+    return StakingLib.getStorage().attesters.length();
+  }
+
+  function getProposerForAttester(address _attester)
+    external
+    view
+    override(IStaking)
+    returns (address)
+  {
+    return StakingLib.getStorage().info[_attester].proposer;
+  }
+
+  function getAttesterAtIndex(uint256 _index) external view override(IStaking) returns (address) {
+    return StakingLib.getStorage().attesters.at(_index);
+  }
+
+  function getProposerAtIndex(uint256 _index) external view override(IStaking) returns (address) {
+    return StakingLib.getStorage().info[StakingLib.getStorage().attesters.at(_index)].proposer;
+  }
+
+  function getInfo(address _attester)
+    external
+    view
+    override(IStaking)
+    returns (ValidatorInfo memory)
+  {
+    return StakingLib.getStorage().info[_attester];
+  }
+
+  function getExit(address _attester) external view override(IStaking) returns (Exit memory) {
+    return StakingLib.getStorage().exits[_attester];
+  }
+
+  function getOperatorAtIndex(uint256 _index)
+    external
+    view
+    override(IStaking)
+    returns (OperatorInfo memory)
+  {
+    address attester = StakingLib.getStorage().attesters.at(_index);
+    return
+      OperatorInfo({proposer: StakingLib.getStorage().info[attester].proposer, attester: attester});
   }
 
   /**
@@ -91,7 +189,7 @@ contract Leonidas is Staking, ILeonidas {
    */
   function getCurrentEpochCommittee() external view override(ILeonidas) returns (address[] memory) {
     return LeonidasLib.getCommitteeAt(
-      leonidasStore, stakingStore, getCurrentEpoch(), TARGET_COMMITTEE_SIZE
+      leonidasStore, StakingLib.getStorage(), getCurrentEpoch(), TARGET_COMMITTEE_SIZE
     );
   }
 
@@ -109,7 +207,7 @@ contract Leonidas is Staking, ILeonidas {
     returns (address[] memory)
   {
     return LeonidasLib.getCommitteeAt(
-      leonidasStore, stakingStore, getEpochAt(_ts), TARGET_COMMITTEE_SIZE
+      leonidasStore, StakingLib.getStorage(), getEpochAt(_ts), TARGET_COMMITTEE_SIZE
     );
   }
 
@@ -133,29 +231,6 @@ contract Leonidas is Staking, ILeonidas {
     return LeonidasLib.getSampleSeed(leonidasStore, getCurrentEpoch());
   }
 
-  function initiateWithdraw(address _attester, address _recipient)
-    public
-    override(Staking)
-    returns (bool)
-  {
-    // @note The attester might be chosen for the epoch, so the delay must be long enough
-    //       to allow for that.
-    setupEpoch();
-    return super.initiateWithdraw(_attester, _recipient);
-  }
-
-  function deposit(address _attester, address _proposer, address _withdrawer, uint256 _amount)
-    public
-    override(Staking)
-  {
-    setupEpoch();
-    require(
-      _attester != address(0) && _proposer != address(0),
-      Errors.Leonidas__InvalidDeposit(_attester, _proposer)
-    );
-    super.deposit(_attester, _proposer, _withdrawer, _amount);
-  }
-
   /**
    * @notice  Performs a setup of an epoch if needed. The setup will
    *          - Sample the validator set for the epoch
@@ -173,8 +248,9 @@ contract Leonidas is Staking, ILeonidas {
     if (epoch.sampleSeed == 0) {
       epoch.sampleSeed = LeonidasLib.getSampleSeed(leonidasStore, epochNumber);
       epoch.nextSeed = leonidasStore.lastSeed = _computeNextSeed(epochNumber);
-      epoch.committee =
-        LeonidasLib.sampleValidators(stakingStore, epoch.sampleSeed, TARGET_COMMITTEE_SIZE);
+      epoch.committee = LeonidasLib.sampleValidators(
+        StakingLib.getStorage(), epoch.sampleSeed, TARGET_COMMITTEE_SIZE
+      );
     }
   }
 
@@ -186,7 +262,7 @@ contract Leonidas is Staking, ILeonidas {
    * @return The validator set
    */
   function getAttesters() public view override(ILeonidas) returns (address[] memory) {
-    return stakingStore.attesters.values();
+    return StakingLib.getStorage().attesters.values();
   }
 
   /**
@@ -259,7 +335,7 @@ contract Leonidas is Staking, ILeonidas {
     Slot slot = getSlotAt(_ts);
     Epoch epochNumber = getEpochAtSlot(slot);
     return LeonidasLib.getProposerAt(
-      leonidasStore, stakingStore, slot, epochNumber, TARGET_COMMITTEE_SIZE
+      leonidasStore, StakingLib.getStorage(), slot, epochNumber, TARGET_COMMITTEE_SIZE
     );
   }
 
@@ -308,7 +384,7 @@ contract Leonidas is Staking, ILeonidas {
       Errors.Leonidas__InvalidDeposit(_attester, _proposer)
     );
 
-    super.deposit(_attester, _proposer, _withdrawer, _amount);
+    StakingLib.deposit(_attester, _proposer, _withdrawer, _amount);
   }
 
   /**
@@ -336,7 +412,7 @@ contract Leonidas is Staking, ILeonidas {
     Epoch epochNumber = getEpochAtSlot(_slot);
     LeonidasLib.validateLeonidas(
       leonidasStore,
-      stakingStore,
+      StakingLib.getStorage(),
       _slot,
       epochNumber,
       _signatures,

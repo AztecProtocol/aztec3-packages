@@ -28,6 +28,8 @@ import {
   RollupLinkReferences,
   SlashFactoryAbi,
   SlashFactoryBytecode,
+  StakingLibAbi,
+  StakingLibBytecode,
   TestERC20Abi,
   TestERC20Bytecode,
 } from '@aztec/l1-artifacts';
@@ -135,6 +137,10 @@ export const l1Artifacts = {
         ExtRollupLib: {
           contractAbi: ExtRollupLibAbi,
           contractBytecode: ExtRollupLibBytecode as Hex,
+        },
+        StakingLib: {
+          contractAbi: StakingLibAbi,
+          contractBytecode: StakingLibBytecode as Hex,
         },
       },
     },

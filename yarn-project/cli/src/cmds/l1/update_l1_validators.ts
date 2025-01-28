@@ -53,7 +53,7 @@ export async function addL1Validator({
   });
 
   const stakingAsset = getContract({
-    address: await rollup.read.STAKING_ASSET(),
+    address: await rollup.read.getStakingAsset(),
     abi: TestERC20Abi,
     client: walletClient,
   });

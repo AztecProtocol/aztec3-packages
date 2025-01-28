@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.73.0](https://github.com/AztecProtocol/aztec-packages/compare/barretenberg.js-v0.72.1...barretenberg.js-v0.73.0) (2025-01-28)
+
+
+### Features
+
+* Lazy wasm pt4 ([#11491](https://github.com/AztecProtocol/aztec-packages/issues/11491)) ([f553f58](https://github.com/AztecProtocol/aztec-packages/commit/f553f58ee5f405414a7d0c402c679ffe5c4d62ef))
+
 ## [0.72.1](https://github.com/AztecProtocol/aztec-packages/compare/barretenberg.js-v0.72.0...barretenberg.js-v0.72.1) (2025-01-24)
 
 

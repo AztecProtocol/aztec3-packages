@@ -20,13 +20,7 @@ import { type Logger } from '@aztec/foundation/log';
 import { TestDateProvider } from '@aztec/foundation/timer';
 import { getVKTreeRoot } from '@aztec/noir-protocol-circuits-types/vks';
 import { protocolContractTreeRoot } from '@aztec/protocol-contracts';
-import {
-  PublicProcessor,
-  PublicTxSimulator,
-  type SimulationProvider,
-  WASMSimulatorWithBlobs,
-  type WorldStateDB,
-} from '@aztec/simulator/server';
+import { PublicProcessor, PublicTxSimulator, type WorldStateDB } from '@aztec/simulator/server';
 import { getTelemetryClient } from '@aztec/telemetry-client';
 import { type MerkleTreeAdminDatabase } from '@aztec/world-state';
 import { NativeWorldStateService } from '@aztec/world-state/native';
@@ -51,7 +45,6 @@ export class TestContext {
     public publicTxSimulator: PublicTxSimulator,
     public worldState: MerkleTreeAdminDatabase,
     public publicProcessor: PublicProcessor,
-    public simulationProvider: SimulationProvider,
     public globalVariables: GlobalVariables,
     public prover: ServerCircuitProver,
     public proverAgent: ProverAgent,
@@ -68,8 +61,8 @@ export class TestContext {
   static async new(
     logger: Logger,
     proverCount = 4,
-    createProver: (bbConfig: BBProverConfig) => Promise<ServerCircuitProver> = _ =>
-      Promise.resolve(new TestCircuitProver(new WASMSimulatorWithBlobs())),
+    createProver: (bbConfig: BBProverConfig) => Promise<ServerCircuitProver> = async (bbConfig: BBProverConfig) =>
+      new TestCircuitProver(await getSimulationProvider(bbConfig, logger)),
     blockNumber = 1,
   ) {
     const directoriesToCleanup: string[] = [];
@@ -94,12 +87,8 @@ export class TestContext {
 
     let localProver: ServerCircuitProver;
     const config = await getEnvironmentConfig(logger);
-    const simulationProvider = await getSimulationProvider({
-      acvmWorkingDirectory: config?.acvmWorkingDirectory,
-      acvmBinaryPath: config?.expectedAcvmPath,
-    });
     if (!config) {
-      localProver = new TestCircuitProver(simulationProvider);
+      localProver = new TestCircuitProver();
     } else {
       const bbConfig: BBProverConfig = {
         acvmBinaryPath: config.expectedAcvmPath,
@@ -126,7 +115,6 @@ export class TestContext {
       publicTxSimulator,
       ws,
       processor,
-      simulationProvider,
       globalVariables,
       localProver,
       agent,

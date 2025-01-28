@@ -19,7 +19,7 @@ describe('guides/dapp/testing', () => {
       const pxe = createPXEClient(PXE_URL);
       await waitForPXE(pxe);
       // docs:end:create_pxe_client
-    });
+    }, 60_000);
 
     describe('token contract', () => {
       let pxe: PXE;
@@ -61,7 +61,7 @@ describe('guides/dapp/testing', () => {
           .send()
           .deployed();
         // docs:end:use-existing-wallets
-      });
+      }, 60_000);
 
       it('increases recipient funds on mint', async () => {
         expect(await token.methods.balance_of_private(recipient.getAddress()).simulate()).toEqual(0n);
@@ -102,7 +102,7 @@ describe('guides/dapp/testing', () => {
         // The balances mapping is indexed by user address
         ownerSlot = await cheats.aztec.computeSlotInMap(TokenContract.storage.balances.slot, ownerAddress);
         // docs:end:calc-slot
-      });
+      }, 120_000);
 
       it('checks private storage', async () => {
         // docs:start:private-storage

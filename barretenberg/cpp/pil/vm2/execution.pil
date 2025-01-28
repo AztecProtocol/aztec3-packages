@@ -1,6 +1,7 @@
 include "alu.pil";
 include "addressing.pil";
 include "range_check.pil";
+include "bitwise.pil";
 include "precomputed.pil";
 
 namespace execution;

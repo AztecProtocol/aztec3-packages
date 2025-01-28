@@ -25,6 +25,7 @@ namespace {
 struct ProvingSettings {
     using ExecutionEventEmitter = EventEmitter<ExecutionEvent>;
     using AluEventEmitter = EventEmitter<AluEvent>;
+    using BitwiseEventEmitter = EventEmitter<BitwiseEvent>;
     using MemoryEventEmitter = EventEmitter<MemoryEvent>;
     using AddressingEventEmitter = EventEmitter<AddressingEvent>;
     using BytecodeRetrievalEventEmitter = EventEmitter<BytecodeRetrievalEvent>;
@@ -39,6 +40,7 @@ struct ProvingSettings {
 struct FastSettings {
     using ExecutionEventEmitter = NoopEventEmitter<ExecutionEvent>;
     using AluEventEmitter = NoopEventEmitter<AluEvent>;
+    using BitwiseEventEmitter = NoopEventEmitter<BitwiseEvent>;
     using MemoryEventEmitter = NoopEventEmitter<MemoryEvent>;
     using AddressingEventEmitter = NoopEventEmitter<AddressingEvent>;
     using BytecodeRetrievalEventEmitter = NoopEventEmitter<BytecodeRetrievalEvent>;
@@ -55,6 +57,7 @@ template <typename S> EventsContainer AvmSimulationHelper::simulate_with_setting
 {
     typename S::ExecutionEventEmitter execution_emitter;
     typename S::AluEventEmitter alu_emitter;
+    typename S::BitwiseEventEmitter bitwise_emitter;
     typename S::MemoryEventEmitter memory_emitter;
     typename S::AddressingEventEmitter addressing_emitter;
     typename S::BytecodeRetrievalEventEmitter bytecode_retrieval_emitter;
@@ -89,6 +92,7 @@ template <typename S> EventsContainer AvmSimulationHelper::simulate_with_setting
 
     return { execution_emitter.dump_events(),
              alu_emitter.dump_events(),
+             bitwise_emitter.dump_events(),
              memory_emitter.dump_events(),
              addressing_emitter.dump_events(),
              bytecode_retrieval_emitter.dump_events(),

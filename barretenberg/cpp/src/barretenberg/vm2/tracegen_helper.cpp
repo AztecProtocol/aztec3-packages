@@ -13,14 +13,14 @@
 #include "barretenberg/vm2/common/map.hpp"
 #include "barretenberg/vm2/generated/columns.hpp"
 #include "barretenberg/vm2/generated/flavor.hpp"
+#include "barretenberg/vm2/generated/relations/lookups_bitwise.hpp"
 #include "barretenberg/vm2/generated/relations/lookups_execution.hpp"
 #include "barretenberg/vm2/generated/relations/lookups_range_check.hpp"
 #include "barretenberg/vm2/generated/relations/perms_execution.hpp"
 #include "barretenberg/vm2/tracegen/alu_trace.hpp"
 #include "barretenberg/vm2/tracegen/execution_trace.hpp"
 #include "barretenberg/vm2/tracegen/lib/lookup_into_bitwise.hpp"
-#include "barretenberg/vm2/tracegen/lib/lookup_into_power_of_2.hpp"
-#include "barretenberg/vm2/tracegen/lib/lookup_into_range.hpp"
+#include "barretenberg/vm2/tracegen/lib/lookup_into_indexed_by_clk.hpp"
 #include "barretenberg/vm2/tracegen/lib/permutation_builder.hpp"
 #include "barretenberg/vm2/tracegen/precomputed_trace.hpp"
 #include "barretenberg/vm2/tracegen/trace_container.hpp"
@@ -48,6 +48,8 @@ auto build_precomputed_columns_jobs(TraceContainer& trace)
             AVM_TRACK_TIME("tracegen/precomputed/range_8", precomputed_builder.process_sel_range_8(trace));
             AVM_TRACK_TIME("tracegen/precomputed/range_16", precomputed_builder.process_sel_range_16(trace));
             AVM_TRACK_TIME("tracegen/precomputed/power_of_2", precomputed_builder.process_power_of_2(trace));
+            AVM_TRACK_TIME("tracegen/precomputed/integral_tag_length",
+                           precomputed_builder.process_integral_tag_length(trace));
         },
     };
 }
@@ -133,7 +135,7 @@ TraceContainer AvmTraceGenHelper::generate_trace(EventsContainer&& events)
 
     // Now we can compute lookups and permutations.
     {
-        auto jobs_interactions = std::array<std::function<void()>, 13>{
+        auto jobs_interactions = std::array<std::function<void()>, 15>{
             [&]() {
                 LookupIntoBitwise<lookup_dummy_precomputed_lookup_settings> lookup_execution_bitwise;
                 lookup_execution_bitwise.process(trace);
@@ -147,44 +149,52 @@ TraceContainer AvmTraceGenHelper::generate_trace(EventsContainer&& events)
                 perm_execution_execution.process(trace);
             },
             [&]() {
-                LookupIntoRange<lookup_rng_chk_diff_lookup_settings> lookup_rng_chk_diff;
+                LookupIntoIndexedByClk<lookup_rng_chk_diff_lookup_settings> lookup_rng_chk_diff;
                 lookup_rng_chk_diff.process(trace);
             },
             [&]() {
-                LookupIntoPowerOf2<lookup_rng_chk_pow_2_lookup_settings> lookup_rng_chk_pow_2;
+                LookupIntoIndexedByClk<lookup_rng_chk_pow_2_lookup_settings> lookup_rng_chk_pow_2;
                 lookup_rng_chk_pow_2.process(trace);
             },
             [&]() {
-                LookupIntoRange<lookup_rng_chk_is_r0_16_bit_lookup_settings> lookup_rng_chk_is_r0_16_bit;
+                LookupIntoIndexedByClk<lookup_rng_chk_is_r0_16_bit_lookup_settings> lookup_rng_chk_is_r0_16_bit;
                 lookup_rng_chk_is_r0_16_bit.process(trace);
             },
             [&]() {
-                LookupIntoRange<lookup_rng_chk_is_r1_16_bit_lookup_settings> lookup_rng_chk_is_r1_16_bit;
+                LookupIntoIndexedByClk<lookup_rng_chk_is_r1_16_bit_lookup_settings> lookup_rng_chk_is_r1_16_bit;
                 lookup_rng_chk_is_r1_16_bit.process(trace);
             },
             [&]() {
-                LookupIntoRange<lookup_rng_chk_is_r2_16_bit_lookup_settings> lookup_rng_chk_is_r2_16_bit;
+                LookupIntoIndexedByClk<lookup_rng_chk_is_r2_16_bit_lookup_settings> lookup_rng_chk_is_r2_16_bit;
                 lookup_rng_chk_is_r2_16_bit.process(trace);
             },
             [&]() {
-                LookupIntoRange<lookup_rng_chk_is_r3_16_bit_lookup_settings> lookup_rng_chk_is_r3_16_bit;
+                LookupIntoIndexedByClk<lookup_rng_chk_is_r3_16_bit_lookup_settings> lookup_rng_chk_is_r3_16_bit;
                 lookup_rng_chk_is_r3_16_bit.process(trace);
             },
             [&]() {
-                LookupIntoRange<lookup_rng_chk_is_r4_16_bit_lookup_settings> lookup_rng_chk_is_r4_16_bit;
+                LookupIntoIndexedByClk<lookup_rng_chk_is_r4_16_bit_lookup_settings> lookup_rng_chk_is_r4_16_bit;
                 lookup_rng_chk_is_r4_16_bit.process(trace);
             },
             [&]() {
-                LookupIntoRange<lookup_rng_chk_is_r5_16_bit_lookup_settings> lookup_rng_chk_is_r5_16_bit;
+                LookupIntoIndexedByClk<lookup_rng_chk_is_r5_16_bit_lookup_settings> lookup_rng_chk_is_r5_16_bit;
                 lookup_rng_chk_is_r5_16_bit.process(trace);
             },
             [&]() {
-                LookupIntoRange<lookup_rng_chk_is_r6_16_bit_lookup_settings> lookup_rng_chk_is_r6_16_bit;
+                LookupIntoIndexedByClk<lookup_rng_chk_is_r6_16_bit_lookup_settings> lookup_rng_chk_is_r6_16_bit;
                 lookup_rng_chk_is_r6_16_bit.process(trace);
             },
             [&]() {
-                LookupIntoRange<lookup_rng_chk_is_r7_16_bit_lookup_settings> lookup_rng_chk_is_r7_16_bit;
+                LookupIntoIndexedByClk<lookup_rng_chk_is_r7_16_bit_lookup_settings> lookup_rng_chk_is_r7_16_bit;
                 lookup_rng_chk_is_r7_16_bit.process(trace);
+            },
+            [&]() {
+                LookupIntoIndexedByClk<lookup_bitw_byte_operations_lookup_settings> lookup_bitw_byte_operations;
+                lookup_bitw_byte_operations.process(trace);
+            },
+            [&]() {
+                LookupIntoIndexedByClk<lookup_bitw_byte_lengths_lookup_settings> lookup_bitw_byte_lengths;
+                lookup_bitw_byte_lengths.process(trace);
             },
         };
         AVM_TRACK_TIME("tracegen/interactions", execute_jobs(jobs_interactions));

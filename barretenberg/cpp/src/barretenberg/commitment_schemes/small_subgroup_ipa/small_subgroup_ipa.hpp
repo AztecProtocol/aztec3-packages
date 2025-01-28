@@ -452,12 +452,10 @@ template <typename Curve> class SmallSubgroupIPAVerifier {
      * @return True if the consistency check passes, false otherwise.
      */
     static bool check_evaluations_consistency(const std::array<FF, NUM_LIBRA_EVALUATIONS>& libra_evaluations,
-                                              const FF& gemini_evaluation_challenge,
-                                              const std::vector<FF>& multilinear_challenge,
+                                              const FF& gemini_evaluation_challenge,        // r
+                                              const std::vector<FF>& multilinear_challenge, // u
                                               const FF& inner_product_eval_claim)
     {
-
-        const FF subgroup_generator_inverse = Curve::subgroup_generator_inverse;
 
         // Compute the evaluation of the vanishing polynomia Z_H(X) at X = gemini_evaluation_challenge
         const FF vanishing_poly_eval = gemini_evaluation_challenge.pow(SUBGROUP_SIZE) - FF(1);
@@ -479,11 +477,8 @@ template <typename Curve> class SmallSubgroupIPAVerifier {
 
         // Compute the evaluations of the challenge polynomial, Lagrange first, and Lagrange last for the fixed small
         // subgroup
-        auto [challenge_poly, lagrange_first, lagrange_last] =
-            compute_batched_barycentric_evaluations(challenge_polynomial_lagrange,
-                                                    gemini_evaluation_challenge,
-                                                    subgroup_generator_inverse,
-                                                    vanishing_poly_eval);
+        auto [challenge_poly, lagrange_first, lagrange_last] = compute_batched_barycentric_evaluations(
+            challenge_polynomial_lagrange, gemini_evaluation_challenge, vanishing_poly_eval);
 
         const FF& concatenated_at_r = libra_evaluations[0];
         const FF& big_sum_shifted_eval = libra_evaluations[1];
@@ -493,7 +488,7 @@ template <typename Curve> class SmallSubgroupIPAVerifier {
         // Compute the evaluation of
         // L_1(X) * A(X) + (X - 1/g) (A(gX) - A(X) - F(X) G(X)) + L_{|H|}(X)(A(X) - s) - Z_H(X) * Q(X)
         FF diff = lagrange_first * big_sum_eval;
-        diff += (gemini_evaluation_challenge - subgroup_generator_inverse) *
+        diff += (gemini_evaluation_challenge - Curve::subgroup_generator_inverse) *
                 (big_sum_shifted_eval - big_sum_eval - concatenated_at_r * challenge_poly);
         diff += lagrange_last * (big_sum_eval - inner_product_eval_claim) - vanishing_poly_eval * quotient_eval;
 
@@ -526,14 +521,15 @@ template <typename Curve> class SmallSubgroupIPAVerifier {
         challenge_polynomial_lagrange[0] = FF{ 1 };
 
         // Populate the vector with the powers of the challenges
-        for (size_t idx_poly = 0; idx_poly < CONST_PROOF_SIZE_LOG_N; idx_poly++) {
-            size_t current_idx = 1 + LIBRA_UNIVARIATES_LENGTH * idx_poly;
+        size_t round_idx = 0;
+        for (auto challenge : multivariate_challenge) {
+            size_t current_idx = 1 + LIBRA_UNIVARIATES_LENGTH * round_idx;
             challenge_polynomial_lagrange[current_idx] = FF(1);
-            for (size_t idx = 1; idx < LIBRA_UNIVARIATES_LENGTH; idx++) {
+            for (size_t idx = current_idx + 1; idx < current_idx + LIBRA_UNIVARIATES_LENGTH; idx++) {
                 // Recursively compute the powers of the challenge
-                challenge_polynomial_lagrange[current_idx + idx] =
-                    challenge_polynomial_lagrange[current_idx + idx - 1] * multivariate_challenge[idx_poly];
+                challenge_polynomial_lagrange[idx] = challenge_polynomial_lagrange[idx - 1] * challenge;
             }
+            round_idx++;
         }
         return challenge_polynomial_lagrange;
     }
@@ -553,45 +549,35 @@ template <typename Curve> class SmallSubgroupIPAVerifier {
      */
     static std::array<FF, 3> compute_batched_barycentric_evaluations(const std::vector<FF>& coeffs,
                                                                      const FF& r,
-                                                                     const FF& inverse_root_of_unity,
                                                                      const FF& vanishing_poly_eval)
     {
-        std::array<FF, SUBGROUP_SIZE> denominators;
         FF one = FF{ 1 };
-        FF numerator = vanishing_poly_eval;
+        FF numerator = vanishing_poly_eval * FF(SUBGROUP_SIZE).invert(); // (r^n - 1) / n
 
-        numerator *= one / FF(SUBGROUP_SIZE); // (r^n - 1) / n
-
+        FF power_of_root = Curve::subgroup_generator_inverse; // g^{-1}
+        std::array<FF, SUBGROUP_SIZE> denominators;
         denominators[0] = r - one;
-        FF work_root = inverse_root_of_unity; // g^{-1}
-                                              //
+
         // Compute the denominators of the Lagrange polynomials evaluated at r
         for (size_t i = 1; i < SUBGROUP_SIZE; ++i) {
-            denominators[i] = work_root * r;
-            denominators[i] -= one; // r * g^{-i} - 1
-            work_root *= inverse_root_of_unity;
+            denominators[i] = power_of_root * r - one; // r * g^{-i} - 1
+            power_of_root *= Curve::subgroup_generator_inverse;
         }
 
         // Invert/Batch invert denominators
         if constexpr (Curve::is_stdlib_type) {
-            for (FF& denominator : denominators) {
-                denominator = one / denominator;
-            }
+            std::transform(
+                denominators.begin(), denominators.end(), denominators.begin(), [](FF& d) { return d.invert(); });
         } else {
             FF::batch_invert(&denominators[0], SUBGROUP_SIZE);
         }
-        std::array<FF, 3> result;
 
-        // Accumulate the evaluation of the polynomials given by `coeffs` vector
-        result[0] = FF{ 0 };
-        for (const auto& [coeff, denominator] : zip_view(coeffs, denominators)) {
-            result[0] += coeff * denominator; // + coeffs_i * 1/(r * g^{-i}  - 1)
-        }
-
-        result[0] = result[0] * numerator;       // The evaluation of the polynomials given by its evaluations over H
-        result[1] = denominators[0] * numerator; // Lagrange first evaluated at r
-        result[2] = denominators[SUBGROUP_SIZE - 1] * numerator; // Lagrange last evaluated at r
-
+        // Return the evaluation of the polynomial given by its evaluations over H, Lagrange first evaluated at r,
+        // Lagrange last evaluated at r
+        std::array<FF, 3> result{ std::inner_product(coeffs.begin(), coeffs.end(), denominators.begin(), FF(0)),
+                                  denominators[0],
+                                  denominators[SUBGROUP_SIZE - 1] };
+        std::transform(result.begin(), result.end(), result.begin(), [&](FF& r) { return r * numerator; });
         return result;
     }
 };

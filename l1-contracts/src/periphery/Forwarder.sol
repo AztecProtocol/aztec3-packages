@@ -12,7 +12,9 @@ contract Forwarder is Ownable, IForwarder {
   constructor(address __owner) Ownable(__owner) {}
 
   function forward(address[] calldata _to, bytes[] calldata _data) external override onlyOwner {
-    require(_to.length == _data.length, "Forwarder: length mismatch");
+    require(
+      _to.length == _data.length, IForwarder.ForwarderLengthMismatch(_to.length, _data.length)
+    );
     for (uint256 i = 0; i < _to.length; i++) {
       _to[i].functionCall(_data[i]);
     }

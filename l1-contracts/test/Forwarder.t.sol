@@ -4,6 +4,7 @@ pragma solidity >=0.8.27;
 
 import {Test} from "forge-std/Test.sol";
 import {Forwarder} from "../src/periphery/Forwarder.sol";
+import {IForwarder} from "../src/periphery/interfaces/IForwarder.sol";
 import {TestERC20} from "@aztec/mock/TestERC20.sol";
 import {Ownable} from "@oz/access/Ownable.sol";
 // solhint-disable comprehensive-interface
@@ -60,7 +61,7 @@ contract ForwarderTest is Test {
     bytes[] memory data = new bytes[](1);
 
     vm.prank(owner);
-    vm.expectRevert("Forwarder: length mismatch");
+    vm.expectRevert(abi.encodeWithSelector(IForwarder.ForwarderLengthMismatch.selector, 2, 1));
     forwarder.forward(targets, data);
   }
 

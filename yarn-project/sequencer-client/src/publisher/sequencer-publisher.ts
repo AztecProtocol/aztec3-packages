@@ -215,8 +215,6 @@ export class SequencerPublisher {
     try {
       this.log.debug('Forwarding transactions', {
         validRequests: validRequests.map(request => request.action),
-        gasConfig,
-        blobConfig,
       });
       const result = await this.forwarderContract.forward(
         validRequests.map(request => request.request),

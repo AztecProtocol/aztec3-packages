@@ -30,7 +30,7 @@ import {
   NUMBER_OF_L1_L2_MESSAGES_PER_ROLLUP,
 } from '@aztec/circuits.js';
 import { makeAppendOnlyTreeSnapshot } from '@aztec/circuits.js/testing';
-import { DefaultL1ContractsConfig, type RollupContract } from '@aztec/ethereum';
+import { DefaultL1ContractsConfig } from '@aztec/ethereum';
 import { Buffer32 } from '@aztec/foundation/buffer';
 import { times, timesParallel } from '@aztec/foundation/collection';
 import { Signature } from '@aztec/foundation/eth-signature';
@@ -52,7 +52,6 @@ import { Sequencer } from './sequencer.js';
 import { SequencerState } from './utils.js';
 
 describe('sequencer', () => {
-  let rollup: MockProxy<RollupContract>;
   let publisher: MockProxy<SequencerPublisher>;
   let validatorClient: MockProxy<ValidatorClient>;
   let globalVariableBuilder: MockProxy<GlobalVariableBuilder>;
@@ -164,8 +163,6 @@ describe('sequencer', () => {
       feeRecipient,
       gasFees,
     );
-    rollup = mock<RollupContract>();
-    rollup.canProposeAtNextEthBlock.mockResolvedValue([BigInt(newSlotNumber), BigInt(newBlockNumber)]);
 
     publisher = mock<SequencerPublisher>();
     publisher.getSenderAddress.mockImplementation(() => EthAddress.random());
@@ -175,7 +172,7 @@ describe('sequencer', () => {
     publisher.enqueueProposeL2Block.mockResolvedValue(true);
     publisher.enqueueCastVote.mockResolvedValue(true);
     publisher.enqueueClaimEpochProofRight.mockReturnValue(true);
-    publisher.rollupContract = rollup;
+    publisher.canProposeAtNextEthBlock.mockResolvedValue([BigInt(newSlotNumber), BigInt(newBlockNumber)]);
 
     globalVariableBuilder = mock<GlobalVariableBuilder>();
     globalVariableBuilder.buildGlobalVariables.mockResolvedValue(globalVariables);
@@ -263,7 +260,6 @@ describe('sequencer', () => {
       contractSource,
       l1Constants,
       new TestDateProvider(),
-      { enforceTimeTable: true, maxTxsPerBlock: 4, minTxsPerBlock: 1 },
     );
     await sequencer.updateConfig(config);
   });
@@ -275,6 +271,8 @@ describe('sequencer', () => {
     block = await makeBlock([tx]);
     mockPendingTxs([tx]);
     await sequencer.doRealWork();
+    logger.info('end of test 1');
+    logger.info('end of test 2');
 
     expect(blockBuilder.startNewBlock).toHaveBeenCalledWith(
       globalVariables,
@@ -337,14 +335,14 @@ describe('sequencer', () => {
     block = await makeBlock([tx]);
 
     // Not your turn!
-    rollup.canProposeAtNextEthBlock.mockRejectedValue(new Error());
+    publisher.canProposeAtNextEthBlock.mockReturnValue(Promise.resolve(undefined));
     publisher.validateBlockForSubmission.mockRejectedValue(new Error());
 
     await sequencer.doRealWork();
     expect(blockBuilder.startNewBlock).not.toHaveBeenCalled();
 
     // Now we can propose, but lets assume that the content is still "bad" (missing sigs etc)
-    rollup.canProposeAtNextEthBlock.mockResolvedValue([
+    publisher.canProposeAtNextEthBlock.mockResolvedValue([
       block.header.globalVariables.slotNumber.toBigInt(),
       block.header.globalVariables.blockNumber.toBigInt(),
     ]);
@@ -554,10 +552,7 @@ describe('sequencer', () => {
       globalVariableBuilder.buildGlobalVariables.mockResolvedValue(globalVariables);
 
       publisher.enqueueClaimEpochProofRight.mockReturnValueOnce(true);
-      rollup.canProposeAtNextEthBlock.mockResolvedValue([BigInt(newSlotNumber), BigInt(blockNumber)]);
-      rollup.getEpochNumberForSlotNumber.mockImplementation((slotNumber: bigint) =>
-        Promise.resolve(slotNumber / BigInt(epochDuration)),
-      );
+      publisher.canProposeAtNextEthBlock.mockResolvedValue([BigInt(newSlotNumber), BigInt(blockNumber)]);
 
       tx = await makeTx();
       txHash = await tx.getTxHash();
@@ -582,10 +577,10 @@ describe('sequencer', () => {
       const proofQuote = mockEpochProofQuote();
 
       p2p.getEpochProofQuotes.mockResolvedValue([proofQuote]);
-      rollup.validateProofQuote.mockImplementation(() => Promise.resolve());
+      publisher.filterValidQuotes.mockImplementation(() => Promise.resolve([proofQuote]));
 
       // The previous epoch can be claimed
-      rollup.getClaimableEpoch.mockImplementation(() => Promise.resolve(currentEpoch - 1n));
+      publisher.getClaimableEpoch.mockImplementation(() => Promise.resolve(currentEpoch - 1n));
 
       await sequencer.doRealWork();
       expect(publisher.enqueueClaimEpochProofRight).toHaveBeenCalledWith(proofQuote);
@@ -602,10 +597,10 @@ describe('sequencer', () => {
       const proofQuote = mockEpochProofQuote();
 
       p2p.getEpochProofQuotes.mockResolvedValue([proofQuote]);
-      rollup.validateProofQuote.mockImplementation(() => Promise.resolve());
+      publisher.filterValidQuotes.mockImplementation(() => Promise.resolve([proofQuote]));
 
       // The previous epoch can be claimed
-      rollup.getClaimableEpoch.mockImplementation(() => Promise.resolve(currentEpoch - 1n));
+      publisher.getClaimableEpoch.mockImplementation(() => Promise.resolve(currentEpoch - 1n));
 
       await sequencer.doRealWork();
       expect(publisher.enqueueClaimEpochProofRight).toHaveBeenCalledWith(proofQuote);
@@ -619,10 +614,10 @@ describe('sequencer', () => {
       const proofQuote = mockEpochProofQuote();
 
       p2p.getEpochProofQuotes.mockResolvedValue([proofQuote]);
-      rollup.validateProofQuote.mockImplementation(() => Promise.resolve());
+      publisher.filterValidQuotes.mockImplementation(() => Promise.resolve([proofQuote]));
 
       // The previous epoch can be claimed
-      rollup.getClaimableEpoch.mockImplementation(() => Promise.resolve(currentEpoch - 1n));
+      publisher.getClaimableEpoch.mockImplementation(() => Promise.resolve(currentEpoch - 1n));
 
       validatorClient.createBlockProposal.mockResolvedValue(undefined);
 
@@ -638,9 +633,9 @@ describe('sequencer', () => {
       const proofQuote = mockEpochProofQuote({ epoch: 0n });
 
       p2p.getEpochProofQuotes.mockResolvedValue([proofQuote]);
-      rollup.validateProofQuote.mockImplementation(() => Promise.resolve());
+      publisher.filterValidQuotes.mockImplementation(() => Promise.resolve([proofQuote]));
 
-      rollup.getClaimableEpoch.mockImplementation(() => Promise.resolve(undefined));
+      publisher.getClaimableEpoch.mockImplementation(() => Promise.resolve(undefined));
 
       await sequencer.doRealWork();
       expectPublisherProposeL2Block([txHash]);
@@ -654,10 +649,10 @@ describe('sequencer', () => {
       const proofQuote = mockEpochProofQuote({ validUntilSlot: expiredSlotNumber });
 
       p2p.getEpochProofQuotes.mockResolvedValue([proofQuote]);
-      rollup.validateProofQuote.mockImplementation(() => Promise.resolve());
+      publisher.filterValidQuotes.mockImplementation(() => Promise.resolve([proofQuote]));
 
       // The previous epoch can be claimed
-      rollup.getClaimableEpoch.mockImplementation(() => Promise.resolve(currentEpoch - 1n));
+      publisher.getClaimableEpoch.mockImplementation(() => Promise.resolve(currentEpoch - 1n));
 
       await sequencer.doRealWork();
       expectPublisherProposeL2Block([txHash]);
@@ -670,9 +665,9 @@ describe('sequencer', () => {
       const proofQuote = mockEpochProofQuote();
 
       p2p.getEpochProofQuotes.mockResolvedValue([proofQuote]);
-      rollup.validateProofQuote.mockImplementation(() => Promise.resolve());
+      publisher.filterValidQuotes.mockImplementation(() => Promise.resolve([proofQuote]));
 
-      rollup.getClaimableEpoch.mockImplementation(() => Promise.resolve(undefined));
+      publisher.getClaimableEpoch.mockImplementation(() => Promise.resolve(undefined));
 
       await sequencer.doRealWork();
       expectPublisherProposeL2Block([txHash]);
@@ -688,10 +683,10 @@ describe('sequencer', () => {
       publisher.enqueueProposeL2Block.mockResolvedValueOnce(true);
 
       // Quote is reported as invalid
-      rollup.validateProofQuote.mockImplementation(() => Promise.reject(new Error('Invalid proof quote')));
+      publisher.filterValidQuotes.mockImplementation(() => Promise.reject(new Error('Invalid proof quote')));
 
       // The previous epoch can be claimed
-      rollup.getClaimableEpoch.mockImplementation(() => Promise.resolve(currentEpoch - 1n));
+      publisher.getClaimableEpoch.mockImplementation(() => Promise.resolve(currentEpoch - 1n));
 
       await sequencer.doRealWork();
       expectPublisherProposeL2Block([txHash]);
@@ -719,15 +714,10 @@ describe('sequencer', () => {
       publisher.enqueueProposeL2Block.mockResolvedValueOnce(true);
 
       // Quote is reported as invalid
-      rollup.validateProofQuote.mockImplementation(p => {
-        if (p.quote.basisPointFee === 3) {
-          return Promise.reject(new Error('Invalid proof quote'));
-        }
-        return Promise.resolve();
-      });
+      publisher.filterValidQuotes.mockImplementation(() => Promise.resolve(validQuotes));
 
       // The previous epoch can be claimed
-      rollup.getClaimableEpoch.mockImplementation(() => Promise.resolve(currentEpoch - 1n));
+      publisher.getClaimableEpoch.mockImplementation(() => Promise.resolve(currentEpoch - 1n));
 
       await sequencer.doRealWork();
       expect(publisher.enqueueClaimEpochProofRight).toHaveBeenCalledWith(validQuotes[0]);

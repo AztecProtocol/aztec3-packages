@@ -294,8 +294,8 @@ export class Sequencer {
     );
 
     let finishedFlushing = false;
-    const pendingTxs = await this.p2pClient.getPendingTxs();
-    if (pendingTxs.length >= this.minTxsPerBlock || this.isFlushing) {
+    const pendingTxCount = await this.p2pClient.getPendingTxCount();
+    if (pendingTxCount >= this.minTxsPerBlock || this.isFlushing) {
       // We don't fetch exactly maxTxsPerBlock txs here because we may not need all of them if we hit a limit before,
       // and also we may need to fetch more if we don't have enough valid txs.
       const pendingTxs = this.p2pClient.iteratePendingTxs();
@@ -306,7 +306,7 @@ export class Sequencer {
       finishedFlushing = true;
     } else {
       this.log.debug(
-        `Not enough txs to build block ${newBlockNumber} at slot ${slot}: got ${pendingTxs.length} txs, need ${this.minTxsPerBlock}`,
+        `Not enough txs to build block ${newBlockNumber} at slot ${slot}: got ${pendingTxCount} txs, need ${this.minTxsPerBlock}`,
       );
     }
 

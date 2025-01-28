@@ -4,7 +4,7 @@ pragma solidity >=0.8.27;
 
 import {ILeonidas} from "@aztec/core/interfaces/ILeonidas.sol";
 import {IStaking} from "@aztec/core/interfaces/IStaking.sol";
-import {Epoch} from "@aztec/core/libraries/TimeMath.sol";
+import {Epoch} from "@aztec/core/libraries/TimeLib.sol";
 import {IPayload} from "@aztec/governance/interfaces/IPayload.sol";
 
 /**

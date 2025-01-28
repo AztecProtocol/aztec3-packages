@@ -8,8 +8,8 @@ import {DataStructures} from "@aztec/core/libraries/DataStructures.sol";
 import {Errors} from "@aztec/core/libraries/Errors.sol";
 import {LeonidasLib} from "@aztec/core/libraries/LeonidasLib/LeonidasLib.sol";
 import {
-  Timestamp, Slot, Epoch, SlotLib, EpochLib, TimeFns
-} from "@aztec/core/libraries/TimeMath.sol";
+  Timestamp, Slot, Epoch, SlotLib, EpochLib, TimeLib
+} from "@aztec/core/libraries/TimeLib.sol";
 import {Staking} from "@aztec/core/staking/Staking.sol";
 import {IERC20} from "@oz/token/ERC20/IERC20.sol";
 import {EnumerableSet} from "@oz/utils/structs/EnumerableSet.sol";
@@ -26,18 +26,18 @@ import {EnumerableSet} from "@oz/utils/structs/EnumerableSet.sol";
  *          It will be the duty of his successor (Pleistarchus) to optimize the costs with same functionality.
  *
  */
-contract Leonidas is Staking, TimeFns, ILeonidas {
+contract Leonidas is Staking, ILeonidas {
   using EnumerableSet for EnumerableSet.AddressSet;
 
   using SlotLib for Slot;
   using EpochLib for Epoch;
+  using TimeLib for Timestamp;
+  using TimeLib for Slot;
+  using TimeLib for Epoch;
 
   // The target number of validators in a committee
   // @todo #8021
   uint256 public immutable TARGET_COMMITTEE_SIZE;
-
-  // The time that the contract was deployed
-  Timestamp public immutable GENESIS_TIME;
 
   LeonidasStorage private leonidasStore;
 
@@ -49,14 +49,22 @@ contract Leonidas is Staking, TimeFns, ILeonidas {
     uint256 _slotDuration,
     uint256 _epochDuration,
     uint256 _targetCommitteeSize
-  )
-    Staking(_stakingAsset, _minimumStake, _slashingQuorum, _roundSize)
-    TimeFns(_slotDuration, _epochDuration)
-  {
-    GENESIS_TIME = Timestamp.wrap(block.timestamp);
-    SLOT_DURATION = _slotDuration;
-    EPOCH_DURATION = _epochDuration;
+  ) Staking(_stakingAsset, _minimumStake, _slashingQuorum, _roundSize) {
     TARGET_COMMITTEE_SIZE = _targetCommitteeSize;
+
+    TimeLib.initialize(block.timestamp, _slotDuration, _epochDuration);
+  }
+
+  function getGenesisTime() external view override(ILeonidas) returns (Timestamp) {
+    return Timestamp.wrap(TimeLib.getGenesisTime());
+  }
+
+  function getSlotDuration() external view override(ILeonidas) returns (uint256) {
+    return TimeLib.getSlotDuration();
+  }
+
+  function getEpochDuration() external view override(ILeonidas) returns (uint256) {
+    return TimeLib.getEpochDuration();
   }
 
   /**
@@ -212,7 +220,7 @@ contract Leonidas is Staking, TimeFns, ILeonidas {
     override(ILeonidas)
     returns (Timestamp)
   {
-    return GENESIS_TIME + toTimestamp(_slotNumber);
+    return _slotNumber.toTimestamp();
   }
 
   /**
@@ -263,7 +271,7 @@ contract Leonidas is Staking, TimeFns, ILeonidas {
    * @return The computed epoch
    */
   function getEpochAt(Timestamp _ts) public view override(ILeonidas) returns (Epoch) {
-    return _ts < GENESIS_TIME ? Epoch.wrap(0) : epochFromTimestamp(_ts - GENESIS_TIME);
+    return _ts.epochFromTimestamp();
   }
 
   /**
@@ -274,7 +282,7 @@ contract Leonidas is Staking, TimeFns, ILeonidas {
    * @return The computed slot
    */
   function getSlotAt(Timestamp _ts) public view override(ILeonidas) returns (Slot) {
-    return _ts < GENESIS_TIME ? Slot.wrap(0) : slotFromTimestamp(_ts - GENESIS_TIME);
+    return _ts.slotFromTimestamp();
   }
 
   /**
@@ -285,7 +293,7 @@ contract Leonidas is Staking, TimeFns, ILeonidas {
    * @return The computed epoch
    */
   function getEpochAtSlot(Slot _slotNumber) public view override(ILeonidas) returns (Epoch) {
-    return Epoch.wrap(_slotNumber.unwrap() / EPOCH_DURATION);
+    return _slotNumber.epochFromSlot();
   }
 
   // Can be used to add validators without setting up the epoch, useful for the initial set.

@@ -6,7 +6,7 @@ import {IGovernanceProposer} from "@aztec/governance/interfaces/IGovernancePropo
 import {GovernanceProposerBase} from "./Base.t.sol";
 import {Leonidas} from "../../harnesses/Leonidas.sol";
 import {Errors} from "@aztec/governance/libraries/Errors.sol";
-import {Slot, SlotLib, Timestamp} from "@aztec/core/libraries/TimeMath.sol";
+import {Slot, SlotLib, Timestamp} from "@aztec/core/libraries/TimeLib.sol";
 
 import {FaultyGovernance} from "./mocks/FaultyGovernance.sol";
 import {FalsyGovernance} from "./mocks/FalsyGovernance.sol";
@@ -62,7 +62,7 @@ contract ExecuteProposalTest is GovernanceProposerBase {
     Slot lower = leonidas.getCurrentSlot()
       + Slot.wrap(governanceProposer.M() * governanceProposer.LIFETIME_IN_ROUNDS() + 1);
     Slot upper = Slot.wrap(
-      (type(uint256).max - Timestamp.unwrap(leonidas.GENESIS_TIME())) / leonidas.SLOT_DURATION()
+      (type(uint256).max - Timestamp.unwrap(leonidas.getGenesisTime())) / leonidas.getSlotDuration()
     );
     Slot slotToHit = Slot.wrap(bound(_slotToHit, lower.unwrap(), upper.unwrap()));
     vm.warp(Timestamp.unwrap(leonidas.getTimestampForSlot(slotToHit)));

@@ -119,10 +119,17 @@ template <typename Curve_> class KZG {
         batch_opening_claim.scalars.emplace_back(batch_opening_claim.evaluation_point);
         // Compute C + [W]₁ ⋅ z
         if constexpr (Curve::is_stdlib_type) {
-            P_0 = GroupElement::batch_mul(batch_opening_claim.commitments,
-                                          batch_opening_claim.scalars,
-                                          /*max_num_bits=*/0,
-                                          /*with_edgecases=*/true);
+            // The first element of this vector is a commitment to Shplonk Q, its corresponding scalar is 1
+            P_0 = batch_opening_claim.commitments[0];
+            // Compute the sum of P_0 and the batch_mul result of the remaining points and scalars
+            std::vector<Fr> scalars(batch_opening_claim.scalars.begin() + 1, batch_opening_claim.scalars.end());
+            std::vector<Commitment> commitments(batch_opening_claim.commitments.begin() + 1,
+                                                batch_opening_claim.commitments.end());
+            P_0 += GroupElement::batch_mul(commitments,
+                                           scalars,
+                                           /*max_num_bits=*/0,
+                                           /*with_edgecases=*/true);
+
         } else {
             P_0 = batch_mul_native(batch_opening_claim.commitments, batch_opening_claim.scalars);
         }

@@ -357,6 +357,7 @@ class AvmFlavor;
 }
 template <typename BuilderType> class UltraRecursiveFlavor_;
 template <typename BuilderType> class UltraRollupRecursiveFlavor_;
+template <typename BuilderType> class UltraZKRecursiveFlavor_;
 template <typename BuilderType> class MegaRecursiveFlavor_;
 template <typename BuilderType> class MegaZKRecursiveFlavor_;
 template <typename BuilderType> class TranslatorRecursiveFlavor_;
@@ -408,6 +409,7 @@ concept IsRecursiveFlavor = IsAnyOf<T, UltraRecursiveFlavor_<UltraCircuitBuilder
                                        UltraRecursiveFlavor_<MegaCircuitBuilder>,
                                        UltraRecursiveFlavor_<CircuitSimulatorBN254>,
                                        UltraRollupRecursiveFlavor_<UltraCircuitBuilder>,
+                                       UltraZKRecursiveFlavor_<UltraCircuitBuilder>,
                                        MegaRecursiveFlavor_<UltraCircuitBuilder>,
                                        MegaRecursiveFlavor_<MegaCircuitBuilder>,
                                         MegaRecursiveFlavor_<CircuitSimulatorBN254>,
@@ -419,6 +421,10 @@ concept IsRecursiveFlavor = IsAnyOf<T, UltraRecursiveFlavor_<UltraCircuitBuilder
                                         ECCVMRecursiveFlavor_<UltraCircuitBuilder>,
                                         AvmRecursiveFlavor_<UltraCircuitBuilder>>;
 
+// To use short scalars in Shplemini PCS, we need to ensure a negligible probability of edge cases in bn254_batch_mul with 128 bit scalars.
+// In UltraZK- and MegaZKFlavor the witness commitments are masked. (TODO(https://github.com/AztecProtocol/barretenberg/issues/1222): Short scalars in Shplemini: edge cases)
+template <typename T>
+concept IsUsingShortScalars = IsAnyOf<T, UltraZKFlavor, MegaZKFlavor, UltraZKRecursiveFlavor_<UltraCircuitBuilder>, MegaZKRecursiveFlavor_<UltraCircuitBuilder>, MegaZKRecursiveFlavor_<MegaCircuitBuilder>>;
 // These concepts are relevant for Sumcheck, where the logic is different for BN254 and Grumpkin Flavors
 template <typename T> concept IsGrumpkinFlavor = IsAnyOf<T, ECCVMFlavor, ECCVMRecursiveFlavor_<UltraCircuitBuilder>>;
 template <typename T> concept IsECCVMRecursiveFlavor = IsAnyOf<T, ECCVMRecursiveFlavor_<UltraCircuitBuilder>>;
@@ -437,6 +443,7 @@ template <typename T> concept IsFoldingFlavor = IsAnyOf<T, UltraFlavor,
                                                            UltraRecursiveFlavor_<MegaCircuitBuilder>,
                                                            UltraRecursiveFlavor_<CircuitSimulatorBN254>,
                                                            UltraRollupRecursiveFlavor_<UltraCircuitBuilder>,
+                                                           UltraZKRecursiveFlavor_<UltraCircuitBuilder>,
                                                            MegaRecursiveFlavor_<UltraCircuitBuilder>,
                                                            MegaRecursiveFlavor_<MegaCircuitBuilder>,
                                                             MegaRecursiveFlavor_<CircuitSimulatorBN254>,

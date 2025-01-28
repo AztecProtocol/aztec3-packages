@@ -85,6 +85,7 @@ template <IsUltraFlavor Flavor> void DeciderProver_<Flavor>::execute_pcs_rounds(
                                                               sumcheck_output.challenge,
                                                               ck,
                                                               transcript,
+                                                              IsUsingShortScalars<Flavor>,
                                                               small_subgroup_ipa_prover.get_witness_polynomials());
     }
     vinfo("executed multivariate-to-univariate reduction");

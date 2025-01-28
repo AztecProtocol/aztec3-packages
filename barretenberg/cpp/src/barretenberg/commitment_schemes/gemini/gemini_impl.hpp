@@ -50,7 +50,8 @@ std::vector<typename GeminiProver_<Curve>::Claim> GeminiProver_<Curve>::prove(
     const std::shared_ptr<Transcript>& transcript,
     RefSpan<Polynomial> concatenated_polynomials,
     const std::vector<RefVector<Polynomial>>& groups_to_be_concatenated,
-    bool has_zk)
+    bool has_zk,
+    bool use_short_scalars)
 {
     const size_t log_n = numeric::get_msb(static_cast<uint32_t>(circuit_size));
     const size_t n = 1 << log_n;
@@ -71,22 +72,18 @@ std::vector<typename GeminiProver_<Curve>::Claim> GeminiProver_<Curve>::prove(
                                      batched_unshifted.evaluate_mle(multilinear_challenge.subspan(0, log_n)));
     }
 
-    // Get the batching challenge
-    const Fr rho = transcript->template get_challenge<Fr>("rho");
+    Fr rho{ 1 };
+    Fr rho_power{ 1 };
 
-    Fr rho_challenge{ 1 };
-    if (has_zk) {
-        // ρ⁰ is used to batch the hiding polynomial
-        rho_challenge *= rho;
-    }
-
-    for (size_t i = 0; i < f_polynomials.size(); i++) {
-        batched_unshifted.add_scaled(f_polynomials[i], rho_challenge);
-        rho_challenge *= rho;
-    }
-    for (size_t i = 0; i < g_polynomials.size(); i++) {
-        batched_to_be_shifted.add_scaled(g_polynomials[i], rho_challenge);
-        rho_challenge *= rho;
+    // Compute random linear combinations of all to-be-shifted and unshifted polynomials.
+    if (use_short_scalars) {
+        //  To take advantage of 128 bit challenges at the verification stage, we generate individual batching
+        //  challenges for each prover polynomial instead of computing the powers of a single challenge
+        batch_unshifted_and_shifted(f_polynomials, g_polynomials, batched_unshifted, batched_to_be_shifted, transcript);
+    } else {
+        // Batch multilinear polynomials and their evaluations using the powers of a single challenge
+        batch_unshifted_and_shifted(
+            f_polynomials, g_polynomials, batched_unshifted, batched_to_be_shifted, transcript, rho, rho_power, has_zk);
     }
 
     size_t num_groups = groups_to_be_concatenated.size();
@@ -102,11 +99,11 @@ std::vector<typename GeminiProver_<Curve>::Claim> GeminiProver_<Curve>::prove(
         }
 
         for (size_t i = 0; i < num_groups; ++i) {
-            batched_concatenated.add_scaled(concatenated_polynomials[i], rho_challenge);
+            batched_concatenated.add_scaled(concatenated_polynomials[i], rho_power);
             for (size_t j = 0; j < num_chunks_per_group; ++j) {
-                batched_group[j].add_scaled(groups_to_be_concatenated[i][j], rho_challenge);
+                batched_group[j].add_scaled(groups_to_be_concatenated[i][j], rho_power);
             }
-            rho_challenge *= rho;
+            rho_power *= rho;
         }
     }
 
@@ -159,6 +156,65 @@ std::vector<typename GeminiProver_<Curve>::Claim> GeminiProver_<Curve>::prove(
 
     return claims;
 };
+
+/**
+ * @brief Generate individual challenges for each unshifted and to-be-shifted polynomial. Compute the corresponding
+ * batched polynomials.
+ *
+ */
+template <typename Curve>
+template <typename Transcript>
+void GeminiProver_<Curve>::batch_unshifted_and_shifted(
+    RefSpan<Polynomial> f_polynomials, // unshifted
+    RefSpan<Polynomial> g_polynomials, // to - be - shifted,
+    Polynomial& batched_unshifted,     // random linear combination of f_polynomials
+    Polynomial& batched_to_be_shifted,
+    const std::shared_ptr<Transcript>& transcript) // random linear combination of g_polynomials
+{
+    for (size_t idx = 0; idx < f_polynomials.size(); idx++) {
+        const Fr batching_challenge = transcript->template get_challenge<Fr>("rho_" + std::to_string(idx));
+        batched_unshifted.add_scaled(f_polynomials[idx], batching_challenge);
+    };
+
+    for (size_t idx = 0; idx < g_polynomials.size(); idx++) {
+        size_t challenge_idx = f_polynomials.size() + idx;
+        const Fr batching_challenge = transcript->template get_challenge<Fr>("rho_" + std::to_string(challenge_idx));
+        batched_to_be_shifted.add_scaled(g_polynomials[idx], batching_challenge);
+    };
+}
+
+/**
+ * @brief Generate a single challenge \f$ \rho \f$. Compute the corresponding
+ * batched polynomials using the powers of \f$ \rho \f$.
+ *
+ */
+template <typename Curve>
+template <typename Transcript>
+void GeminiProver_<Curve>::batch_unshifted_and_shifted(RefSpan<Polynomial> f_polynomials, // unshifted
+                                                       RefSpan<Polynomial> g_polynomials, // to - be - shifted,
+                                                       Polynomial& batched_unshifted,
+                                                       Polynomial& batched_to_be_shifted,
+                                                       const std::shared_ptr<Transcript>& transcript,
+                                                       Fr& rho,
+                                                       Fr& rho_power,
+                                                       const bool has_zk)
+{
+    rho = transcript->template get_challenge<Fr>("rho");
+
+    if (has_zk) {
+        // ρ⁰ is used to batch the hiding polynomial
+        rho_power *= rho;
+    }
+
+    for (size_t i = 0; i < f_polynomials.size(); i++) {
+        batched_unshifted.add_scaled(f_polynomials[i], rho_power);
+        rho_power *= rho;
+    }
+    for (size_t i = 0; i < g_polynomials.size(); i++) {
+        batched_to_be_shifted.add_scaled(g_polynomials[i], rho_power);
+        rho_power *= rho;
+    }
+}
 
 /**
  * @brief Computes d-1 fold polynomials Fold_i, i = 1, ..., d-1

@@ -100,6 +100,22 @@ template <typename Curve> class GeminiProver_ {
     using Claim = ProverOpeningClaim<Curve>;
 
   public:
+    template <typename Transcript>
+    static void batch_unshifted_and_shifted(RefSpan<Polynomial> f_polynomials,
+                                            RefSpan<Polynomial> g_polynomials,
+                                            Polynomial& batched_unshifted,
+                                            Polynomial& batched_to_be_shifted,
+                                            const std::shared_ptr<Transcript>& transcript);
+    template <typename Transcript>
+    static void batch_unshifted_and_shifted(RefSpan<Polynomial> f_polynomials,
+                                            RefSpan<Polynomial> g_polynomials,
+                                            Polynomial& batched_unshifted,
+                                            Polynomial& batched_to_be_shifted,
+                                            const std::shared_ptr<Transcript>& transcript,
+                                            Fr& rho,
+                                            Fr& rho_power,
+                                            bool has_zk);
+
     static std::vector<Polynomial> compute_fold_polynomials(const size_t log_n,
                                                             std::span<const Fr> multilinear_challenge,
                                                             const Polynomial& A_0);
@@ -126,7 +142,8 @@ template <typename Curve> class GeminiProver_ {
                                     const std::shared_ptr<Transcript>& transcript,
                                     RefSpan<Polynomial> concatenated_polynomials = {},
                                     const std::vector<RefVector<Polynomial>>& groups_to_be_concatenated = {},
-                                    bool has_zk = false);
+                                    bool has_zk = false,
+                                    bool use_short_scalars = false);
 
 }; // namespace bb
 

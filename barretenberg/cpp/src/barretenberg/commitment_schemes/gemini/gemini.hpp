@@ -100,14 +100,100 @@ template <typename Curve> class GeminiProver_ {
     using Claim = ProverOpeningClaim<Curve>;
 
   public:
+    /**
+     * @brief Computation of batched polynomials for the Gemini protocol
+     * @details Given the relevant sets of polynomials e.g. unshifted (F_i), to-be-shifted (G_i), computes the full
+     * batched polynomial A₀ as the linear combination of all polynomials to be opened. Also computes the partially
+     * evaluated batched polynomials A₀₊ = F + G/r and A₀₋ = F - G/r which are required for proving the opening of
+     * shifted polynomials from the commitments to their unshifted counterparts.
+     *
+     */
+    class PolynomialBatcher {
+
+        size_t full_batched_size = 0; // size of the full batched polynomial (generally the circuit size)
+        bool batched_unshifted_initialized = false;
+
+        RefVector<Polynomial> unshifted;       // set of unshifted polynomials
+        RefVector<Polynomial> to_be_1_shifted; // set of polynomials to be left shifted by 1
+
+        Polynomial batched_unshifted;       // linear combination of unshifted polynomials
+        Polynomial batched_to_be_1_shifted; // linear combination of to-be-shifted polynomials
+
+      public:
+        PolynomialBatcher(const size_t full_batched_size)
+            : full_batched_size(full_batched_size)
+        {}
+
+        bool has_unshifted() const { return unshifted.size() > 0; }
+        bool has_to_be_1_shifted() const { return to_be_1_shifted.size() > 0; }
+
+        // Set references to the polynomials to be batched
+        void set_unshifted(RefVector<Polynomial> polynomials) { unshifted = polynomials; }
+        void set_to_be_1_shifted(RefVector<Polynomial> polynomials) { to_be_1_shifted = polynomials; }
+
+        // Initialize the batched unshifted polynomial; used to add randomness for ZK
+        void initialize_batched_unshifted(Polynomial&& random)
+        {
+            batched_unshifted_initialized = true;
+            batched_unshifted = random;
+        }
+
+        // Compute the full batched polynomial as the linear combination of all polynomials to be opened
+        Polynomial compute_batched(const Fr& challenge, Fr& running_scalar)
+        {
+            // initialize the batched unshifted polynomial if it hasn't already been initialized with randomness for ZK
+            if (!batched_unshifted_initialized) {
+                batched_unshifted = Polynomial(full_batched_size);
+            }
+            // compute the linear combination F of the unshifted polynomials
+            for (auto poly : unshifted) {
+                batched_unshifted.add_scaled(poly, running_scalar);
+                running_scalar *= challenge;
+            }
+
+            // initialize and compute the linear combination G of the batched-to-be-shifted polynomials
+            batched_to_be_1_shifted = Polynomial::shiftable(full_batched_size);
+            for (auto poly : to_be_1_shifted) {
+                batched_to_be_1_shifted.add_scaled(poly, running_scalar);
+                running_scalar *= challenge;
+            }
+
+            // compute the full batched polynomial A₀ = F + G/X
+            Polynomial full_batched = batched_unshifted;
+            full_batched += batched_to_be_1_shifted.shifted();
+
+            return full_batched;
+        }
+
+        // Compute the partially evaluated batched polynomials A₀₊ = F + G/r and A₀₋ = F - G/r
+        std::pair<Polynomial, Polynomial> compute_partially_evaluated_batch_polynomials(const Fr& r_challenge)
+        {
+            Polynomial& batched_F = batched_unshifted; // alias
+
+            Polynomial& A_0_pos = batched_F; // A₀₊ = F
+            Polynomial A_0_neg = batched_F;  // A₀₋ = F
+
+            if (has_to_be_1_shifted()) {
+                Polynomial& batched_G = batched_to_be_1_shifted; // alias
+
+                Fr r_inv = r_challenge.invert(); // r⁻¹
+                batched_G *= r_inv;              // G = G/r
+
+                A_0_pos += batched_G; // A₀₊ = F + G/r
+                A_0_neg -= batched_G; // A₀₋ = F - G/r
+            }
+
+            return { std::move(A_0_pos), std::move(A_0_neg) };
+        };
+    };
+
     static std::vector<Polynomial> compute_fold_polynomials(const size_t log_n,
                                                             std::span<const Fr> multilinear_challenge,
                                                             const Polynomial& A_0);
 
     static std::pair<Polynomial, Polynomial> compute_partially_evaluated_batch_polynomials(
         const size_t log_n,
-        Polynomial&& batched_F,
-        Polynomial&& batched_G,
+        PolynomialBatcher& polynomial_batcher,
         const Fr& r_challenge,
         const std::vector<Polynomial>& batched_groups_to_be_concatenated = {});
 
@@ -119,8 +205,7 @@ template <typename Curve> class GeminiProver_ {
 
     template <typename Transcript>
     static std::vector<Claim> prove(const Fr circuit_size,
-                                    RefSpan<Polynomial> f_polynomials,
-                                    RefSpan<Polynomial> g_polynomials,
+                                    PolynomialBatcher& polynomial_batcher,
                                     std::span<Fr> multilinear_challenge,
                                     const std::shared_ptr<CommitmentKey<Curve>>& commitment_key,
                                     const std::shared_ptr<Transcript>& transcript,

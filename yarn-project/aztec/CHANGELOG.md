@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.73.0](https://github.com/AztecProtocol/aztec-packages/compare/aztec-package-v0.72.1...aztec-package-v0.73.0) (2025-01-28)
+
+
+### Features
+
+* **archiver:** Read blobs from cl ([#11273](https://github.com/AztecProtocol/aztec-packages/issues/11273)) ([8cf4982](https://github.com/AztecProtocol/aztec-packages/commit/8cf4982175da82575087bb28590a3a71b88aaf6e))
+* Lazy wasm pt4 ([#11491](https://github.com/AztecProtocol/aztec-packages/issues/11491)) ([f553f58](https://github.com/AztecProtocol/aztec-packages/commit/f553f58ee5f405414a7d0c402c679ffe5c4d62ef))
+* Validate L1 config against L1 on startup ([#11540](https://github.com/AztecProtocol/aztec-packages/issues/11540)) ([48b7ac4](https://github.com/AztecProtocol/aztec-packages/commit/48b7ac4dd823533843018e177e0cf2bd00d1bdba))
+
 ## [0.72.1](https://github.com/AztecProtocol/aztec-packages/compare/aztec-package-v0.72.0...aztec-package-v0.72.1) (2025-01-24)
 
 

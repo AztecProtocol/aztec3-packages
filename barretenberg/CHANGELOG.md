@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.73.0](https://github.com/AztecProtocol/aztec-packages/compare/barretenberg-v0.72.1...barretenberg-v0.73.0) (2025-01-28)
+
+
+### ⚠ BREAKING CHANGES
+
+* **avm:** include length in bytecode hash ([#11425](https://github.com/AztecProtocol/aztec-packages/issues/11425))
+
+### Features
+
+* **avm:** Constrain sha256 ([#11048](https://github.com/AztecProtocol/aztec-packages/issues/11048)) ([897c840](https://github.com/AztecProtocol/aztec-packages/commit/897c840d0f0f28ad7d4a7683027161132d8c64a0))
+* **avm:** Constraining bytecode (part 1) ([#11382](https://github.com/AztecProtocol/aztec-packages/issues/11382)) ([2779ea4](https://github.com/AztecProtocol/aztec-packages/commit/2779ea401145bb2371d7ce3045c4bc6ccd605ee0))
+* **avm:** Include length in bytecode hash ([#11425](https://github.com/AztecProtocol/aztec-packages/issues/11425)) ([ab2c860](https://github.com/AztecProtocol/aztec-packages/commit/ab2c860c747d3051a1cb85ad6ce5fac2a68867f7))
+* **avm:** Range checks in vm2 ([#11433](https://github.com/AztecProtocol/aztec-packages/issues/11433)) ([79cbe04](https://github.com/AztecProtocol/aztec-packages/commit/79cbe04cfdccdc0926084d837d3ae989f70d441c))
+
+
+### Bug Fixes
+
+* Fix noir_bb browser tests ([#11552](https://github.com/AztecProtocol/aztec-packages/issues/11552)) ([17aec31](https://github.com/AztecProtocol/aztec-packages/commit/17aec316c23ddc8d083c7d4be1d46365f965432e))
+
+
+### Miscellaneous
+
+* **avm:** Better namespace reporting ([#11535](https://github.com/AztecProtocol/aztec-packages/issues/11535)) ([ac26e1d](https://github.com/AztecProtocol/aztec-packages/commit/ac26e1dfebf7d9463065fa02a03d0a6eb779e591))
+* **avm:** Get rid of CommitmentLabels class ([#11523](https://github.com/AztecProtocol/aztec-packages/issues/11523)) ([2c250c4](https://github.com/AztecProtocol/aztec-packages/commit/2c250c4f036bb879a7be9b38a57855b9b13e5297))
+* **avm:** Group lookups and perms per file ([#11509](https://github.com/AztecProtocol/aztec-packages/issues/11509)) ([a27dd66](https://github.com/AztecProtocol/aztec-packages/commit/a27dd66ff638de37883c5edd98f76387606f8e63))
+* **avm:** Less codegen bloat ([#11504](https://github.com/AztecProtocol/aztec-packages/issues/11504)) ([7b510fe](https://github.com/AztecProtocol/aztec-packages/commit/7b510fe076d0c3b019fd1ca957297907c2f73f25))
+* **bb:** Minor fixes ([#11557](https://github.com/AztecProtocol/aztec-packages/issues/11557)) ([f77b11e](https://github.com/AztecProtocol/aztec-packages/commit/f77b11efeed0055d44cfb57cc6b657b21bdc44ce))
+* Revert "remove debug_logging flag" ([#11498](https://github.com/AztecProtocol/aztec-packages/issues/11498)) ([de304d8](https://github.com/AztecProtocol/aztec-packages/commit/de304d8a62499f884844d1c3d2c048c954c49f40))
+
 ## [0.72.1](https://github.com/AztecProtocol/aztec-packages/compare/barretenberg-v0.72.0...barretenberg-v0.72.1) (2025-01-24)
 
 

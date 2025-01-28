@@ -207,26 +207,27 @@ fn barycentric_evaluate_blob_at_z(z: F, ys: [F; FIELDS_PER_BLOB]) -> F {
     // perhaps because all the omega^i terms are constant witnesses?
     let fracs = compute_fracs(z, ys, UNCONSTRAINED_ROOTS);
 
-    // OK so...we can add multiple product terms into a sum...but I am not sure how many!
-    // we are computing 254 * 254 bit products and we need to ensure each product limb doesn't overflow
-    // each limb is 120 bits => 120 * 120 = 240 bits.
-    // however when computing a mul we add up to 5 product terms into a single field element => 243 bits (ish)
-    // when we do a modular reduction we validate that a field element >> 120 bits is less than 2^{126} which implies we have 246 bits to play with
-    // which implies...we can accommodate up to EIGHT additions of product terms before we risk overflowing
-    // (this is really messy! I never considered the case of giant linear sequences of products)
+    let sum = if !std::runtime::is_unconstrained() {
+        // OK so...we can add multiple product terms into a sum...but I am not sure how many!
+        // we are computing 254 * 254 bit products and we need to ensure each product limb doesn't overflow
+        // each limb is 120 bits => 120 * 120 = 240 bits.
+        // however when computing a mul we add up to 5 product terms into a single field element => 243 bits (ish)
+        // when we do a modular reduction we validate that a field element >> 120 bits is less than 2^{126} which implies we have 246 bits to play with
+        // which implies...we can accommodate up to EIGHT additions of product terms before we risk overflowing
+        // (this is really messy! I never considered the case of giant linear sequences of products)
 
-    // Seeking:
-    //                    ___d-1
-    //                    \            omega^i
-    //              sum = /   y_i . ---------
-    //                   /____       z - omega^i
-    //                    i=0
-    let NUM_PARTIAL_SUMS = FIELDS_PER_BLOB / 8;
-    /// Safety: This sum is checked by the following `BigNum::evaluate_quadratic_expression` calls.
-    let partial_sums: [F; FIELDS_PER_BLOB / 8] =
-        unsafe { __compute_partial_sums(fracs, UNCONSTRAINED_ROOTS) };
+        // Seeking:
+        //                    ___d-1
+        //                    \            omega^i
+        //              sum = /   y_i . ---------
+        //                   /____       z - omega^i
+        //                    i=0
 
-    if !std::runtime::is_unconstrained() {
+        let NUM_PARTIAL_SUMS = FIELDS_PER_BLOB / 8;
+        /// Safety: This sum is checked by the following `BigNum::evaluate_quadratic_expression` calls.
+        let partial_sums: [F; FIELDS_PER_BLOB / 8] =
+            unsafe { __compute_partial_sums(fracs, UNCONSTRAINED_ROOTS) };
+
         // We split off the first term to check the initial sum
 
         //    partial_sums[0] <- (lhs[0] * rhs[0] + ... + lhs[7] * rhs[7])
@@ -300,10 +301,20 @@ fn barycentric_evaluate_blob_at_z(z: F, ys: [F; FIELDS_PER_BLOB]) -> F {
                 [false, true],
             );
         }
-    }
+
+        // The final term in `partial_sums` is then the full sum.
+        partial_sums[FIELDS_PER_BLOB / 8 - 1]
+    } else {
+        // There's no need to jump through hoops to check partial sums if we don't need to constrain the result.
+        // We can just calculate the final sum.
+
+        /// Safety: We're running under the condition that `std::runtime::is_unconstrained()` is true.
+        unsafe {
+            __compute_sum(fracs, UNCONSTRAINED_ROOTS)
+        }
+    };
 
     let factor = compute_factor(z);
-    let sum = partial_sums[FIELDS_PER_BLOB / 8 - 1];
     factor.mul(sum)
 }
 
@@ -448,6 +459,28 @@ unconstrained fn __compute_partial_sums(
     partial_sums
 }
 
+unconstrained fn __compute_sum(
+    fracs: [F; FIELDS_PER_BLOB],
+    unconstrained_roots: [F; FIELDS_PER_BLOB],
+) -> F {
+    // Seeking:
+    //                    ___d-1
+    //                    \            omega^i
+    //              sum = /   y_i . ---------
+    //                   /____       z - omega^i
+    //                    i=0
+
+    let mut sum: F = BigNum::new();
+    for i in 0..FIELDS_PER_BLOB {
+        // y_k * ( omega^k / (z - omega^k) )
+        let summand = unconstrained_roots[i].__mul(fracs[i]);
+
+        // partial_sum + ( y_k * ( omega^k / (z - omega^k) ) -> partial_sum
+        sum = sum.__add(summand);
+    }
+    sum
+}
+
 mod tests {
     // TODO(#9982): Replace unconstrained_config with config and import ROOTS - calculating ROOTS in unconstrained is insecure.
     use crate::{
@@ -457,7 +490,9 @@ mod tests {
         },
         blob_public_inputs::BlobCommitment,
         config::{D, D_INV, F},
+        unconstrained_config::compute_roots_of_unity,
     };
+    use super::{__compute_partial_sums, __compute_sum};
     use bigint::{BigNum, fields::bls12_381Fr::BLS12_381_Fr_Params};
     use bigint::bignum::BigNumTrait;
     use types::{
@@ -691,6 +726,20 @@ mod tests {
     unconstrained fn test_compute_d_inv() {
         let d_inversed = D.__invmod();
         assert_eq(d_inversed, D_INV);
+    }
+
+    #[test]
+    fn compute_sum_and_compute_partial_sums_agree(fields: [Field; FIELDS_PER_BLOB]) {
+    unsafe {
+           let fields = fields.map(|f| field_to_bignum(f));
+
+            let UNCONSTRAINED_ROOTS = compute_roots_of_unity();
+
+            let partial_sums = __compute_partial_sums(fields, UNCONSTRAINED_ROOTS);
+            let sum = __compute_sum(fields, UNCONSTRAINED_ROOTS);
+
+            assert_eq(partial_sums[FIELDS_PER_BLOB - 1], sum);
+        }
     }
 }
 

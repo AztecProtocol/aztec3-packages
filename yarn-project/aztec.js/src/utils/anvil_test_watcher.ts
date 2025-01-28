@@ -62,6 +62,9 @@ export class AnvilTestWatcher {
 
   async mineIfSlotFilled() {
     try {
+      // Always mine a block to make sure time is advancing
+      await this.cheatcodes.evmMine();
+
       const currentSlot = await this.rollup.read.getCurrentSlot();
       const pendingBlockNumber = BigInt(await this.rollup.read.getPendingBlockNumber());
       const blockLog = await this.rollup.read.getBlock([pendingBlockNumber]);

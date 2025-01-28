@@ -171,6 +171,10 @@ pub global REGISTERER_UNCONSTRAINED_FUNCTION_BROADCASTED_MAGIC_VALUE: Field =
 pub global DEPLOYER_CONTRACT_INSTANCE_DEPLOYED_MAGIC_VALUE: Field =
     0x85864497636cf755ae7bde03f267ce01a520981c21c3682aaf82a631;
 
+// sha224sum 'struct ContractInstanceUpdated'
+pub global DEPLOYER_CONTRACT_INSTANCE_UPDATED_MAGIC_VALUE: Field =
+    0x0e92f9f8a534e858fcf777da206e08b0c620ecf9deb21d13479813f6;
+
 // CANONICAL CONTRACT ADDRESSES
 pub global MAX_PROTOCOL_CONTRACTS: u32 = (1 << PROTOCOL_CONTRACT_TREE_HEIGHT as u8) - 1; // Index 0 can't be used.
 pub global CANONICAL_AUTH_REGISTRY_ADDRESS: AztecAddress = AztecAddress::from_field(1);
@@ -760,6 +764,8 @@ pub global PROOF_TYPE_ROLLUP_HONK: u32 = 5;
 pub global PROOF_TYPE_ROOT_ROLLUP_HONK: u32 = 6;
 
 pub global TWO_POW_64: Field = 18446744073709551616;
+
+pub global DEFAULT_UPDATE_DELAY: u32 = 10;
 
 mod test {
     use crate::constants::{

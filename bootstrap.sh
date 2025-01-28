@@ -142,9 +142,10 @@ function build {
   projects=(
     noir
     barretenberg
-    l1-contracts
     avm-transpiler
     noir-projects
+    # Relies on noir-projects for verifier solidity generation.
+    l1-contracts
     yarn-project
     boxes
     docs
@@ -156,6 +157,7 @@ function build {
   for project in "${projects[@]}"; do
     $project/bootstrap.sh ${1:-}
   done
+  echo "Bootstrap complete."
 }
 
 case "$cmd" in

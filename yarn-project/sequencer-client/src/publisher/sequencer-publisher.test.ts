@@ -133,7 +133,7 @@ describe('SequencerPublisher', () => {
 
     header = l2Block.header.toBuffer();
     archive = l2Block.archive.root.toBuffer();
-    blockHash = l2Block.header.hash().toBuffer();
+    blockHash = (await l2Block.header.hash()).toBuffer();
     body = l2Block.body.toBuffer();
   });
 

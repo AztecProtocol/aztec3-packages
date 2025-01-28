@@ -331,9 +331,8 @@ export class P2PNetworkTest {
       return;
     }
 
-    for (const node of nodes) {
-      await node.stop();
-    }
+    await Promise.all(nodes.map(node => node.stop()));
+
     this.logger.info('Nodes stopped');
   }
 

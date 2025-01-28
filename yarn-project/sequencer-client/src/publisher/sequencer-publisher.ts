@@ -213,6 +213,11 @@ export class SequencerPublisher {
     const blobConfig = blobConfigs[0]?.blobConfig;
 
     try {
+      this.log.debug('Forwarding transactions', {
+        validRequests: validRequests.map(request => request.action),
+        gasConfig,
+        blobConfig,
+      });
       const result = await this.forwarderContract.forward(
         validRequests.map(request => request.request),
         this.l1TxUtils,
@@ -535,11 +540,13 @@ export class SequencerPublisher {
    */
   public interrupt() {
     this.interrupted = true;
+    this.l1TxUtils.interrupt();
   }
 
   /** Restarts the publisher after calling `interrupt`. */
   public restart() {
     this.interrupted = false;
+    this.l1TxUtils.restart();
   }
 
   private async prepareProposeTx(encodedData: L1ProcessArgs, timestamp: bigint) {

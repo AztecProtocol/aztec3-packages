@@ -204,6 +204,7 @@ export type TransactionStats = {
 
 export class L1TxUtils {
   private readonly config: L1TxUtilsConfig;
+  private interrupted = false;
 
   constructor(
     public publicClient: PublicClient,
@@ -215,6 +216,14 @@ export class L1TxUtils {
       ...defaultL1TxUtilsConfig,
       ...(config || {}),
     };
+  }
+
+  public interrupt() {
+    this.interrupted = true;
+  }
+
+  public restart() {
+    this.interrupted = false;
   }
 
   public getAccount() {
@@ -334,6 +343,7 @@ export class L1TxUtils {
     const isTimedOut = () =>
       (gasConfig.txTimeoutAt && Date.now() > gasConfig.txTimeoutAt.getTime()) ||
       (gasConfig.txTimeoutMs !== undefined && Date.now() - initialTxTime > gasConfig.txTimeoutMs) ||
+      this.interrupted ||
       false;
 
     while (!txTimedOut) {

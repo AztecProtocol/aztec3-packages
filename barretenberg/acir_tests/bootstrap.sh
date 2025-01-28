@@ -109,7 +109,7 @@ function test_cmds {
   # echo ecdsa_secp256r1_3x through bb.js on node to check 256k support.
   echo BIN=$bbjs_bin FLOW=prove_then_verify $run_test ecdsa_secp256r1_3x
   # echo the prove then verify flow for UltraHonk. This makes sure we have the same circuit for different witness inputs.
-  echo BIN=$bbjs_bin SYS=ultra_honk FLOW=prove_then_verify $run_test 6_array
+  echo BIN=$bbjs_bin SYS=ultra_honk_deprecated FLOW=prove_then_verify $run_test 6_array
   # echo a single arbitrary test not involving recursion through bb.js for MegaHonk
   echo BIN=$bbjs_bin SYS=mega_honk FLOW=prove_and_verify $run_test 6_array
   # echo 1_mul through bb.js build, all_cmds flow, to test all cli args.
@@ -136,7 +136,8 @@ function test_cmds {
   done
   echo SYS=ultra_honk FLOW=prove_then_verify RECURSIVE=true $run_test assert_statement
   echo SYS=ultra_honk FLOW=prove_then_verify RECURSIVE=true $run_test double_verify_honk_proof
-  echo SYS=ultra_honk FLOW=prove_and_verify_program $run_test merkle_insert
+  echo SYS=ultra_honk FLOW=prove_then_verify --oracle_hash keccak $run_test assert_statement
+  echo SYS=ultra_honk FLOW=prove_then_verify $run_test fold_basic
   echo SYS=ultra_rollup_honk FLOW=prove_then_verify $run_test verify_rollup_honk_proof
 
   # barretenberg-acir-tests-bb-client-ivc:

@@ -171,14 +171,13 @@ class ClientIVCAPI : public API {
 
         // Write the proof and verification keys into the working directory in  'binary' format (in practice it seems
         // this directory is passed by bb.js)
-        vinfo("writing ClientIVC proof and vk...");
-        write_file(output_dir / "client_ivc_proof", to_buffer(proof));
+        vinfo("writing ClientIVC proof and vk in directory ", output_dir);
+        write_file(output_dir / "proof", to_buffer(proof));
 
         auto eccvm_vk = std::make_shared<ECCVMFlavor::VerificationKey>(ivc->goblin.get_eccvm_proving_key());
         auto translator_vk =
             std::make_shared<TranslatorFlavor::VerificationKey>(ivc->goblin.get_translator_proving_key());
-        write_file(output_dir / "client_ivc_vk",
-                   to_buffer(ClientIVC::VerificationKey{ ivc->honk_vk, eccvm_vk, translator_vk }));
+        write_file(output_dir / "vk", to_buffer(ClientIVC::VerificationKey{ ivc->honk_vk, eccvm_vk, translator_vk }));
     };
 
     /**
@@ -201,7 +200,9 @@ class ClientIVCAPI : public API {
         init_bn254_crs(1);
         init_grumpkin_crs(1 << CONST_ECCVM_LOG_N);
 
+        info("reading proof from ", proof_path);
         const auto proof = from_buffer<ClientIVC::Proof>(read_file(proof_path));
+        info("reading vk from ", vk_path);
         const auto vk = from_buffer<ClientIVC::VerificationKey>(read_file(vk_path));
 
         vk.mega->pcs_verification_key = std::make_shared<VerifierCommitmentKey<curve::BN254>>();
@@ -269,13 +270,12 @@ class ClientIVCAPI : public API {
 
         // Write the proof and verification keys into the working directory in 'binary' format
         vinfo("writing ClientIVC proof and vk...");
-        write_file(output_dir / "client_ivc_proof", to_buffer(proof));
+        write_file(output_dir / "proof", to_buffer(proof));
 
         auto eccvm_vk = std::make_shared<ECCVMFlavor::VerificationKey>(ivc.goblin.get_eccvm_proving_key());
         auto translator_vk =
             std::make_shared<TranslatorFlavor::VerificationKey>(ivc.goblin.get_translator_proving_key());
-        write_file(output_dir / "client_ivc_vk",
-                   to_buffer(ClientIVC::VerificationKey{ ivc.honk_vk, eccvm_vk, translator_vk }));
+        write_file(output_dir / "vk", to_buffer(ClientIVC::VerificationKey{ ivc.honk_vk, eccvm_vk, translator_vk }));
     };
 
     void gates([[maybe_unused]] const API::Flags& flags,
@@ -296,6 +296,13 @@ class ClientIVCAPI : public API {
                    [[maybe_unused]] const std::filesystem::path& proof_path,
                    [[maybe_unused]] const std::filesystem::path& vk_path,
                    [[maybe_unused]] const std::filesystem::path& output_path) override
+    {
+        throw_or_abort("API function not implemented");
+    };
+
+    void write_vk([[maybe_unused]] const API::Flags& flags,
+                  [[maybe_unused]] const std::filesystem::path& bytecode_path,
+                  [[maybe_unused]] const std::filesystem::path& output_path) override
     {
         throw_or_abort("API function not implemented");
     };

@@ -345,8 +345,8 @@ export async function generateTubeProof(
   }
 
   // // Paths for the inputs
-  const vkPath = join(workingDirectory, 'client_ivc_vk.bin');
-  const proofPath = join(workingDirectory, 'client_ivc_proof.bin');
+  const vkPath = join(workingDirectory, 'vk.bin');
+  const proofPath = join(workingDirectory, 'proof.bin');
 
   // The proof is written to e.g. /workingDirectory/proof
   const outputPath = workingDirectory;
@@ -833,9 +833,9 @@ export async function generateContractForVerificationKey(
 
   const res = await fsCache<BBSuccess | BBFailure>(outputDir, cacheKey, log, false, async () => {
     try {
-      const args = ['-k', vkFilePath, '-o', contractPath, '-v'];
+      const args = ['--scheme', 'ultra_honk', '-k', vkFilePath, '-o', contractPath, '-v'];
       const timer = new Timer();
-      const result = await executeBB(pathToBB, 'contract_ultra_honk', args, log);
+      const result = await executeBB(pathToBB, 'contract', args, log);
       const duration = timer.ms();
       if (result.status == BB_RESULT.SUCCESS) {
         return { status: BB_RESULT.SUCCESS, durationMs: duration, contractPath };

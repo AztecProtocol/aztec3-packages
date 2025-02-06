@@ -7,6 +7,7 @@ use crate::{
         },
         append_only_tree_snapshot::AppendOnlyTreeSnapshot,
         avm_circuit_public_inputs::AvmProofData,
+        block_header::BlockHeader,
         call_context::CallContext,
         combined_constant_data::CombinedConstantData,
         constant_rollup_data::ConstantRollupData,
@@ -35,13 +36,14 @@ use crate::{
         side_effect::{Counted, OrderedValue, scoped::Scoped},
         tube::{PrivateTubeData, PublicTubeData},
         tx_constant_data::TxConstantData,
+        tx_context::TxContext,
+        tx_request::TxRequest,
         validation_requests::{
             KeyValidationRequest, KeyValidationRequestAndGenerator, PrivateValidationRequests,
             RollupValidationRequests, ScopedKeyValidationRequestAndGenerator,
         },
     },
     address::{AztecAddress, EthAddress, SaltedInitializationHash},
-    block_header::BlockHeader,
     constants::{
         CLIENT_IVC_VERIFICATION_KEY_LENGTH_IN_FIELDS, FUNCTION_TREE_HEIGHT,
         MAX_CONTRACT_CLASS_LOGS_PER_TX, MAX_ENQUEUED_CALLS_PER_TX, MAX_FIELD_VALUE,
@@ -68,7 +70,6 @@ use crate::{
     public_keys::PublicKeys,
     tests::fixtures::{self, contract_functions::ContractFunction, contracts::ContractData},
     traits::{Deserialize, Empty, FromField},
-    transaction::{tx_context::TxContext, tx_request::TxRequest},
 };
 
 fn subarray<T, let N: u32, let M: u32>(arr: [T; N]) -> [T; M] {

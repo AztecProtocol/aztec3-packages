@@ -36,20 +36,91 @@ impl<T, let INITIAL_DELAY: u32> SharedMutableValues<T, INITIAL_DELAY> {
     }
 }
 
-// We pack to `2 * N + 1 + SCHEDULED_DELAY_CHANGE_PCKD_LEN` fields because ScheduledValueChange contains T twice
-// + 1 field for block_of_change + SCHEDULED_DELAY_CHANGE_PCKD_LEN fields for ScheduledDelayChange
-impl<T, let INITIAL_DELAY: u32, let N: u32> Packable<2 * N + 1 + SCHEDULED_DELAY_CHANGE_PCKD_LEN> for SharedMutableValues<T, INITIAL_DELAY>
+// We pack to `2 * N` fields because ScheduledValueChange contains T twice
+// The first field contains both ScheduledDelayChange and block_of_change from ScheduledValueChange
+impl<T, let INITIAL_DELAY: u32, let N: u32> Packable<2 * N + 1> for SharedMutableValues<T, INITIAL_DELAY>
 where
     T: Packable<N>,
 {
-    fn pack(self) -> [Field; 2 * N + 1 + SCHEDULED_DELAY_CHANGE_PCKD_LEN] {
-        array_concat(self.sdc.pack(), self.svc.pack())
+    fn pack(self) -> [Field; 2 * N + 1] {
+        let mut result = [0; 2 * N + 1];
+
+        // We pack sdc.pre, sdc.post, sdc.block_of_change and svc.block_of_change into a single field.
+        // [ sdc.pre_inner: u32 | sdc.pre_is_some: u8 | sdc.post_inner: u32 | sdc.post_is_some: u8 | sdc.block_of_change: u32 | svc.block_of_change: u32 ]
+        result[0] = self.svc.block_of_change as Field
+            + ((self.sdc.block_of_change as Field) * 2.pow_32(32))
+            + ((self.sdc.post.is_some() as Field) * 2.pow_32(64))
+            + ((self.sdc.post.unwrap_unchecked() as Field) * 2.pow_32(65))
+            + ((self.sdc.pre.is_some() as Field) * 2.pow_32(97))
+            + ((self.sdc.pre.unwrap_unchecked() as Field) * 2.pow_32(98));
+
+        // Pack the pre and post values from ScheduledValueChange
+        let svc_pre_packed = self.svc.pre.pack();
+        let svc_post_packed = self.svc.post.pack();
+        for i in 1..N {
+            result[i] = svc_pre_packed[i];
+            result[i + N] = svc_post_packed[i];
+        }
+        result
     }
 
-    fn unpack(fields: [Field; 2 * N + 1 + SCHEDULED_DELAY_CHANGE_PCKD_LEN]) -> Self {
-        SharedMutableValues {
-            sdc: Packable::unpack(array::subarray(fields, 0)),
-            svc: Packable::unpack(array::subarray(fields, SCHEDULED_DELAY_CHANGE_PCKD_LEN)),
+    fn unpack(fields: [Field; 2 * N + 1]) -> Self {
+        // Unpack the first field containing sdc and svc block_of_change values
+        let svc_block_of_change = (fields[0] % 2.pow_32(32)) as u32;
+        let sdc_block_of_change = ((fields[0] / 2.pow_32(32)) % 2.pow_32(32)) as u32;
+        let sdc_post_is_some = ((fields[0] / 2.pow_32(64)) % 2) as bool;
+        let sdc_post_inner = ((fields[0] / 2.pow_32(65)) % 2.pow_32(32)) as u32;
+        let sdc_pre_is_some = ((fields[0] / 2.pow_32(97)) % 2) as bool;
+        let sdc_pre_inner = ((fields[0] / 2.pow_32(98)) % 2.pow_32(32)) as u32;
+
+        // Unpack the pre and post values for ScheduledValueChange
+        let mut svc_pre_packed = [0; N];
+        let mut svc_post_packed = [0; N];
+        for i in 1..N {
+            svc_pre_packed[i] = fields[i];
+            svc_post_packed[i] = fields[i + N];
         }
+
+        SharedMutableValues {
+            svc: ScheduledValueChange {
+                pre: T::unpack(svc_pre_packed),
+                post: T::unpack(svc_post_packed),
+                block_of_change: svc_block_of_change,
+            },
+            sdc: ScheduledDelayChange {
+                pre: if sdc_pre_is_some {
+                    Option::some(sdc_pre_inner)
+                } else {
+                    Option::none()
+                },
+                post: if sdc_post_is_some {
+                    Option::some(sdc_post_inner)
+                } else {
+                    Option::none()
+                },
+                block_of_change: sdc_block_of_change,
+            },
+        }
+    }
+}
+
+mod test {
+    use crate::state_vars::shared_mutable::{
+        scheduled_delay_change::ScheduledDelayChange, scheduled_value_change::ScheduledValueChange,
+        shared_mutable_values::SharedMutableValues,
+    };
+    use crate::test::mocks::mock_struct::MockStruct;
+
+    #[test]
+    unconstrained fn test_pack_unpack() {
+        let svc =
+            ScheduledValueChange::new(MockStruct { a: 1, b: 2 }, MockStruct { a: 3, b: 4 }, 5);
+        let sdc = ScheduledDelayChange::new(Option::some(6), Option::some(7), 8);
+        let shared_mutable_values = SharedMutableValues::new(svc, sdc);
+        let packed = shared_mutable_values.pack();
+        let unpacked = SharedMutableValues::unpack(packed);
+        // std::println(shared_mutable_values);
+        std::println(unpacked);
+        assert_eq(shared_mutable_values, unpacked);
     }
 }

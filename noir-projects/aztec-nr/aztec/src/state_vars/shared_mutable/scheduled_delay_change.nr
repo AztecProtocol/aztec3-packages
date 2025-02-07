@@ -127,6 +127,14 @@ impl<let INITIAL_DELAY: u32> ScheduledDelayChange<INITIAL_DELAY> {
     }
 }
 
+impl<let INITIAL_DELAY: u32> Eq for ScheduledDelayChange<INITIAL_DELAY> {
+    fn eq(self, other: Self) -> bool {
+        (self.pre == other.pre)
+            & (self.post == other.post)
+            & (self.block_of_change == other.block_of_change)
+    }
+}
+
 impl<let INITIAL_DELAY: u32> Packable<SCHEDULED_DELAY_CHANGE_PCKD_LEN> for ScheduledDelayChange<INITIAL_DELAY> {
     fn pack(self) -> [Field; SCHEDULED_DELAY_CHANGE_PCKD_LEN] {
         // We pack all three u32 values into a single U128, which is made up of two u64 limbs.
@@ -169,13 +177,5 @@ impl<let INITIAL_DELAY: u32> Packable<SCHEDULED_DELAY_CHANGE_PCKD_LEN> for Sched
             },
             block_of_change,
         }
-    }
-}
-
-impl<let INITIAL_DELAY: u32> Eq for ScheduledDelayChange<INITIAL_DELAY> {
-    fn eq(self, other: Self) -> bool {
-        (self.pre == other.pre)
-            & (self.post == other.post)
-            & (self.block_of_change == other.block_of_change)
     }
 }

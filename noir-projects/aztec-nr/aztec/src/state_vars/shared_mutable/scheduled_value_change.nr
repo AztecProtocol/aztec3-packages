@@ -7,7 +7,7 @@ mod test;
 // This data structure is used by SharedMutable to represent a value that changes from `pre` to `post` at some block
 // called the `block_of_change`. The value can only be made to change by scheduling a change event at some future block
 // of change after some minimum delay measured in blocks has elapsed. This means that at any given block number we know
-// both the current value and the smallest block number at which the value might change - this is called the
+// sdc_pre_and_post and the smallest block number at which the value might change - this is called the
 // 'block horizon'.
 pub(crate) struct ScheduledValueChange<T> {
     pre: T,
@@ -134,7 +134,7 @@ impl<T> ScheduledValueChange<T> {
     }
 }
 
-// We store 2 Ts and one extra field for the block of change.
+// We store block_of_change first, followed by 2 Ts
 impl<T, let N: u32> Packable<2 * N + 1> for ScheduledValueChange<T>
 where
     T: Packable<N>,
@@ -144,19 +144,19 @@ where
         let pre_packed = self.pre.pack();
         let post_packed = self.post.pack();
 
+        packed[0] = self.block_of_change.to_field();
         for i in 0..N {
-            packed[i] = pre_packed[i];
-            packed[N + i] = post_packed[i];
+            packed[i + 1] = pre_packed[i];
+            packed[N + i + 1] = post_packed[i];
         }
-        packed[2 * N] = self.block_of_change.to_field();
         packed
     }
 
     fn unpack(input: [Field; 2 * N + 1]) -> Self {
         Self {
-            pre: T::unpack(array::subarray(input, 0)),
-            post: T::unpack(array::subarray(input, N)),
-            block_of_change: input[2 * N] as u32,
+            block_of_change: input[0] as u32,
+            pre: T::unpack(array::subarray(input, 1)),
+            post: T::unpack(array::subarray(input, N + 1)),
         }
     }
 }

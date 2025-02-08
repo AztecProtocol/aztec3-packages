@@ -92,12 +92,12 @@ impl BrilligGlobals {
             );
         }
 
-        // NB: Temporary fix to override entry point analysis
-        let merged_set =
-            used_globals.values().flat_map(|set| set.iter().copied()).collect::<HashSet<_>>();
-        for set in used_globals.values_mut() {
-            *set = merged_set.clone();
-        }
+        // // NB: Temporary fix to override entry point analysis
+        // let merged_set =
+        //     used_globals.values().flat_map(|set| set.iter().copied()).collect::<HashSet<_>>();
+        // for set in used_globals.values_mut() {
+        //     *set = merged_set.clone();
+        // }
 
         Self { used_globals, brillig_entry_points, ..Default::default() }
     }
@@ -192,7 +192,13 @@ impl BrilligGlobals {
         let entry_points = self.inner_call_to_entry_point.get(&brillig_function_id);
 
         let mut globals_allocations = HashMap::default();
+        if let Some(globals) = self.entry_point_globals_map.get(&brillig_function_id) {
+            globals_allocations.extend(globals);
+            return globals_allocations;
+        }
         if let Some(entry_points) = entry_points {
+            assert!(self.entry_point_globals_map.get(&brillig_function_id).is_none());
+            assert_eq!(entry_points.len(), 1, "{brillig_function_id} has multiple entry points");
             // A Brillig function is used by multiple entry points. Fetch both globals allocations
             // in case one is used by the internal call.
             let entry_point_allocations = entry_points
@@ -202,11 +208,6 @@ impl BrilligGlobals {
             for map in entry_point_allocations {
                 globals_allocations.extend(map);
             }
-        } else if let Some(globals) = self.entry_point_globals_map.get(&brillig_function_id) {
-            // If there is no mapping from an inner call to an entry point, that means `brillig_function_id`
-            // is itself an entry point and we can fetch the global allocations directly from `self.entry_point_globals_map`.
-            // vec![globals]
-            globals_allocations.extend(globals);
         } else {
             unreachable!(
                 "ICE: Expected global allocation to be set for function {brillig_function_id}"
@@ -310,10 +311,10 @@ mod tests {
             if func_id.to_u32() == 1 {
                 assert_eq!(
                     artifact.byte_code.len(),
-                    2,
+                    1,
                     "Expected just a `Return`, but got more than a single opcode"
                 );
-                // assert!(matches!(&artifact.byte_code[0], Opcode::Return));
+                assert!(matches!(&artifact.byte_code[0], Opcode::Return));
             } else if func_id.to_u32() == 2 {
                 assert_eq!(
                     artifact.byte_code.len(),
@@ -427,16 +428,17 @@ mod tests {
             if func_id.to_u32() == 1 {
                 assert_eq!(
                     artifact.byte_code.len(),
-                    30,
+                    2,
                     "Expected enough opcodes to initialize the globals"
                 );
-                // let Opcode::Const { destination, bit_size, value } = &artifact.byte_code[0] else {
-                //     panic!("First opcode is expected to be `Const`");
-                // };
-                // assert_eq!(destination.unwrap_direct(), GlobalSpace::start());
-                // assert!(matches!(bit_size, BitSize::Field));
-                // assert_eq!(*value, FieldElement::from(1u128));
-                // assert!(matches!(&artifact.byte_code[1], Opcode::Return));
+                let Opcode::Const { destination, bit_size, value } = &artifact.byte_code[0] else {
+                    panic!("First opcode is expected to be `Const`");
+                };
+                assert_eq!(destination.unwrap_direct(), GlobalSpace::start());
+                assert!(matches!(bit_size, BitSize::Field));
+                assert_eq!(*value, FieldElement::from(1u128));
+
+                assert!(matches!(&artifact.byte_code[1], Opcode::Return));
             } else if func_id.to_u32() == 2 || func_id.to_u32() == 3 {
                 // We want the entry point which uses globals (f2) and the entry point which calls f2 function internally (f3 through f4)
                 // to have the same globals initialized.

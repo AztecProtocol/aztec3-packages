@@ -40,7 +40,7 @@ endif()
 if(WASM)
     set(CMAKE_CXX_FLAGS_DEBUG "-O1 -g")
     set(CMAKE_C_FLAGS_DEBUG "-O1 -g")
-    set(CMAKE_CXX_FLAGS_RELEASE "-Oz -DNDEBUG")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3")
     set(CMAKE_C_FLAGS_RELEASE "-Oz -DNDEBUG")
     add_link_options(-Wl,--export-memory,--import-memory,--stack-first,-z,stack-size=1048576,--max-memory=4294967296)
 endif()
@@ -63,10 +63,10 @@ if (ENABLE_PIC AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_subdirectory(barretenberg/nodejs_module)
 endif()
 
+add_subdirectory(barretenberg/client_ivc)
 add_subdirectory(barretenberg/bb)
 add_subdirectory(barretenberg/boomerang_value_detection)
 add_subdirectory(barretenberg/circuit_checker)
-add_subdirectory(barretenberg/client_ivc)
 add_subdirectory(barretenberg/commitment_schemes)
 add_subdirectory(barretenberg/commitment_schemes_recursion)
 add_subdirectory(barretenberg/common)
@@ -90,7 +90,6 @@ add_subdirectory(barretenberg/relations)
 add_subdirectory(barretenberg/serialize)
 add_subdirectory(barretenberg/solidity_helpers)
 add_subdirectory(barretenberg/srs)
-add_subdirectory(barretenberg/ultra_vanilla_client_ivc)
 add_subdirectory(barretenberg/stdlib)
 add_subdirectory(barretenberg/stdlib_circuit_builders)
 add_subdirectory(barretenberg/sumcheck)
@@ -104,10 +103,6 @@ add_subdirectory(barretenberg/world_state)
 
 if(SMT)
     add_subdirectory(barretenberg/smt_verification)
-endif()
-
-if(SMT AND ACIR_FORMAL_PROOFS)
-    add_subdirectory(barretenberg/acir_formal_proofs)
 endif()
 
 add_subdirectory(barretenberg/benchmark)
@@ -148,7 +143,6 @@ set(BARRETENBERG_TARGET_OBJECTS
     $<TARGET_OBJECTS:protogalaxy_objects>
     $<TARGET_OBJECTS:relations_objects>
     $<TARGET_OBJECTS:srs_objects>
-    $<TARGET_OBJECTS:ultra_vanilla_client_ivc_objects>
     $<TARGET_OBJECTS:stdlib_aes128_objects>
     $<TARGET_OBJECTS:stdlib_blake2s_objects>
     $<TARGET_OBJECTS:stdlib_blake3s_objects>
@@ -191,12 +185,9 @@ add_library(
 )
 
 if(WASM)
-    # With binaryen installed, it seems its wasm backend optimizer gets invoked automatically.
-    # Due to either a bug in the optimizer, or non-standards compliant c++ in crypto/aes, tests start failing with
-    # -O3 level optimizations. We force down to -O2 for current workaround.
-    # TODO: Time has passed, check if this is still needed.
-    # UPDATE: Uninstall binaryen and any need downstream.
-    set(CMAKE_CXX_FLAGS_RELEASE "-O2")
+    # Previously we had to use -O2 due to issues with binaryen's wasm backend optimizer.
+    # Since binaryen is no longer used, we can safely use -O3 for maximum optimization.
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
     # When building this wasm "executable", we include the wasi module but exclude the env module.
     # That's because we expect this wasm to be run as a wasi "reactor" and for the host environment

@@ -180,9 +180,9 @@ where
     }
 }
 
-impl<T, let INITIAL_DELAY: u32, let M: u32> SharedMutable<T, INITIAL_DELAY, UnconstrainedContext>
+impl<T, let INITIAL_DELAY: u32, let N: u32> SharedMutable<T, INITIAL_DELAY, UnconstrainedContext>
 where
-    T: Packable<M> + Eq,
+    T: Packable<N> + Eq,
 {
     pub unconstrained fn get_current_value(self) -> T {
         let smv: SharedMutableValues<T, INITIAL_DELAY> =

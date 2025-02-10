@@ -1,7 +1,6 @@
 use crate::{
     state_vars::shared_mutable::{
-        scheduled_delay_change::{SCHEDULED_DELAY_CHANGE_PCKD_LEN, ScheduledDelayChange},
-        scheduled_value_change::ScheduledValueChange,
+        scheduled_delay_change::ScheduledDelayChange, scheduled_value_change::ScheduledValueChange,
     },
     utils::array,
 };
@@ -12,9 +11,11 @@ use std::meta::derive;
 /// to wrap both of these values in WithHash. WithHash allows for efficient read of values in private.
 ///
 /// Note that the WithHash optimization does not work in public (due to there being no unconstrained). But we also want
-/// to be able to read the values efficiently in public and we want to be able to read each value separately. For that
-/// reason we expose `get_delay_change_storage_slot` and `get_value_change_storage_slot` which point to the correct
-/// location in the storage. This is "hacky" as we pack and store the values together but there is no way around it.
+/// to be able to read the values efficiently in public and we want to be able to read each value separately. Reading
+/// the values separately is tricky because ScheduledValueChange and ScheduledDelayChange are packed together (sdc and
+/// svc.block_of_change are stored in the same slot). For that reason we expose `unpack_value_change` and
+/// `unpack_delay_change` functions that can be used to extract the values from the packed representation. This
+/// is "hacky" but there is no way around it.
 #[derive(Eq)]
 pub(crate) struct SharedMutableValues<T, let INITIAL_DELAY: u32> {
     svc: ScheduledValueChange<T>,
@@ -30,14 +31,6 @@ where
         sdc: ScheduledDelayChange<INITIAL_DELAY>,
     ) -> Self {
         SharedMutableValues { svc, sdc }
-    }
-
-    pub(crate) fn get_delay_change_storage_slot(shared_mutable_storage_slot: Field) -> Field {
-        shared_mutable_storage_slot
-    }
-
-    pub(crate) fn get_value_change_storage_slot(shared_mutable_storage_slot: Field) -> Field {
-        shared_mutable_storage_slot + (SCHEDULED_DELAY_CHANGE_PCKD_LEN as Field)
     }
 
     pub(crate) fn unpack_value_change(packed: [Field; 2 * N + 1]) -> ScheduledValueChange<T> {

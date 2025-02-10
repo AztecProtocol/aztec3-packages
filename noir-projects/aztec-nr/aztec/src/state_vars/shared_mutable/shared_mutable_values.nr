@@ -7,6 +7,8 @@ use crate::{
 use dep::protocol_types::traits::Packable;
 use std::meta::derive;
 
+mod test;
+
 /// SharedMutableValues is just a wrapper around ScheduledValueChange and ScheduledDelayChange that then allows us
 /// to wrap both of these values in WithHash. WithHash allows for efficient read of values in private.
 ///
@@ -113,24 +115,5 @@ where
         let svc = Self::unpack_value_change(fields);
         let sdc = SharedMutableValues::<T, INITIAL_DELAY>::unpack_delay_change(fields[0]);
         Self::new(svc, sdc)
-    }
-}
-
-mod test {
-    use crate::state_vars::shared_mutable::{
-        scheduled_delay_change::ScheduledDelayChange, scheduled_value_change::ScheduledValueChange,
-        shared_mutable_values::SharedMutableValues,
-    };
-    use crate::test::mocks::mock_struct::MockStruct;
-
-    #[test]
-    unconstrained fn test_pack_unpack() {
-        let svc =
-            ScheduledValueChange::new(MockStruct { a: 1, b: 2 }, MockStruct { a: 3, b: 4 }, 5);
-        let sdc = ScheduledDelayChange::new(Option::some(6), Option::some(7), 8);
-        let shared_mutable_values = SharedMutableValues::new(svc, sdc);
-        let packed = shared_mutable_values.pack();
-        let unpacked = SharedMutableValues::unpack(packed);
-        assert_eq(shared_mutable_values, unpacked);
     }
 }

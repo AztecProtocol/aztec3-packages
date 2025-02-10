@@ -106,14 +106,14 @@ where
     fn read_value_change(self) -> ScheduledValueChange<T> {
         // We don't read ScheduledValueChange directly by having it implement Packable because ScheduledValueChange
         // and ScheduledDelayChange are packed together (sdc and svc.block_of_change are stored in the same slot).
-        let packed: [Field; 2 * N + 1] = self.context.storage_read(self.storage_slot);
+        let packed = self.context.storage_read(self.storage_slot);
         SharedMutableValues::unpack_value_change(packed)
     }
 
     fn read_delay_change(self) -> ScheduledDelayChange<INITIAL_DELAY> {
         // We don't read ScheduledDelayChange directly by having it implement Packable because ScheduledValueChange
         // and ScheduledDelayChange are packed together (sdc and svc.block_of_change are stored in the same slot).
-        let packed: Field = self.context.storage_read(self.storage_slot);
+        let packed = self.context.storage_read(self.storage_slot);
         SharedMutableValues::<T, INITIAL_DELAY>::unpack_delay_change(packed)
     }
 

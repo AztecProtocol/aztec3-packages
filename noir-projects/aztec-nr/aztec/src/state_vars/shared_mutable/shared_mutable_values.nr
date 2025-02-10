@@ -2,8 +2,7 @@ use crate::state_vars::shared_mutable::{
     scheduled_delay_change::{SCHEDULED_DELAY_CHANGE_PCKD_LEN, ScheduledDelayChange},
     scheduled_value_change::ScheduledValueChange,
 };
-use crate::utils::array;
-use dep::protocol_types::{traits::Packable, utils::arrays::array_concat};
+use dep::protocol_types::traits::Packable;
 use std::meta::derive;
 
 /// SharedMutableValues is just a wrapper around ScheduledValueChange and ScheduledDelayChange that then allows us
@@ -36,6 +35,9 @@ impl<T, let INITIAL_DELAY: u32> SharedMutableValues<T, INITIAL_DELAY> {
     }
 }
 
+global TWO_POW_32: Field = 2.pow_32(32);
+global TWO_POW_8: Field = 2.pow_32(8);
+
 // We pack to `2 * N` fields because ScheduledValueChange contains T twice
 // The first field contains both ScheduledDelayChange and block_of_change from ScheduledValueChange
 impl<T, let INITIAL_DELAY: u32, let N: u32> Packable<2 * N + 1> for SharedMutableValues<T, INITIAL_DELAY>
@@ -50,35 +52,45 @@ where
         result[0] = self.svc.block_of_change as Field
             + ((self.sdc.block_of_change as Field) * 2.pow_32(32))
             + ((self.sdc.post.is_some() as Field) * 2.pow_32(64))
-            + ((self.sdc.post.unwrap_unchecked() as Field) * 2.pow_32(65))
-            + ((self.sdc.pre.is_some() as Field) * 2.pow_32(97))
-            + ((self.sdc.pre.unwrap_unchecked() as Field) * 2.pow_32(98));
+            + ((self.sdc.post.unwrap_unchecked() as Field) * 2.pow_32(72))
+            + ((self.sdc.pre.is_some() as Field) * 2.pow_32(104))
+            + ((self.sdc.pre.unwrap_unchecked() as Field) * 2.pow_32(112));
 
         // Pack the pre and post values from ScheduledValueChange
         let svc_pre_packed = self.svc.pre.pack();
         let svc_post_packed = self.svc.post.pack();
-        for i in 1..N {
-            result[i] = svc_pre_packed[i];
-            result[i + N] = svc_post_packed[i];
+        for i in 0..N {
+            result[i + 1] = svc_pre_packed[i];
+            result[i + 1 + N] = svc_post_packed[i];
         }
         result
     }
 
     fn unpack(fields: [Field; 2 * N + 1]) -> Self {
         // Unpack the first field containing sdc and svc block_of_change values
-        let svc_block_of_change = (fields[0] % 2.pow_32(32)) as u32;
-        let sdc_block_of_change = ((fields[0] / 2.pow_32(32)) % 2.pow_32(32)) as u32;
-        let sdc_post_is_some = ((fields[0] / 2.pow_32(64)) % 2) as bool;
-        let sdc_post_inner = ((fields[0] / 2.pow_32(65)) % 2.pow_32(32)) as u32;
-        let sdc_pre_is_some = ((fields[0] / 2.pow_32(97)) % 2) as bool;
-        let sdc_pre_inner = ((fields[0] / 2.pow_32(98)) % 2.pow_32(32)) as u32;
+        let svc_block_of_change = fields[0] as u32;
+        let mut tmp = (fields[0] - svc_block_of_change as Field) / TWO_POW_32;
+
+        let sdc_block_of_change = tmp as u32;
+
+        tmp = (tmp - sdc_block_of_change as Field) / TWO_POW_32;
+        let sdc_post_is_some = tmp as bool;
+
+        tmp = (tmp - sdc_post_is_some as Field) / TWO_POW_8;
+        let sdc_post_inner = tmp as u32;
+
+        tmp = (tmp - sdc_post_inner as Field) / TWO_POW_32;
+        let sdc_pre_is_some = tmp as bool;
+
+        tmp = (tmp - sdc_pre_is_some as Field) / TWO_POW_8;
+        let sdc_pre_inner = tmp as u32;
 
         // Unpack the pre and post values for ScheduledValueChange
         let mut svc_pre_packed = [0; N];
         let mut svc_post_packed = [0; N];
-        for i in 1..N {
-            svc_pre_packed[i] = fields[i];
-            svc_post_packed[i] = fields[i + N];
+        for i in 0..N {
+            svc_pre_packed[i] = fields[i + 1];
+            svc_post_packed[i] = fields[i + N + 1];
         }
 
         SharedMutableValues {
@@ -119,8 +131,6 @@ mod test {
         let shared_mutable_values = SharedMutableValues::new(svc, sdc);
         let packed = shared_mutable_values.pack();
         let unpacked = SharedMutableValues::unpack(packed);
-        // std::println(shared_mutable_values);
-        std::println(unpacked);
         assert_eq(shared_mutable_values, unpacked);
     }
 }

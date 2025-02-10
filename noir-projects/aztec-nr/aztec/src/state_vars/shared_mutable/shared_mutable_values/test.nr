@@ -49,11 +49,11 @@ unconstrained fn test_packable() {
 
 #[test]
 unconstrained fn test_packable_large_values() {
-    let max_u32: u64 = (1 << 32) - 1;
+    let max_u32 = ((1 as u64 << 32) - 1) as u32;
 
-    let pre_delay = max_u32 as u32;
-    let post_delay = (max_u32 - 1) as u32;
-    let block_of_change = (max_u32 - 2) as u32;
+    let pre_delay = max_u32;
+    let post_delay = max_u32 - 1;
+    let block_of_change = max_u32 - 2;
 
     let pre_value = MockStruct::new(MAX_FIELD_VALUE, MAX_FIELD_VALUE);
     let post_value = MockStruct::new(MAX_FIELD_VALUE - 1, MAX_FIELD_VALUE - 1);

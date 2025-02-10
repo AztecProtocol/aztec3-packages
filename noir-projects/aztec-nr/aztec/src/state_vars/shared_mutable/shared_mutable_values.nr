@@ -48,8 +48,8 @@ where
     pub(crate) fn unpack_delay_change(packed: Field) -> ScheduledDelayChange<INITIAL_DELAY> {
         // Unpack the first field containing sdc and svc block_of_change values
         let svc_block_of_change = packed as u32;
-        let mut tmp = (packed - svc_block_of_change as Field) / TWO_POW_32;
 
+        let mut tmp = (packed - svc_block_of_change as Field) / TWO_POW_32;
         let sdc_block_of_change = tmp as u32;
 
         tmp = (tmp - sdc_block_of_change as Field) / TWO_POW_32;
@@ -83,8 +83,8 @@ where
 global TWO_POW_32: Field = 2.pow_32(32);
 global TWO_POW_8: Field = 2.pow_32(8);
 
-// We pack to `2 * N` fields because ScheduledValueChange contains T twice
-// The first field contains both ScheduledDelayChange and block_of_change from ScheduledValueChange
+// We pack to `2 * N + 1` fields because ScheduledValueChange contains T twice (hence `2 * N`) and we need one extra
+// field to store ScheduledDelayChange and the block_of_change of ScheduledValueChange.
 impl<T, let INITIAL_DELAY: u32, let N: u32> Packable<2 * N + 1> for SharedMutableValues<T, INITIAL_DELAY>
 where
     T: Packable<N>,
@@ -92,7 +92,7 @@ where
     fn pack(self) -> [Field; 2 * N + 1] {
         let mut result = [0; 2 * N + 1];
 
-        // We pack sdc.pre, sdc.post, sdc.block_of_change and svc.block_of_change into a single field.
+        // We pack sdc.pre, sdc.post, sdc.block_of_change and svc.block_of_change into a single field as follows:
         // [ sdc.pre_inner: u32 | sdc.pre_is_some: u8 | sdc.post_inner: u32 | sdc.post_is_some: u8 | sdc.block_of_change: u32 | svc.block_of_change: u32 ]
         result[0] = self.svc.block_of_change as Field
             + ((self.sdc.block_of_change as Field) * 2.pow_32(32))

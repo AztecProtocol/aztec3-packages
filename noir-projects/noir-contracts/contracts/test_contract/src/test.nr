@@ -64,7 +64,7 @@ fn get_shared_mutable_num_slots() -> Field {
     // ExampleStruct packs to 5 slots.
     let example_struct_packed_len = 5;
 
-    // block_of_change of ScheduledDelayChange and ScheduledValueChange are stored in a single slot.
+    // ScheduledDelayChange and block_of_change of ScheduledValueChange are stored in a single slot.
     let sdc_and_block_of_change_of_svc_packed_len = 1;
 
     // There are 2 example structs stored in the packed representation of ScheduledValueChange<ExampleStruct>.

@@ -5,7 +5,7 @@ mod test;
 // This data structure is used by SharedMutable to represent a value that changes from `pre` to `post` at some block
 // called the `block_of_change`. The value can only be made to change by scheduling a change event at some future block
 // of change after some minimum delay measured in blocks has elapsed. This means that at any given block number we know
-// sdc_pre_and_post and the smallest block number at which the value might change - this is called the
+// both the current value and the smallest block number at which the value might change - this is called the
 // 'block horizon'.
 pub(crate) struct ScheduledValueChange<T> {
     pre: T,

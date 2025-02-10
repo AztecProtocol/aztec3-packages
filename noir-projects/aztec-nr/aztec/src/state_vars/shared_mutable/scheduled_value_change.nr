@@ -1,5 +1,3 @@
-use crate::utils::array;
-use dep::protocol_types::traits::Packable;
 use std::cmp::min;
 
 mod test;
@@ -131,33 +129,6 @@ impl<T> ScheduledValueChange<T> {
         self.pre = self.get_current_at(current_block_number);
         self.post = new_value;
         self.block_of_change = block_of_change;
-    }
-}
-
-// We store block_of_change first, followed by 2 Ts
-impl<T, let N: u32> Packable<2 * N + 1> for ScheduledValueChange<T>
-where
-    T: Packable<N>,
-{
-    fn pack(self) -> [Field; 2 * N + 1] {
-        let mut packed = [0; 2 * N + 1];
-        let pre_packed = self.pre.pack();
-        let post_packed = self.post.pack();
-
-        packed[0] = self.block_of_change.to_field();
-        for i in 0..N {
-            packed[i + 1] = pre_packed[i];
-            packed[N + i + 1] = post_packed[i];
-        }
-        packed
-    }
-
-    fn unpack(input: [Field; 2 * N + 1]) -> Self {
-        Self {
-            block_of_change: input[0] as u32,
-            pre: T::unpack(array::subarray(input, 1)),
-            post: T::unpack(array::subarray(input, N + 1)),
-        }
     }
 }
 

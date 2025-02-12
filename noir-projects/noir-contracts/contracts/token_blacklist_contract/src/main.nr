@@ -104,11 +104,16 @@ pub contract TokenBlacklist {
         assert(caller_roles.is_minter, "caller is not minter");
 
         let pending_shields = storage.pending_shields;
-        let mut note = TransparentNote::new(amount, secret_hash);
+        let note = TransparentNote::new(amount, secret_hash);
         let supply = storage.total_supply.read().add(U128::from_integer(amount));
 
         storage.total_supply.write(supply);
-        pending_shields.insert_from_public(&mut note);
+
+        // We insert the note hash into the pending_shields. Since the TransparentNote flow is deprecated (use partial
+        // notes instead), we no longer have utility a function exposed on the PrivateSet to insert the note hash from
+        // public context. Hence we need to manually get the slot and insert the note hash into the context.
+        let note_hash = note.compute_note_hash(pending_shields.storage_slot);
+        context.push_note_hash(note_hash);
     }
 
     #[public]
@@ -127,10 +132,15 @@ pub contract TokenBlacklist {
         let from_balance = storage.public_balances.at(from).read().sub(amount);
 
         let pending_shields = storage.pending_shields;
-        let mut note = TransparentNote::new(amount.to_field(), secret_hash);
+        let note = TransparentNote::new(amount.to_field(), secret_hash);
 
         storage.public_balances.at(from).write(from_balance);
-        pending_shields.insert_from_public(&mut note);
+
+        // We insert the note hash into the pending_shields. Since the TransparentNote flow is deprecated (use partial
+        // notes instead), we no longer have utility a function exposed on the PrivateSet to insert the note hash from
+        // public context. Hence we need to manually get the slot and insert the note hash into the context.
+        let note_hash = note.compute_note_hash(pending_shields.storage_slot);
+        context.push_note_hash(note_hash);
     }
 
     #[public]

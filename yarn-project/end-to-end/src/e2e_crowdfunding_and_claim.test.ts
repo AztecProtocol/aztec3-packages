@@ -129,20 +129,20 @@ describe('e2e_crowdfunding_and_claim', () => {
   // Processes unique note such that it can be passed to a claim function of Claim contract
   const processUniqueNote = (uniqueNote: UniqueNote) => {
     return {
-      note: {
-        header: {
-          // eslint-disable-next-line camelcase
-          contract_address: uniqueNote.contractAddress,
-          // eslint-disable-next-line camelcase
-          note_hash_counter: 0, // set as 0 as note is not transient
-          nonce: uniqueNote.nonce,
+      proofRetrievedNote: {
+        note: {
+          value: uniqueNote.note.items[0].toBigInt(), // We convert to bigint as Fr is not serializable to U128
+          owner: AztecAddress.fromField(uniqueNote.note.items[1]),
+          randomness: uniqueNote.note.items[2],
         },
-        value: uniqueNote.note.items[0].toBigInt(), // We convert to bigint as Fr is not serializable to U128
         // eslint-disable-next-line camelcase
-        owner: AztecAddress.fromField(uniqueNote.note.items[1]),
-        randomness: uniqueNote.note.items[2],
+        contract_address: uniqueNote.contractAddress,
+        // eslint-disable-next-line camelcase
+        nonce: uniqueNote.nonce,
+        // eslint-disable-next-line camelcase
+        note_hash_counter: 0, // set as 0 as note is not transient
       },
-      slot: uniqueNote.storageSlot,
+      noteStorageSlot: uniqueNote.storageSlot,
     };
   };
 
@@ -175,9 +175,9 @@ describe('e2e_crowdfunding_and_claim', () => {
       expect(filteredNotes!.length).toEqual(1);
 
       // Set the UintNote in a format which can be passed to claim function
-      const { note, slot } = processUniqueNote(filteredNotes![0]);
-      uintNote = note;
-      uintNoteSlot = slot;
+      const { proofRetrievedNote, noteStorageSlot } = processUniqueNote(filteredNotes![0]);
+      uintNote = proofRetrievedNote;
+      uintNoteSlot = noteStorageSlot;
     }
 
     // 3) We claim the reward token via the Claim contract
@@ -256,7 +256,9 @@ describe('e2e_crowdfunding_and_claim', () => {
     expect(filtered!.length).toEqual(1);
 
     // Set the UintNote in a format which can be passed to claim function
-    const { note: anotherDonationNote, slot: anotherDonationNoteSlot } = processUniqueNote(filtered![0]);
+    const { proofRetrievedNote: anotherDonationNote, noteStorageSlot: anotherDonationNoteSlot } = processUniqueNote(
+      filtered![0],
+    );
 
     // 3) We try to claim the reward token via the Claim contract with the unrelated wallet
     {
@@ -298,7 +300,7 @@ describe('e2e_crowdfunding_and_claim', () => {
       await inclusionsProofsContract.methods.sync_notes().simulate();
       const notes = await wallets[0].getNotes({ txHash: receipt.txHash });
       expect(notes.length).toEqual(1);
-      const { note: processedNote, slot } = processUniqueNote(notes[0]);
+      const { proofRetrievedNote: processedNote, noteStorageSlot: slot } = processUniqueNote(notes[0]);
       note = processedNote;
       noteSlot = slot;
     }

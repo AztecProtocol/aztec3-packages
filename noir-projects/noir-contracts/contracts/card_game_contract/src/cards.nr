@@ -71,15 +71,15 @@ pub struct Deck<Context> {
 }
 
 pub fn filter_cards<let N: u32>(
-    notes_with_data: [Option<RetrievedNote<ValueNote>>; MAX_NOTE_HASH_READ_REQUESTS_PER_CALL],
+    retrieved_notes: [Option<RetrievedNote<ValueNote>>; MAX_NOTE_HASH_READ_REQUESTS_PER_CALL],
     desired_cards: [Card; N],
 ) -> [Option<RetrievedNote<ValueNote>>; MAX_NOTE_HASH_READ_REQUESTS_PER_CALL] {
     let mut selected = [Option::none(); MAX_NOTE_HASH_READ_REQUESTS_PER_CALL];
 
     let mut found = [false; N];
 
-    for i in 0..notes_with_data.len() {
-        let retrieved_note = notes_with_data[i];
+    for i in 0..retrieved_notes.len() {
+        let retrieved_note = retrieved_notes[i];
         if retrieved_note.is_some() {
             let card_note = CardNote::from_note(retrieved_note.unwrap_unchecked().note);
             for j in 0..N {

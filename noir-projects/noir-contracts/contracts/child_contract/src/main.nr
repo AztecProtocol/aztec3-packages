@@ -73,8 +73,8 @@ pub contract Child {
     fn private_get_value(amount: Field, owner: AztecAddress) -> Field {
         let mut options = NoteGetterOptions::new();
         options = options.select(ValueNote::properties().value, Comparator.EQ, amount).set_limit(1);
-        let notes_with_data = storage.a_map_with_private_values.at(owner).get_notes(options);
-        notes_with_data.get(0).note.value
+        let retrieved_notes = storage.a_map_with_private_values.at(owner).get_notes(options);
+        retrieved_notes.get(0).note.value
     }
 
     // Increments `current_value` by `new_value`

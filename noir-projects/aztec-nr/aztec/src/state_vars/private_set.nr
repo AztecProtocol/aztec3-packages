@@ -55,13 +55,13 @@ where
         self,
         options: NoteGetterOptions<Note, N, PREPROCESSOR_ARGS, FILTER_ARGS>,
     ) -> BoundedVec<Note, MAX_NOTE_HASH_READ_REQUESTS_PER_CALL> {
-        let (notes_with_data, note_hashes) = get_notes(self.context, self.storage_slot, options);
+        let (retrieved_notes, note_hashes) = get_notes(self.context, self.storage_slot, options);
         // We iterate in a range 0..options.limit instead of 0..notes.len() because options.limit is known at compile
         // time and hence will result in less constraints when set to a lower value than
         // MAX_NOTE_HASH_READ_REQUESTS_PER_CALL.
         for i in 0..options.limit {
-            if i < notes_with_data.len() {
-                let retrieved_note = notes_with_data.get_unchecked(i);
+            if i < retrieved_notes.len() {
+                let retrieved_note = retrieved_notes.get_unchecked(i);
                 let note_hash = note_hashes.get_unchecked(i);
                 // We immediately destroy the note without doing any of the read request checks `remove` typically
                 // performs because we know that the `get_notes` call has already placed those constraints.
@@ -71,7 +71,7 @@ where
 
         // Since the notes were already destroyed, we no longer need the additional data in RetrievedNote and can
         // discard it.
-        notes_with_data.map(|retrieved_note| retrieved_note.note)
+        retrieved_notes.map(|retrieved_note| retrieved_note.note)
     }
 
     /// Note that if you obtained the note via `get_notes` it's much better to use `pop_notes` as `pop_notes` results

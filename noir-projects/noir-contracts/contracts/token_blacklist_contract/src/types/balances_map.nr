@@ -113,7 +113,7 @@ impl<Note> BalancesMap<Note, &mut PrivateContext> {
 }
 
 pub fn filter_notes_min_sum<Note, let NOTE_SERIALIZED_LEN: u32>(
-    notes_with_data: [Option<RetrievedNote<Note>>; MAX_NOTE_HASH_READ_REQUESTS_PER_CALL],
+    retrieved_notes: [Option<RetrievedNote<Note>>; MAX_NOTE_HASH_READ_REQUESTS_PER_CALL],
     min_sum: U128,
 ) -> [Option<RetrievedNote<Note>>; MAX_NOTE_HASH_READ_REQUESTS_PER_CALL]
 where
@@ -121,9 +121,9 @@ where
 {
     let mut selected = [Option::none(); MAX_NOTE_HASH_READ_REQUESTS_PER_CALL];
     let mut sum = U128::from_integer(0);
-    for i in 0..notes_with_data.len() {
-        if notes_with_data[i].is_some() & sum < min_sum {
-            let retrieved_note = notes_with_data[i].unwrap_unchecked();
+    for i in 0..retrieved_notes.len() {
+        if retrieved_notes[i].is_some() & sum < min_sum {
+            let retrieved_note = retrieved_notes[i].unwrap_unchecked();
             selected[i] = Option::some(retrieved_note);
             sum = sum.add(retrieved_note.note.get_amount());
         }

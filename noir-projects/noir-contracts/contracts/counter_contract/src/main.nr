@@ -95,6 +95,7 @@ pub contract Counter {
     use dep::aztec::note::note_getter_options::NoteGetterOptions;
     use dep::aztec::note::note_viewer_options::NoteViewerOptions;
     use dep::aztec::note::retrieved_note::RetrievedNote;
+    use dep::aztec::protocol_types::constants::MAX_NOTE_HASH_READ_REQUESTS_PER_CALL;
     use dep::aztec::protocol_types::storage::map::derive_storage_slot_in_map;
     use dep::aztec::test::helpers::test_environment::TestEnvironment;
 
@@ -153,9 +154,7 @@ pub contract Counter {
         // and view_notes(...) does not provide that.
         let mut options = NoteGetterOptions::new();
         let mut context = env.private();
-        // let (retrieved_notes, _): (BoundedVec<RetrievedNote<ValueNote>, MAX_NOTES_PER_PAGE>, BoundedVec<Field, MAX_NOTES_PER_PAGE>) = get_notes(&mut context, owner_storage_slot, options);
-
-        let (retrieved_notes, _): (BoundedVec<RetrievedNote<ValueNote>, MAX_NOTES_PER_PAGE>, BoundedVec<Field, MAX_NOTES_PER_PAGE>) =
+        let (retrieved_notes, _): (BoundedVec<RetrievedNote<ValueNote>, MAX_NOTE_HASH_READ_REQUESTS_PER_CALL>, _) =
             get_notes(&mut context, owner_storage_slot, options);
 
         let initial_note_value = retrieved_notes.get(0).note.value;
@@ -172,19 +171,20 @@ pub contract Counter {
             &mut env.private(),
         );
 
-        // destroy_note(&mut env.private(), old_note, owner_storage_slot);
-        // env.advance_block_by(1);
+        destroy_note(&mut env.private(), old_retrieved_note, owner_storage_slot);
+        env.advance_block_by(1);
 
-        // env.private().get_block_header().prove_note_is_nullified(
-        //     old_note,
-        //     owner_storage_slot,
-        //     &mut env.private(),
-        // );
-        // env.private().get_block_header().prove_note_inclusion(old_note, owner_storage_slot);
+        env.private().get_block_header().prove_note_is_nullified(
+            old_retrieved_note,
+            owner_storage_slot,
+            &mut env.private(),
+        );
+        env.private().get_block_header().prove_note_inclusion(old_retrieved_note, owner_storage_slot);
 
-        // let notes: BoundedVec<ValueNote, MAX_NOTES_PER_PAGE> = view_notes(owner_storage_slot, options);
+        let (retrieved_notes, _): (BoundedVec<RetrievedNote<ValueNote>, MAX_NOTE_HASH_READ_REQUESTS_PER_CALL>, _) =
+            get_notes(&mut env.private(), owner_storage_slot, options);
 
-        // assert(notes.len() == 0);
+        assert(retrieved_notes.len() == 0);
     }
 
     #[test]

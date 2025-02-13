@@ -169,7 +169,7 @@ unconstrained fn applies_filter_before_constraining() {
     assert_eq(context.note_hash_read_requests.len(), 1);
 }
 
-#[test(should_fail_with = "Mismatch note header contract address.")]
+#[test(should_fail_with = "Note contract address mismatch.")]
 unconstrained fn rejects_mismatched_address() {
     let mut env = setup();
     let mut context = env.private();

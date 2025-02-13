@@ -38,18 +38,6 @@ fn extract_property_value_from_selector<let N: u32>(
     value_field
 }
 
-// TODO(benesjan): nuke?
-fn check_note_header<Note, let N: u32>(context: PrivateContext, retrieved_note: RetrievedNote<Note>)
-where
-    Note: NoteInterface<N>,
-{
-    let contract_address = context.this_address();
-    assert(
-        retrieved_note.contract_address.eq(contract_address),
-        "Mismatch note header contract address.",
-    );
-}
-
 fn check_note_content<let N: u32>(
     packed_note_content: [Field; N],
     selects: BoundedVec<Option<Select>, N>,
@@ -95,7 +83,14 @@ where
     /// Safety: Constraining that we got a valid note from the oracle is fairly straightforward: all we need to do
     /// is check that the metadata is correct, and that the note exists.
     let retrieved_note = unsafe { get_note_internal::<Note, N>(storage_slot) };
-    check_note_header(*context, retrieved_note);
+
+    // TODO: For non-transient notes, the contract address appears to be implicitly checked since we return a siloed
+    // note hash from the `compute_note_hash_for_read_request(...)` function. Investigate whether this check is needed
+    // for transient notes and if not, remove it.
+    assert(
+        retrieved_note.contract_address.eq(context.this_address()),
+        "Note contract address mismatch.",
+    );
 
     let note_hash_for_read_request =
         compute_note_hash_for_read_request(retrieved_note, storage_slot);
@@ -158,8 +153,16 @@ where
     for i in 0..options.limit {
         if i < notes.len() {
             let retrieved_note = notes.get_unchecked(i);
+
+            // TODO: For non-transient notes, the contract address appears to be implicitly checked since we return
+            // a siloed note hash from the `compute_note_hash_for_read_request(...)` function. Investigate whether this
+            // check is needed for transient notes and if not, remove it.
+            assert(
+                retrieved_note.contract_address.eq(context.this_address()),
+                "Note contract address mismatch.",
+            );
+
             let fields = retrieved_note.note.pack_content();
-            check_note_header(*context, retrieved_note);
             check_note_content(fields, options.selects);
             if i != 0 {
                 check_notes_order(prev_fields, fields, options.sorts);

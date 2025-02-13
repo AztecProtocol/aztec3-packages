@@ -264,29 +264,33 @@ pub contract Counter {
         assert(notes.len() == 4);
     }
 
-    // TODO(benesjan): Fix or nuke this test
-    // #[test(should_fail)]
-    // unconstrained fn inclusion_proofs_failure() {
-    //     let initial_value = 5;
-    //     let (env, contract_address, owner) = test::setup(initial_value);
+    #[test(should_fail)]
+    unconstrained fn inclusion_proofs_failure() {
+        let initial_value = 5;
+        let (env, contract_address, owner) = test::setup(initial_value);
 
-    //     env.impersonate(contract_address);
-    //     let counter_slot = Counter::storage_layout().counters.slot;
-    //     let owner_storage_slot = derive_storage_slot_in_map(counter_slot, owner);
-    //     let mut options = NoteViewerOptions::new();
-    //     let notes: BoundedVec<ValueNote, MAX_NOTES_PER_PAGE> = view_notes(owner_storage_slot, options);
-    //     let initial_note_value = notes.get(0).value;
-    //     assert(
-    //         initial_note_value == initial_value,
-    //         f"Expected {initial_value} but got {initial_note_value}",
-    //     );
+        env.impersonate(contract_address);
+        let counter_slot = Counter::storage_layout().counters.slot;
+        let owner_storage_slot = derive_storage_slot_in_map(counter_slot, owner);
 
-    //     let old_note = notes.get(0);
+        // We use get_notes(...) instead of view_notes(...) here even though view_notes(...) is generally
+        // used in a private context because we need the additional information of the RetrievedNote struct
+        // and view_notes(...) does not provide that.
+        let options = NoteGetterOptions::new();
+        let (retrieved_notes, _): (BoundedVec<RetrievedNote<ValueNote>, MAX_NOTE_HASH_READ_REQUESTS_PER_CALL>, _) =
+            get_notes(&mut env.private(), owner_storage_slot, options);
+        let initial_note_value = retrieved_notes.get(0).note.value;
+        assert(
+            initial_note_value == initial_value,
+            f"Expected {initial_value} but got {initial_note_value}",
+        );
 
-    //     env.private().get_block_header().prove_note_validity(
-    //         old_note,
-    //         owner_storage_slot,
-    //         &mut env.private(),
-    //     );
-    // }
+        let old_note = retrieved_notes.get(0);
+
+        env.private().get_block_header().prove_note_validity(
+            old_note,
+            owner_storage_slot,
+            &mut env.private(),
+        );
+    }
 }

@@ -155,7 +155,7 @@ pub contract Counter {
         let mut context = env.private();
         // let (retrieved_notes, _): (BoundedVec<RetrievedNote<ValueNote>, MAX_NOTES_PER_PAGE>, BoundedVec<Field, MAX_NOTES_PER_PAGE>) = get_notes(&mut context, owner_storage_slot, options);
 
-        let (retrieved_notes, note_hashes): (BoundedVec<RetrievedNote<ValueNote>, MAX_NOTES_PER_PAGE>, BoundedVec<Field, MAX_NOTES_PER_PAGE>) =
+        let (retrieved_notes, _): (BoundedVec<RetrievedNote<ValueNote>, MAX_NOTES_PER_PAGE>, BoundedVec<Field, MAX_NOTES_PER_PAGE>) =
             get_notes(&mut context, owner_storage_slot, options);
 
         let initial_note_value = retrieved_notes.get(0).note.value;

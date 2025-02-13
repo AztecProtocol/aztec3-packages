@@ -1,8 +1,11 @@
 mod types;
 
+use dep::aztec::macros::aztec;
+
 // NOTE: This contract is stale and is kept around only as a reference of how to implement a blacklist.
 // Don't take into consideration the interface of this contract. The TransparentNote "shield" flow is
 // deprecated and has been replaced with partial notes in the standard token contract.
+// TODO(#11970): https://github.com/AztecProtocol/aztec-packages/issues/11970
 //
 // Minimal token implementation that supports `AuthWit` accounts and SharedMutable variables.
 // The auth message follows a similar pattern to the cross-chain message and includes a designated caller.
@@ -11,9 +14,6 @@ mod types;
 // To be read as `caller` calls function at `contract` defined by `selector` with `args`
 // Including a nonce in the message hash ensures that the message can only be used once.
 // The SharedMutables are used for access control related to minters and blacklist.
-
-use dep::aztec::macros::aztec;
-
 #[aztec]
 pub contract TokenBlacklist {
     // Libs

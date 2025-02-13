@@ -12,6 +12,8 @@
 
 source $(git rev-parse --show-toplevel)/ci3/source
 
+set -x
+
 # Positional parameters.
 namespace="$1"
 values_file="${2:-default.yaml}"
@@ -32,7 +34,7 @@ fi
 ../bootstrap.sh kind
 
 # Load the Docker image into kind
-kind load docker-image aztecprotocol/aztec:$aztec_docker_tag
+flock logs/kind-image.lock kind load docker-image aztecprotocol/aztec:$aztec_docker_tag
 
 function show_status_until_pxe_ready {
   set +x   # don't spam with our commands

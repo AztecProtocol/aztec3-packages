@@ -88,13 +88,14 @@ if [ "$fresh_install" != "no-deploy" ]; then
 fi
 
 # Find 4 free ports between 9000 and 10000
-free_ports=$(find_ports 4)
+free_ports=$(find_ports 5)
 
 # Extract the free ports from the list
 forwarded_pxe_port=$(echo $free_ports | awk '{print $1}')
 forwarded_anvil_port=$(echo $free_ports | awk '{print $2}')
 forwarded_metrics_port=$(echo $free_ports | awk '{print $3}')
 forwarded_node_port=$(echo $free_ports | awk '{print $4}')
+forwarded_prover_node_port=$(echo $free_ports | awk '{print $5}')
 
 if [ "$install_metrics" = "true" ]; then
   grafana_password=$(kubectl get secrets -n metrics metrics-grafana -o jsonpath='{.data.admin-password}' | base64 --decode)
@@ -134,6 +135,8 @@ if [ "$use_docker" = "true" ]; then
     -e CONTAINER_ETHEREUM_PORT=8545 \
     -e HOST_NODE_PORT=$forwarded_node_port \
     -e CONTAINER_NODE_PORT=8080 \
+    -e HOST_PROVER_NODE_PORT=$forwarded_prover_node_port \
+    -e CONTAINER_PROVER_NODE_PORT=8080 \
     -e HOST_METRICS_PORT=$forwarded_metrics_port \
     -e CONTAINER_METRICS_PORT=80 \
     -e GRAFANA_PASSWORD=$grafana_password \
@@ -159,6 +162,8 @@ else
   export CONTAINER_ETHEREUM_PORT="8545"
   export HOST_NODE_PORT="$forwarded_node_port"
   export CONTAINER_NODE_PORT="8080"
+  export HOST_PROVER_NODE_PORT=$forwarded_prover_node_port
+  export CONTAINER_PROVER_NODE_PORT="8080"
   export HOST_METRICS_PORT="$forwarded_metrics_port"
   export CONTAINER_METRICS_PORT="80"
   export GRAFANA_PASSWORD="$grafana_password"

@@ -9,6 +9,7 @@ pub contract Claim {
         state_vars::PublicImmutable,
     };
     use dep::uint_note::uint_note::UintNote;
+    use crowdfunding::Crowdfunding;
     use token::Token;
 
     // TODO: This can be optimized by storing the addresses in Config struct in 1 PublicImmutable (less merkle proofs).
@@ -28,11 +29,7 @@ pub contract Claim {
     }
 
     #[private]
-    fn claim(
-        proof_retrieved_note: RetrievedNote<UintNote>,
-        note_storage_slot: Field,
-        recipient: AztecAddress,
-    ) {
+    fn claim(proof_retrieved_note: RetrievedNote<UintNote>, recipient: AztecAddress) {
         // 1) Check that the note corresponds to the target contract and belongs to the sender
         let target_address = storage.target_contract.read();
         assert(
@@ -46,6 +43,8 @@ pub contract Claim {
         );
 
         // 2) Prove that the note hash exists in the note hash tree
+        // Note: The note has been inserted into the donation_receipts set in the Crowdfunding contract.
+        let note_storage_slot = Crowdfunding::storage_layout().donation_receipts.slot;
         let header = context.get_block_header();
         header.prove_note_inclusion(proof_retrieved_note, note_storage_slot);
 

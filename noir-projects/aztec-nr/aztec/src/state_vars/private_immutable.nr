@@ -74,7 +74,8 @@ impl<Note> PrivateImmutable<Note, &mut PrivateContext> {
         let storage_slot = self.storage_slot;
         let retrieved_note = get_note(self.context, storage_slot).0;
 
-        // Because the notes obtained from PrivateImmutable are not meant to be nullified, we can return just the note
+        // Because the notes obtained from PrivateImmutable are not meant to be nullified and get_note(...) function
+        // has already constrained the note (by pushing a read request to the context), we can return just the note
         // and skip the additional data in RetrievedNote.
         retrieved_note.note
     }

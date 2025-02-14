@@ -58,6 +58,7 @@ describe('AVM WitGen & Circuit – check circuit', () => {
     },
     TIMEOUT,
   );
+  // FIXME(dbanks12): fails with "Lookup PERM_MAIN_ALU failed."
   it.skip('top-level exceptional halts due to a non-existent contract in app-logic and teardown', async () => {
     // don't insert contracts into trees, and make sure retrieval fails
     const tester = await AvmProvingTester.create(/*checkCircuitOnly=*/ true, /*skipContractDeployments=*/ true);

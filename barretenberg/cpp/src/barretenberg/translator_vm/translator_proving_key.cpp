@@ -61,12 +61,6 @@ void TranslatorProvingKey::compute_concatenated_polynomials_by_interleaving()
 {
     auto groups = proving_key->polynomials.get_groups_to_be_concatenated();
     auto concatenated_polynomials = proving_key->polynomials.get_concatenated();
-
-    // Targets have to be full-sized proving_key->polynomials. We can compute the mini circuit size from them by
-    // dividing by concatenation index
-    const size_t MINI_CIRCUIT_SIZE = concatenated_polynomials[0].size() / Flavor::CONCATENATION_GROUP_SIZE;
-    ASSERT(MINI_CIRCUIT_SIZE * Flavor::CONCATENATION_GROUP_SIZE == concatenated_polynomials[0].size());
-
     for (auto [concatenated, group] : zip_view(concatenated_polynomials, groups)) {
         interleave(group, concatenated);
     }
@@ -78,14 +72,12 @@ void TranslatorProvingKey::compute_concatenated_polynomials_by_interleaving()
 void TranslatorProvingKey::interleave(const RefVector<Polynomial>& group, Polynomial& result)
 {
 
-    const size_t group_size = group.size();
-    // TODO(https://github.com/AztecProtocol/barretenberg/issues/1250): Initialise the group polynomials on their
-    // correct sizes so we could call group[0].size() here
-    const size_t group_polynomial_size = result.size() / group_size;
-    ASSERT(group_polynomial_size * group_size == result.size());
-    for (size_t j = group[0].start_index(); j < group_polynomial_size; j++) {
-        for (size_t k = 0; k < group_size; k++) {
-            result.at(j * group_size + k) = group[k][j];
+    const size_t num_polys_in_group = group.size();
+    // Ensure the result polynomial fits all the elements from the polynomials in the group
+    ASSERT(group[0].size() * num_polys_in_group <= result.size());
+    for (size_t j = group[0].start_index(); j < group[0].size(); j++) {
+        for (size_t k = 0; k < num_polys_in_group; k++) {
+            result.at(j * num_polys_in_group + k) = group[k][j];
         }
     }
 }
@@ -167,7 +159,7 @@ void TranslatorProvingKey::compute_translator_range_constraint_ordered_polynomia
             // Calculate the offset in the target vector
             auto current_offset = j * mini_circuit_dyadic_size;
             // For each element in the polynomial
-            for (size_t k = 0; k < mini_circuit_dyadic_size; k++) {
+            for (size_t k = my_group[j].start_index(); k < my_group[j].size(); k++) {
 
                 // Put it it the target polynomial
                 if ((current_offset + k) < free_space_before_runway) {

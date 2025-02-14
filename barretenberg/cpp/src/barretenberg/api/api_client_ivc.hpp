@@ -1,10 +1,12 @@
 #pragma once
 
-#include "barretenberg/bb/acir_format_getters.hpp"
-#include "barretenberg/bb/api.hpp"
-#include "barretenberg/bb/init_srs.hpp"
+#include "barretenberg/api/acir_format_getters.hpp"
+#include "barretenberg/api/api.hpp"
+#include "barretenberg/api/init_srs.hpp"
 #include "barretenberg/client_ivc/mock_circuit_producer.hpp"
+#include "barretenberg/common/map.hpp"
 #include "barretenberg/common/throw_or_abort.hpp"
+#include "barretenberg/dsl/acir_format/ivc_recursion_constraint.hpp"
 #include "libdeflate.h"
 
 namespace bb {
@@ -82,6 +84,73 @@ std::vector<uint8_t> decompress(const void* bytes, size_t size)
     return content;
 }
 
+/**
+ * @brief Compute and write to file a MegaHonk VK for a circuit to be accumulated in the IVC
+ * @note This method differes from write_vk_honk<MegaFlavor> in that it handles kernel circuits which require special
+ * treatment (i.e. construction of mock IVC state to correctly complete the kernel logic).
+ *
+ * @param bytecode_path
+ * @param witness_path
+ */
+void write_vk_for_ivc(const bool output_fields, const std::string& bytecode_path, const std::string& output_path)
+{
+    using Builder = ClientIVC::ClientCircuit;
+    using Prover = ClientIVC::MegaProver;
+    using DeciderProvingKey = ClientIVC::DeciderProvingKey;
+    using VerificationKey = ClientIVC::MegaVerificationKey;
+    using Program = acir_format::AcirProgram;
+    using ProgramMetadata = acir_format::ProgramMetadata;
+
+    // TODO(https://github.com/AztecProtocol/barretenberg/issues/1163) set these dynamically
+    init_bn254_crs(1 << CONST_PG_LOG_N);
+    init_grumpkin_crs(1 << CONST_ECCVM_LOG_N);
+
+    Program program{ get_constraint_system(bytecode_path, /*honk_recursion=*/0), /*witness=*/{} };
+    auto& ivc_constraints = program.constraints.ivc_recursion_constraints;
+
+    TraceSettings trace_settings{ E2E_FULL_TEST_STRUCTURE };
+
+    const ProgramMetadata metadata{ .ivc = ivc_constraints.empty()
+                                               ? nullptr
+                                               : create_mock_ivc_from_constraints(ivc_constraints, trace_settings) };
+    Builder builder = acir_format::create_circuit<Builder>(program, metadata);
+
+    // Add public inputs corresponding to pairing point accumulator
+    builder.add_pairing_point_accumulator(stdlib::recursion::init_default_agg_obj_indices<Builder>(builder));
+
+    // Construct the verification key via the prover-constructed proving key with the proper trace settings
+    auto proving_key = std::make_shared<DeciderProvingKey>(builder, trace_settings);
+    Prover prover{ proving_key };
+    init_bn254_crs(prover.proving_key->proving_key.circuit_size);
+    VerificationKey vk(prover.proving_key->proving_key);
+
+    if (output_fields) {
+        std::vector<bb::fr> data = vk.to_field_elements();
+
+        const auto to_json = [](const std::vector<bb::fr>& data) {
+            return format("[", join(map(data, [](auto fr) { return format("\"", fr, "\""); })), "]");
+        };
+        auto json = to_json(data);
+        info("vk as fields: ", json);
+        if (output_path == "-") {
+            write_string_to_stdout(json);
+        } else {
+            write_file(output_path, { json.begin(), json.end() });
+            vinfo("vk as fields written to: ", output_path);
+        }
+    } else {
+        // Write the VK to file as a buffer
+        auto serialized_vk = to_buffer(vk);
+        if (output_path == "-") {
+            write_bytes_to_stdout(serialized_vk);
+            vinfo("vk written to stdout");
+        } else {
+            write_file(output_path, serialized_vk);
+            vinfo("vk written to: ", output_path);
+        }
+    }
+}
+
 class ClientIVCAPI : public API {
     static std::vector<acir_format::AcirProgram> _build_folding_stack(const std::string& input_type,
                                                                       const std::filesystem::path& bytecode_path,
@@ -146,39 +215,30 @@ class ClientIVCAPI : public API {
     };
 
   public:
-    void prove(const API::Flags& flags,
+    void prove(const Flags& flags,
                const std::filesystem::path& bytecode_path,
                const std::filesystem::path& witness_path,
                const std::filesystem::path& output_dir) override
     {
-        if (!flags.output_type || *flags.output_type != "fields_msgpack") {
-            throw_or_abort("No output_type or output_type not supported");
-        }
-
-        if (!flags.input_type || !(*flags.input_type == "compiletime_stack" || *flags.input_type == "runtime_stack")) {
-            throw_or_abort("No input_type or input_type not supported");
-        }
-
         // TODO(https://github.com/AztecProtocol/barretenberg/issues/1163) set these dynamically
         init_bn254_crs(1 << CONST_PG_LOG_N);
         init_grumpkin_crs(1 << CONST_ECCVM_LOG_N);
 
         std::vector<acir_format::AcirProgram> folding_stack =
-            _build_folding_stack(*flags.input_type, bytecode_path, witness_path);
+            _build_folding_stack(flags.input_type, bytecode_path, witness_path);
 
         std::shared_ptr<ClientIVC> ivc = _accumulate(folding_stack);
         ClientIVC::Proof proof = ivc->prove();
 
         // Write the proof and verification keys into the working directory in  'binary' format (in practice it seems
         // this directory is passed by bb.js)
-        vinfo("writing ClientIVC proof and vk...");
-        write_file(output_dir / "client_ivc_proof", to_buffer(proof));
+        vinfo("writing ClientIVC proof and vk in directory ", output_dir);
+        write_file(output_dir / "proof", to_buffer(proof));
 
         auto eccvm_vk = std::make_shared<ECCVMFlavor::VerificationKey>(ivc->goblin.get_eccvm_proving_key());
         auto translator_vk =
             std::make_shared<TranslatorFlavor::VerificationKey>(ivc->goblin.get_translator_proving_key());
-        write_file(output_dir / "client_ivc_vk",
-                   to_buffer(ClientIVC::VerificationKey{ ivc->honk_vk, eccvm_vk, translator_vk }));
+        write_file(output_dir / "vk", to_buffer(ClientIVC::VerificationKey{ ivc->honk_vk, eccvm_vk, translator_vk }));
     };
 
     /**
@@ -193,7 +253,7 @@ class ClientIVCAPI : public API {
      * @param accumualtor_path Path to the file containing the serialized protogalaxy accumulator
      * @return true (resp., false) if the proof is valid (resp., invalid).
      */
-    bool verify([[maybe_unused]] const API::Flags& flags,
+    bool verify([[maybe_unused]] const Flags& flags,
                 const std::filesystem::path& proof_path,
                 const std::filesystem::path& vk_path) override
     {
@@ -201,7 +261,9 @@ class ClientIVCAPI : public API {
         init_bn254_crs(1);
         init_grumpkin_crs(1 << CONST_ECCVM_LOG_N);
 
+        info("reading proof from ", proof_path);
         const auto proof = from_buffer<ClientIVC::Proof>(read_file(proof_path));
+        info("reading vk from ", vk_path);
         const auto vk = from_buffer<ClientIVC::VerificationKey>(read_file(vk_path));
 
         vk.mega->pcs_verification_key = std::make_shared<VerifierCommitmentKey<curve::BN254>>();
@@ -214,11 +276,11 @@ class ClientIVCAPI : public API {
         return verified;
     };
 
-    bool prove_and_verify(const API::Flags& flags,
+    bool prove_and_verify(const Flags& flags,
                           const std::filesystem::path& bytecode_path,
                           const std::filesystem::path& witness_path) override
     {
-        if (!flags.input_type || !(*flags.input_type == "compiletime_stack" || *flags.input_type == "runtime_stack")) {
+        if (!(flags.input_type == "compiletime_stack" || flags.input_type == "runtime_stack")) {
             throw_or_abort("No input_type or input_type not supported");
         }
 
@@ -227,77 +289,41 @@ class ClientIVCAPI : public API {
         init_grumpkin_crs(1 << CONST_ECCVM_LOG_N);
 
         std::vector<acir_format::AcirProgram> folding_stack =
-            _build_folding_stack(*flags.input_type, bytecode_path, witness_path);
+            _build_folding_stack(flags.input_type, bytecode_path, witness_path);
         std::shared_ptr<ClientIVC> ivc = _accumulate(folding_stack);
         const bool verified = ivc->prove_and_verify();
         return verified;
     };
 
-    /**
-     * @brief Write an arbitrary but valid ClientIVC proof and VK to files
-     * @details used to test the prove_tube flow
-     *
-     * @param flags
-     * @param output_dir
-     */
-    void write_arbitrary_valid_proof_and_vk_to_file(const API::Flags& flags,
-                                                    const std::filesystem::path& output_dir) override
-    {
-        if (!flags.output_type || *flags.output_type != "fields_msgpack") {
-            throw_or_abort("No output_type or output_type not supported");
-        }
-
-        if (!flags.input_type || !(*flags.input_type == "compiletime_stack" || *flags.input_type == "runtime_stack")) {
-            throw_or_abort("No input_type or input_type not supported");
-        }
-
-        // TODO(https://github.com/AztecProtocol/barretenberg/issues/1163) set these dynamically
-        init_bn254_crs(1 << CONST_PG_LOG_N);
-        init_grumpkin_crs(1 << CONST_ECCVM_LOG_N);
-
-        ClientIVC ivc{ { CLIENT_IVC_BENCH_STRUCTURE } };
-
-        // Construct and accumulate a series of mocked private function execution circuits
-        PrivateFunctionExecutionMockCircuitProducer circuit_producer;
-        size_t NUM_CIRCUITS = 2;
-        for (size_t idx = 0; idx < NUM_CIRCUITS; ++idx) {
-            auto circuit = circuit_producer.create_next_circuit(ivc);
-            ivc.accumulate(circuit);
-        }
-
-        ClientIVC::Proof proof = ivc.prove();
-
-        // Write the proof and verification keys into the working directory in 'binary' format
-        vinfo("writing ClientIVC proof and vk...");
-        write_file(output_dir / "client_ivc_proof", to_buffer(proof));
-
-        auto eccvm_vk = std::make_shared<ECCVMFlavor::VerificationKey>(ivc.goblin.get_eccvm_proving_key());
-        auto translator_vk =
-            std::make_shared<TranslatorFlavor::VerificationKey>(ivc.goblin.get_translator_proving_key());
-        write_file(output_dir / "client_ivc_vk",
-                   to_buffer(ClientIVC::VerificationKey{ ivc.honk_vk, eccvm_vk, translator_vk }));
-    };
-
-    void gates([[maybe_unused]] const API::Flags& flags,
-               [[maybe_unused]] const std::filesystem::path& bytecode_path,
-               [[maybe_unused]] const std::filesystem::path& witness_path) override
+    void gates([[maybe_unused]] const Flags& flags,
+               [[maybe_unused]] const std::filesystem::path& bytecode_path) override
     {
         throw_or_abort("API function not implemented");
     };
 
-    void contract([[maybe_unused]] const API::Flags& flags,
+    void contract([[maybe_unused]] const Flags& flags,
                   [[maybe_unused]] const std::filesystem::path& output_path,
                   [[maybe_unused]] const std::filesystem::path& vk_path) override
     {
         throw_or_abort("API function not implemented");
     };
 
-    void to_fields([[maybe_unused]] const API::Flags& flags,
-                   [[maybe_unused]] const std::filesystem::path& proof_path,
-                   [[maybe_unused]] const std::filesystem::path& vk_path,
-                   [[maybe_unused]] const std::filesystem::path& output_path) override
+    void write_vk(const Flags& flags,
+                  const std::filesystem::path& bytecode_path,
+                  const std::filesystem::path& output_path) override
     {
-        throw_or_abort("API function not implemented");
+        ASSERT(flags.output_data_type == "bytes" || flags.output_data_type == "fields");
+
+        write_vk_for_ivc(flags.output_data_type == "fields", bytecode_path, output_path);
+    };
+
+    virtual bool check_witness([[maybe_unused]] const Flags& flags,
+                               [[maybe_unused]] const std::filesystem::path& bytecode_path,
+                               [[maybe_unused]] const std::filesystem::path& witness_path) override
+
+    {
+        throw_or_abort("API function not implemented; IVC is built in!");
+        return false;
     };
 };
 } // namespace bb

@@ -13,6 +13,7 @@ trap "rm -rf $outdir" EXIT
 
 flags="-c $CRS_PATH ${VERBOSE:+-v} -o $outdir"
 
-$BIN write_arbitrary_valid_proof_and_vk_to_file --scheme client_ivc $flags
-$BIN prove_tube $flags
-$BIN verify_tube $flags
+# WORKTODO: deprecate and just create an acir_test whose proof will work
+$BIN OLD_API write_arbitrary_valid_client_ivc_proof_and_vk_to_file $flags
+$BIN OLD_API prove_tube $flags
+$BIN OLD_API verify_tube $flags
